@@ -49,6 +49,10 @@ public class HTTPRequest {
 	//public boolean php_redirect_directory_flag;
 	//public record SnInfo(long sn_mega, int g_id) {}
 	ArrayList<KeyManager.SnInfo> sn_megaList;
+	private static final int MAX_QUERY_PARAMS = 100;  // Обмеження кількості параметрів запиту
+	private static final int MAX_HEADER_COUNT = 50;   // Максимальна кількість заголовків
+	private static final int MAX_HEADER_SIZE = 8192;  // 8KB - розумний ліміт для заголовків
+	private static final int MAX_QUERY_PARAM_LENGTH = 1024;  // Максимальна довжина параметра
 
 	private String convertString(String str) {
 		try {

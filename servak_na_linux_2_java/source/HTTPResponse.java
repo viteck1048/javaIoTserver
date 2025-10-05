@@ -334,7 +334,7 @@ public class HTTPResponse {
 			if (httpRequest.portTrue == 443 && Configs.getBoolean("https_run")) {
 				headers = headers.replace("\r\n\r\n", "\r\nStrict-Transport-Security: max-age=31536000; includeSubDomains\r\n\r\n");
 			}
-			// Security headers для всіх відповідей
+			/*// Security headers для всіх відповідей
 			if (!headers.contains("X-Frame-Options:")) {
 				headers = headers.replace("\r\n\r\n", "\r\nX-Frame-Options: DENY\r\n\r\n");
 			}
@@ -349,7 +349,7 @@ public class HTTPResponse {
 			}
 			if (!headers.contains("Permissions-Policy:")) {
 				headers = headers.replace("\r\n\r\n", "\r\nPermissions-Policy: geolocation=(), microphone=(), camera=()\r\n\r\n");
-			}
+			}*/
 			//System.out.println(headers);
 		}
 	}

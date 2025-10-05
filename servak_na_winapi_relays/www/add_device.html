@@ -1,0 +1,212 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Додати пристрій</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            line-height: 1.6;
+        }
+        .container {
+            background: #f9f9f9;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        h1 {
+            color: #333;
+            text-align: center;
+        }
+        .form-group {
+            margin-bottom: 15px;
+        }
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+        }
+        input[type="text"], input[type="number"] {
+            width: 100%;
+            padding: 8px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            box-sizing: border-box;
+        }
+        button {
+            background-color: #4CAF50;
+            color: white;
+            padding: 10px 15px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 16px;
+        }
+        button:hover {
+            background-color: #45a049;
+        }
+        #searchResults {
+            margin-top: 20px;
+            display: none;
+        }
+        .device-info {
+            background: #fff;
+            padding: 15px;
+            border-radius: 4px;
+            margin-top: 10px;
+            border: 1px solid #ddd;
+        }
+        .error {
+            color: #d32f2f;
+            margin-top: 10px;
+        }
+        .success {
+            color: #388e3c;
+            margin-top: 10px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Додати новий пристрій</h1>
+        <div class="form-group">
+            <label for="serialNumber">Серійний номер пристрою:</label>
+            <input type="text" id="serialNumber" placeholder="Введіть серійний номер">
+        </div>
+        <button onclick="searchDevice()">Знайти пристрій</button>
+        
+        <div id="searchResults">
+            <div class="device-info">
+                <h3>Знайдено пристрій</h3>
+                <p>Серійний номер: <span id="foundSn"></span></p>
+                <p>Статус: <span id="deviceStatus">Онлайн</span></p>
+                
+                <div class="form-group" style="margin-top: 20px;">
+                    <label for="pinCode">Введіть PIN-код (4 цифри):</label>
+                    <input type="number" id="pinCode" placeholder="0000" min="0" max="9999" maxlength="4" pattern="\d{4}">
+                </div>
+                
+                <button onclick="registerDevice()">Зареєструвати пристрій</button>
+                <div id="message" class="error"></div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let currentDeviceSn = '';
+
+        function isValidSerialNumber(sn) {
+            // Check if it's a positive integer with reasonable length (1-10 digits)
+            return /^\d{1,10}$/.test(sn) && parseInt(sn) > 0;
+        }
+
+        function searchDevice() {
+            const snInput = document.getElementById('serialNumber').value.trim();
+            if (!snInput) {
+                showMessage('Будь ласка, введіть серійний номер', 'error');
+                return;
+            }
+            
+            if (!isValidSerialNumber(snInput)) {
+                showMessage('Серійний номер має бути додатнім числом', 'error');
+                return;
+            }
+            
+            const sn = parseInt(snInput);
+
+            // Make a POST request to check if the device exists and is online
+            const params = new URLSearchParams();
+            params.append('sn', sn);
+            
+            fetch('device_status', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded',
+                },
+                body: params.toString()
+            })
+            .then(response => response.json())
+            .then(data => {
+                    if (data.found && data.online) {
+                        currentDeviceSn = sn;
+                        document.getElementById('foundSn').textContent = sn;
+                        document.getElementById('searchResults').style.display = 'block';
+                        showMessage('', '');
+                    } else {
+                        showMessage('Пристрій не знайдено або офлайн', 'error');
+                        document.getElementById('searchResults').style.display = 'none';
+                    }
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    showMessage('Помилка пошуку пристрою', 'error');
+                });
+        }
+
+        function registerDevice() {
+            const pin = document.getElementById('pinCode').value.trim();
+            
+            if (!pin) {
+                showMessage('Будь ласка, введіть PIN-код', 'error');
+                return;
+            }
+            
+            if (pin.length !== 4 || !/^\d{4}$/.test(pin)) {
+                showMessage('PIN-код має містити рівно 4 цифри', 'error');
+                return;
+            }
+            
+            if (pin === '0000') {
+                showMessage('PIN-код не може бути 0000', 'error');
+                return;
+            }
+
+            const params = new URLSearchParams();
+            params.append('sn', currentDeviceSn);
+            params.append('pin', pin);
+            params.append('reestr', 'gadget');
+
+            fetch('register_device', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded',
+                },
+                body: params.toString()
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    showMessage(data.message || 'Пристрій успішно зареєстровано!', 'success');
+                    // Redirect to main page after 2 seconds
+                    setTimeout(() => {
+                        window.location.href = 'knopky.html';
+                    }, 2000);
+                } else {
+                    showMessage(data.message || 'Помилка реєстрації пристрою', 'error');
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                showMessage('Помилка реєстрації пристрою', 'error');
+            });
+        }
+
+        function showMessage(message, type) {
+            const messageElement = document.getElementById('message');
+            messageElement.textContent = message;
+            messageElement.className = type || '';
+        }
+
+        // Add input validation for PIN code
+        document.getElementById('pinCode').addEventListener('input', function(e) {
+            if (this.value.length > 4) {
+                this.value = this.value.slice(0, 4);
+            }
+        });
+    </script>
+</body>
+</html>

@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+	<meta charset="UTF-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1.0">
+	<title>Мій Сервак - головна сторінка</title>
+	<link rel="icon" href="gear.png" type="image/png">
+	<link rel="stylesheet" href="css/home_page.css">
+	<script src="js/translations.js"></script>
+	<script src="js/home_page.js"></script>
+	<script src="js/transltAndSwop.js"></script>
+</head>
+<body>
+	<div class="main-container">
+		<!--header>
+			<h1>Мій Сервак - домашня сторінка</h1>
+		</header-->
+		<nav>
+			<div class="container">
+				<ul class="nav-links">
+					<li><a href="#" id="nav-home" class="logo">MijServak</a></li>
+					<li class="login-link"><a href="#" id="nav-auth"></a></li>
+				</ul>
+			</div>
+		</nav>
+		<button id="menuToggle">&#9776;</button>
+		
+		<div class="content">
+			<!-- Бокова панель з посиланнями -->
+			<div class="sidebar" id="sidebar">
+				<h3 class="sidebar-title">Links</h3>
+				<ul class="links-list" id="links-list">
+					<!-- Сюди будуть додаватись посилання -->
+					<li><span class="loading-message">Завантаження посилань...</span></li>
+				</ul>
+			</div>
+			
+			<!-- Основний контент -->
+			<div class="main-content">
+				<!-- Головна сторінка -->
+				<div class="home-section" id="home-container">
+					<h3 class="section-title-index section-title">Ласкаво просимо</h3>
+					<div class="home-content" id="home-content">
+						<!-- Тут буде відображатись текст з text.txt -->
+						<p>Завантаження даних...</p>
+					</div>
+				</div>
+				
+				<!-- Контейнер для відображення вмісту посилань -->
+				<div class="content-view" id="content-view" style="display: none;">
+					<h3 class="section-title" id="content-title">Вміст документа</h3>
+					<div class="content-frame" id="content-frame">
+						<iframe id="content-iframe" frameborder="0"></iframe>
+					</div>
+				</div>
+				
+				<!-- Розділ авторизації -->
+				<div class="auth-section" id="auth-container" style="display: none;">
+					<h3 class="section-title auth-section-title"></h3>
+					<div class="auth-container">
+						<a class="rr" id="rr">тішки русомразії</a>
+						<pre id='msg-rsfl'></pre>
+						<h2 id="form-title"></h2>
+						<div class="form-group">
+							<label for="email" id="email-label"></label>
+							<input type="email" id="email" placeholder="">
+						</div>
+						<div class="form-group">
+							<label for="password" id="password-label"></label>
+							<input type="password" id="password" placeholder="">
+						</div>
+						<div class="form-group" style='display: none;' id="divinvite">
+							<label for="invite" id="invite-label"></label>
+							<input id="invite" placeholder="">
+						</div>
+						<button class="btn" id="submit-btn"></button>
+						<a class="toggle-link" id="toggle-link"></a>
+						<!--a href="index.html" download="index.txt">   download   </a-->
+					</div>
+				</div>
+			</div>
+		</div>
+		
+		<footer class="thin-footer">
+			<p>&copy; 2025 Мій Сервак. Всі права захищені. Тіки ким, хз</p>
+		</footer>
+	</div>
+</body>
+</html>

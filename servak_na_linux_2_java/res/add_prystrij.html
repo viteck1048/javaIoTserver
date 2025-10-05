@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<div>
+	<h3 class="section-title add_prystrij"></h3>
+    <h3 class="search_by_name">Тьрсене по име</h3>
+
+    <form class='findname' action="/submit" method="POST">
+		<input type="text" id="findname" name="findname" required><br><br>
+		<button type="submit">Тьрсене</button>
+    </form>
+	
+	<div id='perelic_prystrojiv'></div>
+	
+	<script>
+		$(document).ready(function() {
+			$(document).on('submit', 'form.findname', function(e) { // Вказуємо, що відслідковуємо подію submit саме на формі
+				e.preventDefault(); // Запобігаємо стандартній поведінці форми (перезавантаження сторінки)
+				//console.log("1234567890");
+				let form = $(this); // Отримуємо поточну форму
+				let url = form.attr('action'); // Отримуємо URL з атрибута action форми
+				let formData = form.serialize(); // Серіалізуємо дані форми
+				
+				$.post(url, formData, function(data) {
+					$('#perelic_prystrojiv').html(data); // Оновлюємо HTML вказаного елемента
+				});
+			});
+			$(document).on('submit', 'form.pin_proba', function(e) {
+				$('#zaholovokslashkomentar').text("проверката на ПИН се извършва, моля, изчакайте");
+				e.preventDefault();
+				console.log("qwertyui");
+				let form = $(this);
+				let url = form.attr('action');
+				let formData = form.serialize();
+				form.find('button[type="submit"]').prop('disabled', true);
+				
+				$.post(url, formData, function(json) {
+					$('#zaholovokslashkomentar').text(json.msg);
+					if(json.status == "ok") {
+						setTimeout(function(){ window.location.reload(); }, 1000);
+					}
+					else {
+						form.find('button[type="submit"]').prop('disabled', false);
+					}
+				});
+			});
+		});
+	</script>
+</div>

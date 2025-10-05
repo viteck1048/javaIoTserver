@@ -1,0 +1,220 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Кнопки та поле виводу у відсотках</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            text-align: center;
+        }
+        .container {
+            display: flex;
+            flex-direction: column;
+            align-items: left;
+            margin-top: 20px;
+        }
+        .button {
+            width: 100px;
+            height: 50px;
+            margin: 10px;
+            background-color: grey; /* початковий колір кнопок */
+            color: #fff;
+            border: none;
+            border-radius: 5px;
+            font-size: 16px;
+            cursor: pointer;
+        }
+        #output {
+            width: 80%;
+            height: 50px;
+            margin-top: 20px;
+            border: 2px solid #007bff;
+            border-radius: 5px;
+            font-size: 20px;
+            padding: 10px;
+            box-sizing: border-box;
+			text-align: center;
+        }
+		select {
+			width: 80%;
+			font-family: Consolas, monospace;
+			font-weight: bold;
+			font-size: 20px;
+			padding: 10px;
+			border: 2px solid #ccc;
+			border-radius: 5px;
+			background-color: #fff;
+			color: #333;
+			text-align: center;
+			box-sizing: border-box;
+		}
+
+		/* Стилі при наведенні */
+		select:hover {
+			border-color: #999;
+		}
+
+		/* Стилі при фокусі */
+		select:focus {
+			border-color: #555;
+			outline: none;
+		}
+
+		/* Стилі для стрілки випадаючого списку */
+		select::-ms-expand {
+			display: none;
+		}
+		select::-webkit-scrollbar {
+			display: none;
+		}
+    </style>
+</head>
+<body>
+    <select id="dropdown-list"></select>
+	<input style="display: none;" type="text" id="output" value="0%" readonly>
+    <div class="container">
+        <button class="button" id="button1">rele 1</button>
+        <button class="button" id="button2">rele 2</button>
+        <button class="button" id="button3">rele 3</button>
+        <button class="button" id="button4">rele 4</button>
+        <button class="button" id="button5">rele 5</button>
+        <button class="button" id="button6">rele 6</button>
+        <button class="button" id="button7">rele 7</button>
+        <button class="button" id="button8">rele 8</button>
+    </div>
+    <script>
+        // Функція для отримання та обробки JSON
+        const rb_const = 18;
+		var sn = '';
+		var rb = rb_const;
+		var buttons = document.querySelectorAll('.button');
+		
+		buttons.forEach(function(button) {
+			button.addEventListener('click', function(event) {
+				rb = rb_const;
+				let i = event.target.id.match(/\d+/);
+				if(buttons[parseInt(i, 10) - 1].style.backgroundColor === 'grey' || sn === '') {
+					// Повернення у випадку, коли кнопка вже сіра
+		//			return;
+				}
+				buttons[parseInt(i, 10) - 1].style.backgroundColor = 'grey';
+				var formData = new URLSearchParams();
+				formData.append('button', i[0]);
+				formData.append('sn', sn);
+				fetch('/lialiapam', {
+					method: 'PUT',
+					headers: {
+						'Content-Type': 'application/x-www-form-urlencoded'
+					},
+					body: formData
+				})
+				.then(function(response) {
+					return response.json();
+				})
+				.then(function(data) {
+					// Тут ви можете обробити отримані дані
+					updateButtons(data.buttons);
+					updateOutput(data.output);
+					console.log(data);
+				})
+				.catch(function(error) {
+					// Обробка помилок
+					console.log('Виникла помилка:', error);
+				});
+				setTimeout(fetchData, 1000);
+			});
+		});
+		
+		function fetchData() {
+			if(sn != '') {
+				if(rb != 0) {
+					rb -= 1;
+					//console.log(rb);
+					fetch('/lialiapam?sn=' + sn)
+						.then(function(response) {
+							return response.json();
+						})
+						.then(function(data) {
+							// Тут ви можете обробити отримані дані
+							updateButtons(data.buttons);
+							updateOutput(data.output);
+							console.log(data);
+						})
+						.catch(function(error) {
+							// Обробка помилок
+							console.log('Виникла помилка:', error);
+						});
+				}
+			}
+	   }
+
+        // Функція для оновлення стану кнопок
+        function updateButtons(buttonState) {
+            const buttons = document.querySelectorAll('.button');
+            for (let i = 0; i < buttons.length; i++) {
+                if (buttonState[i] === '0') {
+                    buttons[i].style.backgroundColor = 'red';
+                } else if (buttonState[i] === '1') {
+                    buttons[i].style.backgroundColor = 'green';
+                } else {
+                    buttons[i].style.backgroundColor = 'grey';
+                }
+            }
+        }
+
+        // Функція для оновлення вмісту поля виводу
+        function updateOutput(output) {
+            document.getElementById('output').value = output;
+        }
+		
+		var fl_menu;
+		var dropdownList = document.getElementById('dropdown-list');
+		function fetchMenu() {
+            fetch('/lialiapam?sn=0')
+				.then(function(response) {
+					return response.json();
+				})
+				.then(function(data) {
+					var option = document.createElement('option');
+					option.text = 'виберіть пристрій';
+					dropdownList.add(option);
+					data.rr.forEach(function(item) {
+						var option = document.createElement('option');
+						option.text = item;
+						dropdownList.add(option);
+					});
+				})
+				.catch(function(error) {
+					// Обробка помилок
+					console.log('Виникла помилка:', error);
+				});
+			fl_menu = 1;
+        }
+		
+		// Додаємо обробник подій для події change
+        dropdownList.addEventListener('change', function() {
+            // Отримуємо вибраний елемент
+            var selectedOption = dropdownList.options[dropdownList.selectedIndex];
+            // Присвоюємо значення елемента змінній sn
+            sn = selectedOption.text;
+            // Виводимо значення sn у консоль
+            console.log('Вибраний елемент:', sn);
+			rb = rb_const;
+			if(fl_menu == 1) {
+				fl_menu = 0;
+				dropdownList.options[0].remove();
+			}
+			fetchData();
+        });
+		
+        // Оновлення стану кнопок та поля виводу при завантаженні сторінки
+        window.onload = function() {
+            fetchMenu();
+			setTimeout(fetchData, 500);
+            setInterval(fetchData, 5000); // Оновлювати кожні 5 секунд
+        };
+    </script>
+</body>
+</html>

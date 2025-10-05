@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+	<meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AVR Relays Control</title>
+    <link rel="icon" href="gear.png" type="image/png">
+    <link rel="stylesheet" href="css/home_page.css">
+    <link rel="stylesheet" href="css/avr_relays.css">
+    <!--style>
+        .active-menu-item {
+            background-color: #f0f0f0;
+            border-left: 3px solid #007bff;
+        }
+    </style>-->
+    <script src="js/translations.js"></script>
+    <script src="js/transltAndSwop.js"></script>
+</head>
+<body>
+    <div class="main-container">
+        <nav>
+            <div class="container">
+                <ul class="nav-links">
+                    <li><a href="/" id="nav-home" class="logo">MijServak</a></li>
+                    <!--<li class="login-link"><a href="/" class="logout-link" id="nav-auth"></a></li>-->
+                </ul>
+            </div>
+        </nav>
+        <button id="menuToggle">&#9776;</button>
+        
+        <div class="content">
+            <!-- Бокова панель з посиланнями -->
+            <div class="sidebar" id="sidebar">
+                <h3 class="sidebar-title-avr sidebar-title">перелік пристроїв</h3>
+                <ul class="links-list" id="links-list">
+                <div id="perelik_prystrojiv"></div>
+				<li><a href="add_prystrij" id="add_prystrij" class="link-item add_prystrij active-menu-item-arr">Добави пристрій</a></li>
+                </ul>
+            </div>
+            
+            <!-- Основний контент -->
+            <div class="main-content">
+                <!-- Контент для керування реле -->
+                <div class="home-section" id="home-container">
+                    <div class="home-content" id="mainContent">
+                        <div class="field" id="field2"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <footer class="thin-footer">
+            <p>&copy; 2025 MijServak. Всі права захищено.</p>
+        </footer>
+    </div>
+
+    <!-- Зберігаємо оригінальні скрипти, які відповідають за функціональність -->
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.7.1/jquery.min.js"></script>
+    <script src="js/avr_relays.js"></script>
+</body>

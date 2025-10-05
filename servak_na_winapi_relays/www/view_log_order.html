@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+	<meta charset="UTF-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1.0">
+	<title>Loading Log File</title>
+	<style>
+		body {
+			background-color: #E6F0F3;
+			font-family: Arial, sans-serif;
+			text-align: center;
+			padding: 50px;
+		}
+		.container {
+			background-color: #E6F0F3;
+			padding: 20px;
+			border-radius: 8px;
+			text-align: center;
+		}
+		.loading {
+			margin: 20px auto;
+			display: block;
+		}
+		.error {
+			color: #ff4444;
+			font-weight: bold;
+			margin-top: 20px;
+		}
+	</style>
+</head>
+<body>
+	<div class="container">
+		<h1>Loading log file from gadget ${sn}</h1>
+		<p>Please wait while we try to load the log file...</p>
+		<img src="loading.gif" alt="Loading..." class="loading">
+		<div class="error" id="error" style="display: none;"></div>
+	</div>
+
+	<script>
+		// Отримуємо номер SN з URL
+		const urlParams = new URLSearchParams(window.location.search);
+		const sn = urlParams.get('sn');
+		
+		// Функція для відправки запиту на очистку флага
+		async function clearLogFlag() {
+			try {
+				await fetch(`clear_get_log_file_flag?command=log_file&sn=${sn}`);
+			} catch (error) {
+				console.error('Error clearing log flag:', error);
+			}
+		}
+
+		// Додаємо обробник для події закриття сторінки
+		window.addEventListener('beforeunload', async (event) => {
+			// Перевіряємо чи функція існує
+			if (typeof clearLogFlag === 'function') {
+				await clearLogFlag();
+			}
+			// Повертаємо null для уникнення попередження
+			return null;
+		});
+
+		// Використовуємо async/await для відправки запиту при закритті
+		
+		// Оновлюємо заголовок з номером SN
+		document.querySelector('h1').textContent = `Loading log file from gadget ${sn}`;
+
+		// Кількість спроб
+		let attempts = 0;
+		const maxAttempts = 10;
+		const delay = 10000; // 10 секунд
+
+		// Функція для перевірки та відображення логу
+		async function checkLogFile() {
+			try {
+				const response = await fetch(`log_file?sn=${sn}`);
+				const contentLength = parseInt(response.headers.get('content-length') || '0');
+				
+				if (contentLength > 0) {
+					// Якщо лог доступний - отримуємо його вміст
+					const logContent = await response.text();
+					// Оновлюємо сторінку
+					// Очищаємо всі стилі
+					const styleTags = document.getElementsByTagName('style');
+					while (styleTags.length > 0) {
+						styleTags[0].remove();
+					}
+					
+					// Оновлюємо сторінку
+					document.body.innerHTML = logContent;
+					clearInterval(checkInterval); // Зупиняємо перевірку
+				} else {
+					// Якщо лог ще не готовий - продовжуємо чекати
+					attempts++;
+					if (attempts >= maxAttempts) {
+						// Якщо вичерпано всі спроби - показуємо помилку
+						clearLogFlag();
+						const errorDiv = document.getElementById('error');
+						errorDiv.textContent = 'Error: Log file not available after multiple attempts. Please try again later.';
+						errorDiv.style.display = 'block';
+						clearInterval(checkInterval);
+					}
+				}
+			} catch (error) {
+				console.error('Error checking log file:', error);
+				attempts++;
+				if (attempts >= maxAttempts) {
+					clearLogFlag();
+					const errorDiv = document.getElementById('error');
+					errorDiv.textContent = 'Error: Failed to connect to server. Please try again later.';
+					errorDiv.style.display = 'block';
+					clearInterval(checkInterval);
+				}
+			}
+		}
+
+		// Запускаємо перевірку кожні 10 секунд
+		const checkInterval = setInterval(checkLogFile, delay);
+
+		// Перевіряємо відразу
+		checkLogFile();
+	</script>
+</body>
+</html>

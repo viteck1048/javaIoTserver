@@ -1,0 +1,74 @@
+openapi: 3.0.0
+info:
+  title: Your REST Service
+  version: 1.0.0
+paths:
+  /add-zminna:
+    post:
+      summary: Add Zminna
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                l_id:
+                  type: integer
+                bukva:
+                  type: string
+                zm_poz:
+                  type: integer
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  z_id:
+                    type: integer
+                  zm_poz:
+                    type: integer
+        '400':
+          description: Bad request
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+
+  /delete-zm:
+    delete:
+      summary: Delete Zm
+      parameters:
+        - name: l_id
+          in: query
+          required: true
+          schema:
+            type: integer
+        - name: z_id
+          in: query
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Successful response
+          content:
+            text/html:
+              schema:
+                type: string
+                example: '<html><body>Delete operation successful</body></html>'
+        '400':
+          description: Bad request
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string

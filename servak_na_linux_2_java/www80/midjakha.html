@@ -1,0 +1,525 @@
+﻿<!DOCTYPE html>
+<html lang="bg">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <script src='https://code.jquery.com/jquery-3.2.1.min.js'></script>
+    <title>Обчислення</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+        }
+        .container {
+            max-width: 600px;
+            margin: auto;
+            padding: 20px;
+            border: 1px solid #ccc;
+            border-radius: 10px;
+            background-color: #f9f9f9;
+        }
+        label {
+            display: block;
+            margin-top: 10px;
+        }
+        input[type="text"], input[type="number"] {
+            width: 100%;
+            padding: 8px;
+            margin-top: 5px;
+            box-sizing: border-box;
+        }
+        button {
+            margin-top: 20px;
+            padding: 10px 20px;
+            background-color: #007BFF;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+        button:hover {
+            background-color: #0056b3;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Изчисления на теглото на медта в кабела</h1>
+        <p>Избери параметра:</p>
+        <label><input type="radio" name="option" value="1"> диаметр на жицата (мм)</label>
+        <label><input type="radio" name="option" value="2"> площ на сечението (мм²)</label>
+        
+        <div id="input-diam" style="display:block;">
+            <label for="diam">d (мм):</label>
+            <input type="number" id="diam" step="0.01" disabled>
+        </div>
+		
+        
+		<div id="input-sech" style="display:block;">
+            <label for="sech">S (мм²):</label>
+            <input type="number" id="sech" step="0.01" disabled>
+        </div>
+        
+        <label for="kilk">Брой жици:</label>
+        <input type="number" id="kilk" step="1">
+        
+        <label for="dowzh">Дьлжина (м):</label>
+        <input type="number" id="dowzh" step="0.1">
+        
+        <button onclick="calculate()">Изчисли</button>
+        
+        <p id="result"></p>
+    </div>
+    
+    <script>
+        document.querySelectorAll('input[name="option"]').forEach((elem) => {
+            elem.addEventListener("change", function(event) {
+                if (event.target.value === "2") {
+                    document.getElementById("diam").disabled = true;
+                    document.getElementById("sech").disabled = false;
+                } else {
+                    document.getElementById("diam").disabled = false;
+                    document.getElementById("sech").disabled = true;
+                }
+            });
+        });
+
+        function calculate() {
+            let option = document.querySelector('input[name="option"]:checked').value;
+            let diam, sech, dowzh, kilk, tehl;
+            
+            if (option === "1") {
+                diam = parseFloat(document.getElementById("diam").value);
+                sech = (diam * diam * Math.PI) / 4;
+				document.getElementById("sech").value = sech.toFixed(3);
+            } else {
+                sech = parseFloat(document.getElementById("sech").value);
+				diam = Math.sqrt(sech * 4 / Math.PI);
+				document.getElementById("diam").value = diam.toFixed(3);
+            }
+            
+            kilk = parseFloat(document.getElementById("kilk").value);
+            dowzh = parseFloat(document.getElementById("dowzh").value);
+            sech *= 0.000001;
+            sech = sech * dowzh * kilk;
+            tehl = sech * 8960;
+            
+            document.getElementById("result").innerText = "Тегло (кг): " + tehl.toFixed(3);
+        }
+    </script>
+
+<script>
+//таблица AWG
+AWG = {'d': [0.08, 0.09, 0.1, 0.11, 0.13, 0.14, 0.16, 0.18, 0.2, 0.23, 0.26, 0.29, 
+			0.32, 0.36, 0.41, 0.46, 0.51, 0.57, 0.64, 0.72, 0.81, 0.91, 1.02, 1.15,
+			1.29, 1.45, 1.63, 1.83, 2.05, 2.31, 2.59, 2.91, 3.26, 3.67, 4.12, 4.62, 
+			5.19, 5.83, 6.54, 7.35, 8.3, 9.3, 10.4, 11.7],
+	   'k': ["40", "39", "38", "37", "36", "35", "34", "33", "32", "31", "30", "29", 
+	   		 "28", "27", "26", "25", "24", "23", "22", "21", "20", "19", "18", "17", 
+	   		 "16", "15", "14", "13", "12", "11", "10", "9", "8", "7", "6", "5", "4", 
+	   		 "3", "2", "1", "0", "00", "000", "0000"]};
+
+//логика приложения
+var fuseCalc = function() {
+	//каким полем вызвано
+	this.caller = '';
+	//имя вычисляемого поля
+	this.current, this.diameter, this.material, this.calculated, this.awg;
+
+	this.setCaller = function(caller) {
+		var idCaller = $(caller).attr('id')
+		return ( (idCaller === 'diameter') || (idCaller === 'current') ) ? this.caller = idCaller : false;
+	}
+
+	//валидируем измененное поле
+	this.validate = function() {
+		return $.isNumeric( $('#'+this.caller).val().replace(',','.') );
+	}
+
+	//получаем значение вызвавшего параметра
+	this.getCallerValue = function() {
+		return parseFloat($('#'+this.caller).val().replace(',','.'));
+	}
+
+	//инициализируем рассчеты
+	this.initCalc = function(caller) {
+		//валидируем всё...
+		if (this.setCaller(caller) === false) return false;
+		if ( !this.validate() ) return false;
+		//записываем исходные данные в переменную
+		this[this.caller] = this.getCallerValue();
+		//записываем имя вычисляемого поля и материал
+		this.calculated = this.caller === "diameter" ? "current" : "diameter";
+		this.material = $("#material").val();
+		return true;
+	}
+
+	//находим коэф-т к
+	this.getK = function() {
+		var k = {'cu': 0.034, 'fe': 0.127,'ni': 0.06, 'ko': 0.07};
+		return k[this.material] !== undefined ? k[this.material] : false;
+	}
+
+	//находим коэф-т м
+	this.getM = function() {
+		var m = {'cu': 80, 'al': 59.2, 'fe': 24.6,'sn': 12.8,'ni': 40.8};
+		return m[this.material] !== undefined ? m[this.material] : false;
+	}
+
+	//ток для малых диаметров
+	this.calcCurrentSmall = function() {
+		var k;
+		if (false === (k = this.getK())) return this.current = false;
+		return this.current = ( this.diameter - 0.005 ) / k * 10 / 10; 
+	}
+
+	//ток для больших диаметров
+	this.calcCurrentLarge = function() {
+		var m;
+		if (false === (m = this.getM())) return this.current = false;
+		return this.current = m * Math.sqrt(Math.pow(this.diameter, 3)) * 10 / 10; 
+	}	
+
+	//вычисляем ток
+	this.calcCurrent = function () {
+		//определяем формулу и вызываем её
+		if (this.diameter > 0.2) {
+			this.calcCurrentSmall();
+		} else {
+			this.calcCurrentLarge();
+		}
+		return this.current;
+	}
+
+	//ток для малых диаметров
+	this.calcDiameterSmall = function() {
+		var k;
+		if (!(k = this.getK())) return this.diameter = false;
+		return this.diameter = ( this.current * k + 0.005 ) * 10 / 10; 
+	}
+
+	//ток для больших диаметров
+	this.calcDiameterLarge = function() {
+		var m;
+		if (!(m = this.getM())) return this.diameter = false;
+		return this.diameter = Math.pow(Math.pow(this.current, 2)/Math.pow(m, 2), 1/3) * 10 / 10; 
+	}	
+
+	//вычисляем диаметр
+	this.calcDiameter = function() {
+		//вызываем формулу для малого тока
+		//если для малого тока нет (алюминий например) коэф-та, пробуем для большого
+		//и провоцируем выброс ошибки, если диаметр слишком маленький,
+		//либо успешно завершаем функцию
+		if ( this.calcDiameterSmall() === false) {
+			if (this.calcDiameterLarge() < 0.2 ) {
+				return this.diameter = false;
+			} else {
+				return this.diameter;
+			}
+		}
+		//если нужно, вызываем формулу для большого тока (если есть коэф-т для малого тока)
+		if (this.diameter > 0.2) this.calcDiameterLarge();
+		return this.diameter;
+	}
+
+	//находим диаметр по АВГ
+	this.getAWG = function() {
+		//выбираем ближайший авг
+		var i = 0; var best = Math.abs(AWG.d[0] - this.diameter); this.awg = AWG.k[0];
+		while( (Math.abs(this.diameter - AWG.d[++i]) < best) && (i<AWG.d.length) ) { 
+			best = Math.abs(this.diameter - AWG.d[i]); 
+			this.awg = AWG.k[i];
+		}
+		return this.awg;
+	}
+
+	//калькулируем
+	this.calc = function() {
+		//вызываем нужный метод
+		var funcName = 'calc'+this.calculated.slice(0,1).toUpperCase()+this.calculated.slice(1);
+		if ( !this[funcName]() ) throw new Error('wrong_current');
+		this.getAWG();
+		//округляем и возвращаем
+		return this[this.calculated] = parseFloat(this[this.calculated].toFixed(4));
+	}
+
+	//обновляем поле
+	this.updateFields = function() {
+		$('#'+this.calculated).val(this[this.calculated].toString());
+		$('#updatableAWG').text(this.awg);
+		$("#wrong_current").css('display', 'none');
+		$("#err").text('');
+	}
+
+	//запрос на вычисление
+	this.queryCalc = function(caller) {
+		//инициализируем рассчеты
+		if (!this.initCalc(caller)) return false;
+		try {
+			//запускаем рассчеты
+			if (!this.calc()) return false;
+			//обновляем поля
+			this.updateFields();
+		} catch (err) {
+			if (err.message === 'wrong_current') {
+				$("#wrong_current").css({'display': 'block'});
+			} else {
+				$("#err").text(err.message);
+			}
+		}
+	}
+
+	return this;
+}
+
+fw = fuseCalc();
+
+$('document').ready(function(){
+	//когда изменяют поля ввода диаметра или тока, вызываем рассчеты
+	$('.calcOnUpdate').on('input', function(){
+		fw.queryCalc(this);
+	});
+	//когда меняют материал, вызываем рассчеты по току
+	$('#material').on('change', function(){
+		fw.queryCalc($('#current'));
+	});
+});
+</script>
+<center>
+
+
+
+<td>Матеріал</td>
+<td>
+<select class="number" name="material" id="material"><option value="cu" selected="">Мідь</option><option value="al">Алюміній</option><option value="fe">Залізо</option><option value="ko">Константан</option><option value="sn">Олово</option><option value="ni">Нікелін</option></select>
+</td>
+
+<tr>
+<td>Струм (А)</td>
+<td><input type="text" class="number calcOnUpdate" name="current" id="current"></td>
+</tr>
+<tr>
+<td>Діаметр (мм)</td>
+<td><input type="text" class="number calcOnUpdate" name="diameter" id="diameter"></td>
+</tr>
+<tr align="center"><td colspan="2">
+<div style="display:inline-block;margin:50px 5px 70px 5px;height:100%;width:100%;max-width:90px">
+
+			</div>
+		</div>
+	</div>
+
+<div align="center">
+
+<table class="MsoTableGrid" border="1" cellspacing="0" cellpadding="0" style="border-collapse:collapse;border:none;mso-border-alt:solid windowtext .5pt;
+ mso-yfti-tbllook:480;mso-padding-alt:0cm 5.4pt 0cm 5.4pt;mso-border-insideh:
+ .5pt solid windowtext;mso-border-insidev:.5pt solid windowtext">
+ <tbody><tr style="mso-yfti-irow:0;mso-yfti-firstrow:yes;height:11.5pt">
+  <td width="95" rowspan="2" style="width:71.3pt;border:solid windowtext 1.0pt;
+  mso-border-alt:solid windowtext .5pt;padding:0cm 5.4pt 0cm 5.4pt;height:11.5pt">
+  <p class="MsoNormal" style="line-height:150%"><span lang="UK" style="font-size:
+  14.0pt;line-height:150%;font-family:Arial">Величина струму, А<o:p></o:p></span></p>
+  </td>
+  <td width="380" colspan="4" style="width:285.35pt;border:solid windowtext 1.0pt;
+  border-left:none;mso-border-left-alt:solid windowtext .5pt;mso-border-alt:
+  solid windowtext .5pt;padding:0cm 5.4pt 0cm 5.4pt;height:11.5pt">
+  <p class="MsoNormal" align="center" style="text-align:center;line-height:150%"><span lang="UK" style="font-size:14.0pt;line-height:150%;font-family:Arial">Діаметр
+  проводу, мм<o:p></o:p></span></p>
+  </td>
+ </tr>
+ <tr style="mso-yfti-irow:1;height:11.5pt">
+  <td width="95" style="width:71.3pt;border-top:none;border-left:none;border-bottom:
+  solid windowtext 1.0pt;border-right:solid windowtext 1.0pt;mso-border-top-alt:
+  solid windowtext .5pt;mso-border-left-alt:solid windowtext .5pt;mso-border-alt:
+  solid windowtext .5pt;padding:0cm 5.4pt 0cm 5.4pt;height:11.5pt">
+  <p class="MsoNormal" align="center" style="text-align:center;line-height:150%"><span lang="UK" style="font-size:14.0pt;line-height:150%;font-family:Arial">мідь<o:p></o:p></span></p>
+  </td>
+  <td width="95" style="width:71.35pt;border-top:none;border-left:none;
+  border-bottom:solid windowtext 1.0pt;border-right:solid windowtext 1.0pt;
+  mso-border-top-alt:solid windowtext .5pt;mso-border-left-alt:solid windowtext .5pt;
+  mso-border-alt:solid windowtext .5pt;padding:0cm 5.4pt 0cm 5.4pt;height:11.5pt">
+  <p class="MsoNormal" align="center" style="text-align:center;line-height:150%"><span lang="UK" style="font-size:14.0pt;line-height:150%;font-family:Arial">алюміній<o:p></o:p></span></p>
+  </td>
+  <td width="95" style="width:71.35pt;border-top:none;border-left:none;
+  border-bottom:solid windowtext 1.0pt;border-right:solid windowtext 1.0pt;
+  mso-border-top-alt:solid windowtext .5pt;mso-border-left-alt:solid windowtext .5pt;
+  mso-border-alt:solid windowtext .5pt;padding:0cm 5.4pt 0cm 5.4pt;height:11.5pt">
+  <p class="MsoNormal" align="center" style="text-align:center;line-height:150%"><span lang="UK" style="font-size:14.0pt;line-height:150%;font-family:Arial">сталь<o:p></o:p></span></p>
+  </td>
+  <td width="95" style="width:71.35pt;border-top:none;border-left:none;
+  border-bottom:solid windowtext 1.0pt;border-right:solid windowtext 1.0pt;
+  mso-border-top-alt:solid windowtext .5pt;mso-border-left-alt:solid windowtext .5pt;
+  mso-border-alt:solid windowtext .5pt;padding:0cm 5.4pt 0cm 5.4pt;height:11.5pt">
+  <p class="MsoNormal" align="center" style="text-align:center;line-height:150%"><span lang="UK" style="font-size:14.0pt;line-height:150%;font-family:Arial">олово<o:p></o:p></span></p>
+  </td>
+ </tr>
+ <tr style="mso-yfti-irow:2;mso-yfti-lastrow:yes">
+  <td width="95" style="width:71.3pt;border:solid windowtext 1.0pt;border-top:
+  none;mso-border-top-alt:solid windowtext .5pt;mso-border-alt:solid windowtext .5pt;
+  padding:0cm 5.4pt 0cm 5.4pt">
+  <p class="MsoNormal" style="text-indent:27.0pt;line-height:150%"><span lang="UK" style="font-size:14.0pt;line-height:150%;font-family:Arial">1<o:p></o:p></span></p>
+  <p class="MsoNormal" style="text-indent:27.0pt;line-height:150%"><span lang="UK" style="font-size:14.0pt;line-height:150%;font-family:Arial">2<o:p></o:p></span></p>
+  <p class="MsoNormal" style="text-indent:27.0pt;line-height:150%"><span lang="UK" style="font-size:14.0pt;line-height:150%;font-family:Arial">3<o:p></o:p></span></p>
+  <p class="MsoNormal" style="text-indent:27.0pt;line-height:150%"><span lang="UK" style="font-size:14.0pt;line-height:150%;font-family:Arial">5<o:p></o:p></span></p>
+  <p class="MsoNormal" style="text-indent:27.0pt;line-height:150%"><span lang="UK" style="font-size:14.0pt;line-height:150%;font-family:Arial">7<o:p></o:p></span></p>
+  <p class="MsoNormal" style="text-indent:27.0pt;line-height:150%"><span lang="UK" style="font-size:14.0pt;line-height:150%;font-family:Arial">10<o:p></o:p></span></p>
+  <p class="MsoNormal" style="text-indent:27.0pt;line-height:150%"><span lang="UK" style="font-size:14.0pt;line-height:150%;font-family:Arial">15<o:p></o:p></span></p>
+  <p class="MsoNormal" style="text-indent:27.0pt;line-height:150%"><span lang="UK" style="font-size:14.0pt;line-height:150%;font-family:Arial">20<o:p></o:p></span></p>
+  <p class="MsoNormal" style="text-indent:27.0pt;line-height:150%"><span lang="UK" style="font-size:14.0pt;line-height:150%;font-family:Arial">25<o:p></o:p></span></p>
+  <p class="MsoNormal" style="text-indent:27.0pt;line-height:150%"><span lang="UK" style="font-size:14.0pt;line-height:150%;font-family:Arial">30<o:p></o:p></span></p>
+  <p class="MsoNormal" style="text-indent:27.0pt;line-height:150%"><span lang="UK" style="font-size:14.0pt;line-height:150%;font-family:Arial">35<o:p></o:p></span></p>
+  <p class="MsoNormal" style="text-indent:27.0pt;line-height:150%"><span lang="UK" style="font-size:14.0pt;line-height:150%;font-family:Arial">40<o:p></o:p></span></p>
+  <p class="MsoNormal" style="text-indent:27.0pt;line-height:150%"><span lang="UK" style="font-size:14.0pt;line-height:150%;font-family:Arial">45<o:p></o:p></span></p>
+  <p class="MsoNormal" style="text-indent:27.0pt;line-height:150%"><span lang="UK" style="font-size:14.0pt;line-height:150%;font-family:Arial">50<o:p></o:p></span></p>
+  <p class="MsoNormal" style="text-indent:27.0pt;line-height:150%"><span lang="UK" style="font-size:14.0pt;line-height:150%;font-family:Arial">60<o:p></o:p></span></p>
+  <p class="MsoNormal" style="text-indent:27.0pt;line-height:150%"><span lang="UK" style="font-size:14.0pt;line-height:150%;font-family:Arial">70<o:p></o:p></span></p>
+  <p class="MsoNormal" style="text-indent:27.0pt;line-height:150%"><span lang="UK" style="font-size:14.0pt;line-height:150%;font-family:Arial">80<o:p></o:p></span></p>
+  <p class="MsoNormal" style="text-indent:27.0pt;line-height:150%"><span lang="UK" style="font-size:14.0pt;line-height:150%;font-family:Arial">90<o:p></o:p></span></p>
+  <p class="MsoNormal" style="text-indent:27.0pt;line-height:150%"><span lang="UK" style="font-size:14.0pt;line-height:150%;font-family:Arial">100<o:p></o:p></span></p>
+  <p class="MsoNormal" style="text-indent:27.0pt;line-height:150%"><span lang="UK" style="font-size:14.0pt;line-height:150%;font-family:Arial">120<o:p></o:p></span></p>
+  <p class="MsoNormal" style="text-indent:27.0pt;line-height:150%"><span lang="UK" style="font-size:14.0pt;line-height:150%;font-family:Arial">160<o:p></o:p></span></p>
+  <p class="MsoNormal" style="text-indent:27.0pt;line-height:150%"><span lang="UK" style="font-size:14.0pt;line-height:150%;font-family:Arial">180<o:p></o:p></span></p>
+  <p class="MsoNormal" style="text-indent:27.0pt;line-height:150%"><span lang="UK" style="font-size:14.0pt;line-height:150%;font-family:Arial">200<o:p></o:p></span></p>
+  <p class="MsoNormal" style="text-indent:27.0pt;line-height:150%"><span lang="UK" style="font-size:14.0pt;line-height:150%;font-family:Arial">225<o:p></o:p></span></p>
+  <p class="MsoNormal" style="text-indent:27.0pt;line-height:150%"><span lang="UK" style="font-size:14.0pt;line-height:150%;font-family:Arial">250<o:p></o:p></span></p>
+  <p class="MsoNormal" style="text-indent:27.0pt;line-height:150%"><span lang="UK" style="font-size:14.0pt;line-height:150%;font-family:Arial">275<o:p></o:p></span></p>
+  <p class="MsoNormal" style="text-indent:27.0pt;line-height:150%"><span lang="UK" style="font-size:14.0pt;line-height:150%;font-family:Arial">300<o:p></o:p></span></p>
+  </td>
+  <td width="95" style="width:71.3pt;border-top:none;border-left:none;border-bottom:
+  solid windowtext 1.0pt;border-right:solid windowtext 1.0pt;mso-border-top-alt:
+  solid windowtext .5pt;mso-border-left-alt:solid windowtext .5pt;mso-border-alt:
+  solid windowtext .5pt;padding:0cm 5.4pt 0cm 5.4pt">
+  <p class="MsoNormal" style="text-indent:27.0pt;line-height:150%"><span lang="UK" style="font-size:14.0pt;line-height:150%;font-family:Arial">0,039<o:p></o:p></span></p>
+  <p class="MsoNormal" style="text-indent:27.0pt;line-height:150%"><span lang="UK" style="font-size:14.0pt;line-height:150%;font-family:Arial">0,069<o:p></o:p></span></p>
+  <p class="MsoNormal" style="text-indent:27.0pt;line-height:150%"><span lang="UK" style="font-size:14.0pt;line-height:150%;font-family:Arial">0,107<o:p></o:p></span></p>
+  <p class="MsoNormal" style="text-indent:27.0pt;line-height:150%"><span lang="UK" style="font-size:14.0pt;line-height:150%;font-family:Arial">0,180<o:p></o:p></span></p>
+  <p class="MsoNormal" style="text-indent:27.0pt;line-height:150%"><span lang="UK" style="font-size:14.0pt;line-height:150%;font-family:Arial">0,203<o:p></o:p></span></p>
+  <p class="MsoNormal" style="text-indent:27.0pt;line-height:150%"><span lang="UK" style="font-size:14.0pt;line-height:150%;font-family:Arial">0,250<o:p></o:p></span></p>
+  <p class="MsoNormal" style="text-indent:27.0pt;line-height:150%"><span lang="UK" style="font-size:14.0pt;line-height:150%;font-family:Arial">0,32<o:p></o:p></span></p>
+  <p class="MsoNormal" style="text-indent:27.0pt;line-height:150%"><span lang="UK" style="font-size:14.0pt;line-height:150%;font-family:Arial">0,39<o:p></o:p></span></p>
+  <p class="MsoNormal" style="text-indent:27.0pt;line-height:150%"><span lang="UK" style="font-size:14.0pt;line-height:150%;font-family:Arial">0,46<o:p></o:p></span></p>
+  <p class="MsoNormal" style="text-indent:27.0pt;line-height:150%"><span lang="UK" style="font-size:14.0pt;line-height:150%;font-family:Arial">0,52<o:p></o:p></span></p>
+  <p class="MsoNormal" style="text-indent:27.0pt;line-height:150%"><span lang="UK" style="font-size:14.0pt;line-height:150%;font-family:Arial">0,58<o:p></o:p></span></p>
+  <p class="MsoNormal" style="text-indent:27.0pt;line-height:150%"><span lang="UK" style="font-size:14.0pt;line-height:150%;font-family:Arial">0,63<o:p></o:p></span></p>
+  <p class="MsoNormal" style="text-indent:27.0pt;line-height:150%"><span lang="UK" style="font-size:14.0pt;line-height:150%;font-family:Arial">0,68<o:p></o:p></span></p>
+  <p class="MsoNormal" style="text-indent:27.0pt;line-height:150%"><span lang="UK" style="font-size:14.0pt;line-height:150%;font-family:Arial">0,73<o:p></o:p></span></p>
+  <p class="MsoNormal" style="text-indent:27.0pt;line-height:150%"><span lang="UK" style="font-size:14.0pt;line-height:150%;font-family:Arial">0,82<o:p></o:p></span></p>
+  <p class="MsoNormal" style="text-indent:27.0pt;line-height:150%"><span lang="UK" style="font-size:14.0pt;line-height:150%;font-family:Arial">0,91<o:p></o:p></span></p>
+  <p class="MsoNormal" style="text-indent:27.0pt;line-height:150%"><span lang="UK" style="font-size:14.0pt;line-height:150%;font-family:Arial">1,0<o:p></o:p></span></p>
+  <p class="MsoNormal" style="text-indent:27.0pt;line-height:150%"><span lang="UK" style="font-size:14.0pt;line-height:150%;font-family:Arial">1,08<o:p></o:p></span></p>
+  <p class="MsoNormal" style="text-indent:27.0pt;line-height:150%"><span lang="UK" style="font-size:14.0pt;line-height:150%;font-family:Arial">1,15<o:p></o:p></span></p>
+  <p class="MsoNormal" style="text-indent:27.0pt;line-height:150%"><span lang="UK" style="font-size:14.0pt;line-height:150%;font-family:Arial">1,31<o:p></o:p></span></p>
+  <p class="MsoNormal" style="text-indent:27.0pt;line-height:150%"><span lang="UK" style="font-size:14.0pt;line-height:150%;font-family:Arial">1,57<o:p></o:p></span></p>
+  <p class="MsoNormal" style="text-indent:27.0pt;line-height:150%"><span lang="UK" style="font-size:14.0pt;line-height:150%;font-family:Arial">1,72<o:p></o:p></span></p>
+  <p class="MsoNormal" style="text-indent:27.0pt;line-height:150%"><span lang="UK" style="font-size:14.0pt;line-height:150%;font-family:Arial">1,84<o:p></o:p></span></p>
+  <p class="MsoNormal" style="text-indent:27.0pt;line-height:150%"><span lang="UK" style="font-size:14.0pt;line-height:150%;font-family:Arial">1,99<o:p></o:p></span></p>
+  <p class="MsoNormal" style="text-indent:27.0pt;line-height:150%"><span lang="UK" style="font-size:14.0pt;line-height:150%;font-family:Arial">2,14<o:p></o:p></span></p>
+  <p class="MsoNormal" style="text-indent:27.0pt;line-height:150%"><span lang="UK" style="font-size:14.0pt;line-height:150%;font-family:Arial">2,2<o:p></o:p></span></p>
+  <p class="MsoNormal" style="text-indent:27.0pt;line-height:150%"><span lang="UK" style="font-size:14.0pt;line-height:150%;font-family:Arial">2,4<o:p></o:p></span></p>
+  </td>
+  <td width="95" style="width:71.35pt;border-top:none;border-left:none;
+  border-bottom:solid windowtext 1.0pt;border-right:solid windowtext 1.0pt;
+  mso-border-top-alt:solid windowtext .5pt;mso-border-left-alt:solid windowtext .5pt;
+  mso-border-alt:solid windowtext .5pt;padding:0cm 5.4pt 0cm 5.4pt">
+  <p class="MsoNormal" style="text-indent:27.0pt;line-height:150%"><span lang="UK" style="font-size:14.0pt;line-height:150%;font-family:Arial">0,066<o:p></o:p></span></p>
+  <p class="MsoNormal" style="text-indent:27.0pt;line-height:150%"><span lang="UK" style="font-size:14.0pt;line-height:150%;font-family:Arial">0,104<o:p></o:p></span></p>
+  <p class="MsoNormal" style="text-indent:27.0pt;line-height:150%"><span lang="UK" style="font-size:14.0pt;line-height:150%;font-family:Arial">0,137<o:p></o:p></span></p>
+  <p class="MsoNormal" style="text-indent:27.0pt;line-height:150%"><span lang="UK" style="font-size:14.0pt;line-height:150%;font-family:Arial">0,193<o:p></o:p></span></p>
+  <p class="MsoNormal" style="text-indent:27.0pt;line-height:150%"><span lang="UK" style="font-size:14.0pt;line-height:150%;font-family:Arial">0,250<o:p></o:p></span></p>
+  <p class="MsoNormal" style="text-indent:27.0pt;line-height:150%"><span lang="UK" style="font-size:14.0pt;line-height:150%;font-family:Arial">0,305<o:p></o:p></span></p>
+  <p class="MsoNormal" style="text-indent:27.0pt;line-height:150%"><span lang="UK" style="font-size:14.0pt;line-height:150%;font-family:Arial">0,400<o:p></o:p></span></p>
+  <p class="MsoNormal" style="text-indent:27.0pt;line-height:150%"><span lang="UK" style="font-size:14.0pt;line-height:150%;font-family:Arial">0,485<o:p></o:p></span></p>
+  <p class="MsoNormal" style="text-indent:27.0pt;line-height:150%"><span lang="UK" style="font-size:14.0pt;line-height:150%;font-family:Arial">0,56<o:p></o:p></span></p>
+  <p class="MsoNormal" style="text-indent:27.0pt;line-height:150%"><span lang="UK" style="font-size:14.0pt;line-height:150%;font-family:Arial">0,64<o:p></o:p></span></p>
+  <p class="MsoNormal" style="text-indent:27.0pt;line-height:150%"><span lang="UK" style="font-size:14.0pt;line-height:150%;font-family:Arial">0,70<o:p></o:p></span></p>
+  <p class="MsoNormal" style="text-indent:27.0pt;line-height:150%"><span lang="UK" style="font-size:14.0pt;line-height:150%;font-family:Arial">0,77<o:p></o:p></span></p>
+  <p class="MsoNormal" style="text-indent:27.0pt;line-height:150%"><span lang="UK" style="font-size:14.0pt;line-height:150%;font-family:Arial">0,83<o:p></o:p></span></p>
+  <p class="MsoNormal" style="text-indent:27.0pt;line-height:150%"><span lang="UK" style="font-size:14.0pt;line-height:150%;font-family:Arial">0,89<o:p></o:p></span></p>
+  <p class="MsoNormal" style="text-indent:27.0pt;line-height:150%"><span lang="UK" style="font-size:14.0pt;line-height:150%;font-family:Arial">1,00<o:p></o:p></span></p>
+  <p class="MsoNormal" style="text-indent:27.0pt;line-height:150%"><span lang="UK" style="font-size:14.0pt;line-height:150%;font-family:Arial">1,10<o:p></o:p></span></p>
+  <p class="MsoNormal" style="text-indent:27.0pt;line-height:150%"><span lang="UK" style="font-size:14.0pt;line-height:150%;font-family:Arial">1,22<o:p></o:p></span></p>
+  <p class="MsoNormal" style="text-indent:27.0pt;line-height:150%"><span lang="UK" style="font-size:14.0pt;line-height:150%;font-family:Arial">1,32<o:p></o:p></span></p>
+  <p class="MsoNormal" style="text-indent:27.0pt;line-height:150%"><span lang="UK" style="font-size:14.0pt;line-height:150%;font-family:Arial">1,42<o:p></o:p></span></p>
+  <p class="MsoNormal" style="text-indent:27.0pt;line-height:150%"><span lang="UK" style="font-size:14.0pt;line-height:150%;font-family:Arial">1,60<o:p></o:p></span></p>
+  <p class="MsoNormal" style="text-indent:27.0pt;line-height:150%"><span lang="UK" style="font-size:14.0pt;line-height:150%;font-family:Arial">1,94<o:p></o:p></span></p>
+  <p class="MsoNormal" style="text-indent:27.0pt;line-height:150%"><span lang="UK" style="font-size:14.0pt;line-height:150%;font-family:Arial">2,10<o:p></o:p></span></p>
+  <p class="MsoNormal" style="text-indent:27.0pt;line-height:150%"><span lang="UK" style="font-size:14.0pt;line-height:150%;font-family:Arial">2,25<o:p></o:p></span></p>
+  <p class="MsoNormal" style="text-indent:27.0pt;line-height:150%"><span lang="UK" style="font-size:14.0pt;line-height:150%;font-family:Arial">2,45<o:p></o:p></span></p>
+  <p class="MsoNormal" style="text-indent:27.0pt;line-height:150%"><span lang="UK" style="font-size:14.0pt;line-height:150%;font-family:Arial">2,60<o:p></o:p></span></p>
+  <p class="MsoNormal" style="text-indent:27.0pt;line-height:150%"><span lang="UK" style="font-size:14.0pt;line-height:150%;font-family:Arial">2,80<o:p></o:p></span></p>
+  <p class="MsoNormal" style="text-indent:27.0pt;line-height:150%"><span lang="UK" style="font-size:14.0pt;line-height:150%;font-family:Arial">2,95<o:p></o:p></span></p>
+  </td>
+  <td width="95" style="width:71.35pt;border-top:none;border-left:none;
+  border-bottom:solid windowtext 1.0pt;border-right:solid windowtext 1.0pt;
+  mso-border-top-alt:solid windowtext .5pt;mso-border-left-alt:solid windowtext .5pt;
+  mso-border-alt:solid windowtext .5pt;padding:0cm 5.4pt 0cm 5.4pt">
+  <p class="MsoNormal" style="text-indent:27.0pt;line-height:150%"><span lang="UK" style="font-size:14.0pt;line-height:150%;font-family:Arial">0,132<o:p></o:p></span></p>
+  <p class="MsoNormal" style="text-indent:27.0pt;line-height:150%"><span lang="UK" style="font-size:14.0pt;line-height:150%;font-family:Arial">0,189<o:p></o:p></span></p>
+  <p class="MsoNormal" style="text-indent:27.0pt;line-height:150%"><span lang="UK" style="font-size:14.0pt;line-height:150%;font-family:Arial">0,245<o:p></o:p></span></p>
+  <p class="MsoNormal" style="text-indent:27.0pt;line-height:150%"><span lang="UK" style="font-size:14.0pt;line-height:150%;font-family:Arial">0,346<o:p></o:p></span></p>
+  <p class="MsoNormal" style="text-indent:27.0pt;line-height:150%"><span lang="UK" style="font-size:14.0pt;line-height:150%;font-family:Arial">0,45<o:p></o:p></span></p>
+  <p class="MsoNormal" style="text-indent:27.0pt;line-height:150%"><span lang="UK" style="font-size:14.0pt;line-height:150%;font-family:Arial">0,55<o:p></o:p></span></p>
+  <p class="MsoNormal" style="text-indent:27.0pt;line-height:150%"><span lang="UK" style="font-size:14.0pt;line-height:150%;font-family:Arial">0,72<o:p></o:p></span></p>
+  <p class="MsoNormal" style="text-indent:27.0pt;line-height:150%"><span lang="UK" style="font-size:14.0pt;line-height:150%;font-family:Arial">0,87<o:p></o:p></span></p>
+  <p class="MsoNormal" style="text-indent:27.0pt;line-height:150%"><span lang="UK" style="font-size:14.0pt;line-height:150%;font-family:Arial">1,00<o:p></o:p></span></p>
+  <p class="MsoNormal" style="text-indent:27.0pt;line-height:150%"><span lang="UK" style="font-size:14.0pt;line-height:150%;font-family:Arial">1,15<o:p></o:p></span></p>
+  <p class="MsoNormal" style="text-indent:27.0pt;line-height:150%"><span lang="UK" style="font-size:14.0pt;line-height:150%;font-family:Arial">1,26<o:p></o:p></span></p>
+  <p class="MsoNormal" style="text-indent:27.0pt;line-height:150%"><span lang="UK" style="font-size:14.0pt;line-height:150%;font-family:Arial">1,38<o:p></o:p></span></p>
+  <p class="MsoNormal" style="text-indent:27.0pt;line-height:150%"><span lang="UK" style="font-size:14.0pt;line-height:150%;font-family:Arial">1,50<o:p></o:p></span></p>
+  <p class="MsoNormal" style="text-indent:27.0pt;line-height:150%"><span lang="UK" style="font-size:14.0pt;line-height:150%;font-family:Arial">1,60<o:p></o:p></span></p>
+  <p class="MsoNormal" style="text-indent:27.0pt;line-height:150%"><span lang="UK" style="font-size:14.0pt;line-height:150%;font-family:Arial">1,80<o:p></o:p></span></p>
+  <p class="MsoNormal" style="text-indent:27.0pt;line-height:150%"><span lang="UK" style="font-size:14.0pt;line-height:150%;font-family:Arial">2,00<o:p></o:p></span></p>
+  <p class="MsoNormal" style="text-indent:27.0pt;line-height:150%"><span lang="UK" style="font-size:14.0pt;line-height:150%;font-family:Arial">2,20<o:p></o:p></span></p>
+  <p class="MsoNormal" style="text-indent:27.0pt;line-height:150%"><span lang="UK" style="font-size:14.0pt;line-height:150%;font-family:Arial">2,38<o:p></o:p></span></p>
+  <p class="MsoNormal" style="text-indent:27.0pt;line-height:150%"><span lang="UK" style="font-size:14.0pt;line-height:150%;font-family:Arial">2,55<o:p></o:p></span></p>
+  <p class="MsoNormal" style="text-indent:27.0pt;line-height:150%"><span lang="UK" style="font-size:14.0pt;line-height:150%;font-family:Arial">2,85<o:p></o:p></span></p>
+  <p class="MsoNormal" style="text-indent:27.0pt;line-height:150%"><span lang="UK" style="font-size:14.0pt;line-height:150%;font-family:Arial">3,20<o:p></o:p></span></p>
+  <p class="MsoNormal" style="text-indent:27.0pt;line-height:150%"><span lang="UK" style="font-size:14.0pt;line-height:150%;font-family:Arial">3,70<o:p></o:p></span></p>
+  <p class="MsoNormal" style="text-indent:27.0pt;line-height:150%"><span lang="UK" style="font-size:14.0pt;line-height:150%;font-family:Arial">4,05<o:p></o:p></span></p>
+  <p class="MsoNormal" style="text-indent:27.0pt;line-height:150%"><span lang="UK" style="font-size:14.0pt;line-height:150%;font-family:Arial">4,40<o:p></o:p></span></p>
+  <p class="MsoNormal" style="text-indent:27.0pt;line-height:150%"><span lang="UK" style="font-size:14.0pt;line-height:150%;font-family:Arial">4,70<o:p></o:p></span></p>
+  <p class="MsoNormal" style="text-indent:27.0pt;line-height:150%"><span lang="UK" style="font-size:14.0pt;line-height:150%;font-family:Arial">5,00<o:p></o:p></span></p>
+  <p class="MsoNormal" style="text-indent:27.0pt;line-height:150%"><span lang="UK" style="font-size:14.0pt;line-height:150%;font-family:Arial">5,03<o:p></o:p></span></p>
+  </td>
+  <td width="95" style="width:71.35pt;border-top:none;border-left:none;
+  border-bottom:solid windowtext 1.0pt;border-right:solid windowtext 1.0pt;
+  mso-border-top-alt:solid windowtext .5pt;mso-border-left-alt:solid windowtext .5pt;
+  mso-border-alt:solid windowtext .5pt;padding:0cm 5.4pt 0cm 5.4pt">
+  <p class="MsoNormal" style="text-indent:27.0pt;line-height:150%"><span lang="UK" style="font-size:14.0pt;line-height:150%;font-family:Arial">0,183<o:p></o:p></span></p>
+  <p class="MsoNormal" style="text-indent:27.0pt;line-height:150%"><span lang="UK" style="font-size:14.0pt;line-height:150%;font-family:Arial">0,285<o:p></o:p></span></p>
+  <p class="MsoNormal" style="text-indent:27.0pt;line-height:150%"><span lang="UK" style="font-size:14.0pt;line-height:150%;font-family:Arial">0,380<o:p></o:p></span></p>
+  <p class="MsoNormal" style="text-indent:27.0pt;line-height:150%"><span lang="UK" style="font-size:14.0pt;line-height:150%;font-family:Arial">0,530<o:p></o:p></span></p>
+  <p class="MsoNormal" style="text-indent:27.0pt;line-height:150%"><span lang="UK" style="font-size:14.0pt;line-height:150%;font-family:Arial">0,66<o:p></o:p></span></p>
+  <p class="MsoNormal" style="text-indent:27.0pt;line-height:150%"><span lang="UK" style="font-size:14.0pt;line-height:150%;font-family:Arial">0,85<o:p></o:p></span></p>
+  <p class="MsoNormal" style="text-indent:27.0pt;line-height:150%"><span lang="UK" style="font-size:14.0pt;line-height:150%;font-family:Arial">1,02<o:p></o:p></span></p>
+  <p class="MsoNormal" style="text-indent:27.0pt;line-height:150%"><span lang="UK" style="font-size:14.0pt;line-height:150%;font-family:Arial">1,33<o:p></o:p></span></p>
+  <p class="MsoNormal" style="text-indent:27.0pt;line-height:150%"><span lang="UK" style="font-size:14.0pt;line-height:150%;font-family:Arial">1,56<o:p></o:p></span></p>
+  <p class="MsoNormal" style="text-indent:27.0pt;line-height:150%"><span lang="UK" style="font-size:14.0pt;line-height:150%;font-family:Arial">1,77<o:p></o:p></span></p>
+  <p class="MsoNormal" style="text-indent:27.0pt;line-height:150%"><span lang="UK" style="font-size:14.0pt;line-height:150%;font-family:Arial">1,95<o:p></o:p></span></p>
+  <p class="MsoNormal" style="text-indent:27.0pt;line-height:150%"><span lang="UK" style="font-size:14.0pt;line-height:150%;font-family:Arial">2,14<o:p></o:p></span></p>
+  <p class="MsoNormal" style="text-indent:27.0pt;line-height:150%"><span lang="UK" style="font-size:14.0pt;line-height:150%;font-family:Arial">2,30<o:p></o:p></span></p>
+  <p class="MsoNormal" style="text-indent:27.0pt;line-height:150%"><span lang="UK" style="font-size:14.0pt;line-height:150%;font-family:Arial">2,45<o:p></o:p></span></p>
+  <p class="MsoNormal" style="text-indent:27.0pt;line-height:150%"><span lang="UK" style="font-size:14.0pt;line-height:150%;font-family:Arial">2,80<o:p></o:p></span></p>
+  <p class="MsoNormal" style="text-indent:27.0pt;line-height:150%"><span lang="UK" style="font-size:14.0pt;line-height:150%;font-family:Arial">3,10<o:p></o:p></span></p>
+  <p class="MsoNormal" style="text-indent:27.0pt;line-height:150%"><span lang="UK" style="font-size:14.0pt;line-height:150%;font-family:Arial">3,40<o:p></o:p></span></p>
+  <p class="MsoNormal" style="text-indent:27.0pt;line-height:150%"><span lang="UK" style="font-size:14.0pt;line-height:150%;font-family:Arial">3,65<o:p></o:p></span></p>
+  <p class="MsoNormal" style="text-indent:27.0pt;line-height:150%"><span lang="UK" style="font-size:14.0pt;line-height:150%;font-family:Arial">3,90<o:p></o:p></span></p>
+  <p class="MsoNormal" style="text-indent:27.0pt;line-height:150%"><span lang="UK" style="font-size:14.0pt;line-height:150%;font-family:Arial">4,45<o:p></o:p></span></p>
+  <p class="MsoNormal" style="text-indent:27.0pt;line-height:150%"><span lang="UK" style="font-size:14.0pt;line-height:150%;font-family:Arial">4,90<o:p></o:p></span></p>
+  <p class="MsoNormal" style="text-indent:27.0pt;line-height:150%"><span lang="UK" style="font-size:14.0pt;line-height:150%;font-family:Arial">5,80<o:p></o:p></span></p>
+  <p class="MsoNormal" style="text-indent:27.0pt;line-height:150%"><span lang="UK" style="font-size:14.0pt;line-height:150%;font-family:Arial">6,20<o:p></o:p></span></p>
+  <p class="MsoNormal" style="text-indent:27.0pt;line-height:150%"><span lang="UK" style="font-size:14.0pt;line-height:150%;font-family:Arial">6,75<o:p></o:p></span></p>
+  <p class="MsoNormal" style="text-indent:27.0pt;line-height:150%"><span lang="UK" style="font-size:14.0pt;line-height:150%;font-family:Arial">7,25<o:p></o:p></span></p>
+  <p class="MsoNormal" style="text-indent:27.0pt;line-height:150%"><span lang="UK" style="font-size:14.0pt;line-height:150%;font-family:Arial">7,70<o:p></o:p></span></p>
+  <p class="MsoNormal" style="text-indent:27.0pt;line-height:150%"><span lang="UK" style="font-size:14.0pt;line-height:150%;font-family:Arial">8,20<o:p></o:p></span></p>
+  </td>
+ </tr>
+</tbody></table>
+
+</div>
+
+</div></td></tr>
+
+</body>
+</html>

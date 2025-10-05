@@ -1,0 +1,38 @@
+# General
+*.log
+*.tmp
+*.db
+*.sqlite
+
+# Java
+*.class
+*.jar
+
+# IDE files
+.vscode/
+.idea/
+*.iml
+
+# Build artifacts
+bin/
+target/
+build/
+out/
+
+# Sensitive files
+*.key
+*.jks
+*.crt
+*.ini
+
+# OS files
+.DS_Store
+Thumbs.db
+
+#db
+*.db
+*.fdb
+*.pdb
+
+#cript&pers_data
+*/def_rand.h

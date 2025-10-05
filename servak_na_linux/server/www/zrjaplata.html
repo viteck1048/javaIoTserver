@@ -1,0 +1,167 @@
+﻿<!DOCTYPE html>
+<html lang="uk">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Аналіз CSV файлу</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+        }
+        .container {
+            max-width: 800px;
+            margin: auto;
+            padding: 20px;
+            border: 1px solid #ccc;
+            border-radius: 10px;
+            background-color: #f9f9f9;
+        }
+        input[type="file"] {
+            display: block;
+            margin-bottom: 20px;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+        }
+        th, td {
+            border: 1px solid #ddd;
+            padding: 8px;
+            text-align: left;
+        }
+        th {
+            background-color: #f2f2f2;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Аналіз CSV файлу</h1>
+        <input type="file" id="fileInput" accept=".csv">
+        <button onclick="analyzeCSV()">Аналізувати</button>
+        <div id="results"></div>
+    </div>
+
+    <script>
+        const STRT_RAB = 7 * 3600 + 50 * 60;
+        const STRT_OBID = 11 * 3600 + 40 * 60;
+        const END_OBID = 12 * 3600 + 20 * 60;
+        const END_RAB = 16 * 3600 + 40 * 60;
+
+        function analyzeCSV() {
+            const fileInput = document.getElementById('fileInput');
+            const resultsDiv = document.getElementById('results');
+            if (!fileInput.files.length) {
+                alert("Будь ласка, виберіть CSV файл.");
+                return;
+            }
+            
+            const file = fileInput.files[0];
+            const reader = new FileReader();
+            reader.onload = function(event) {
+                const csvData = event.target.result;
+                const lines = csvData.split('\n').map(line => line.split(';'));
+                const days = Array(31).fill(null).map(() => ({ alarm: 1, subtime: 0, pod: [], br: 0 }));
+                
+                let headerProcessed = false;
+                for (let line of lines) {
+                    if (!headerProcessed) {
+                        headerProcessed = true;
+                        continue;
+                    }
+                    
+                    if (line.length < 7 || !line[0].startsWith('"')) continue;
+                    
+                    const dateTimeStr = line[0].slice(1, -1);
+                    const action = line[6].slice(1, -1).includes("ВХОД") ? 1 : 0;
+                    const dateParts = dateTimeStr.split(' ')[0].split('-');
+                    const timeParts = dateTimeStr.split(' ')[1].split(':');
+                    
+                    const day = parseInt(dateParts[2]) - 1;
+                    const timeInSeconds = parseInt(timeParts[0]) * 3600 + parseInt(timeParts[1]) * 60 + parseInt(timeParts[2]);
+                    
+                    days[day].pod.push({ inout: action, time: timeInSeconds });
+                    days[day].br++;
+                }
+                
+                let totalTime = 0;
+                for (let i = 0; i < days.length; i++) {
+                    let ff = 0;
+                    switch (days[i].br) {
+                        case 2:
+                            if (days[i].pod[0].inout === 1 && days[i].pod[1].inout === 0) days[i].alarm = 0;
+                            days[i].subtime = days[i].pod[1].time - days[i].pod[0].time;
+                            ff = 1;
+                            break;
+                        case 3:
+                            days[i].subtime = days[i].pod[2].time - days[i].pod[0].time;
+                            ff = 1;
+                            break;
+                        case 4:
+                            if (days[i].pod[0].inout === 1 && days[i].pod[1].inout === 0 && days[i].pod[2].inout === 1 && days[i].pod[3].inout === 0)
+                                days[i].alarm = 0;
+                            days[i].subtime = days[i].pod[3].time - days[i].pod[2].time + days[i].pod[1].time - days[i].pod[0].time;
+                            if (days[i].subtime < (days[i].pod[2].time - days[i].pod[1].time) || days[i].alarm === 1) {
+                                days[i].subtime = days[i].pod[3].time - days[i].pod[0].time;
+                            }
+                            if (!((days[i].pod[1].time > STRT_OBID && days[i].pod[1].time < END_OBID) || (days[i].pod[2].time > STRT_OBID && days[i].pod[2].time < END_OBID))) {
+                                ff = 1;
+                            }
+                            days[i].alarm = 1;
+                            break;
+                    }
+                    
+                    if (ff === 1) {
+                        if ([0, 6].includes(new Date(2024, 6, i + 1).getDay())) {
+                            if (days[i].subtime > 6 * 3600) days[i].subtime -= 40 * 60;
+                            else if (days[i].subtime > (5 * 3600 + 20 * 60)) days[i].subtime = 5 * 3600 + 20 * 60;
+                        }
+                        totalTime += days[i].subtime;
+                    }
+                }
+
+                let totalHours = Math.floor(totalTime / 3600);
+                let totalMinutes = Math.floor((totalTime % 3600) / 60);
+                let totalPayment = totalTime / 3600 * 13;
+                let balance = totalPayment - 741.80 + 300;
+
+                let resultHTML = `<table>
+                    <thead>
+                        <tr>
+                            <th>День</th>
+                            <th>Час</th>
+                            <th>Зарплата (BGN)</th>
+                            <th>Сигнал</th>
+                        </tr>
+                    </thead>
+                    <tbody>`;
+                
+                days.forEach((day, index) => {
+                    if (day.br > 0) {
+                        resultHTML += `<tr>
+                            <td>${index + 1}</td>
+                            <td>${Math.floor(day.subtime / 3600)}:${String(Math.floor((day.subtime % 3600) / 60)).padStart(2, '0')}</td>
+                            <td>${(day.subtime / 3600 * 13).toFixed(2)}</td>
+                            <td>${day.alarm ? 'АЛАРМ' : ''}</td>
+                        </tr>`;
+                    }
+                });
+                
+                resultHTML += `</tbody>
+                    </table>
+                    <p>Загальний час: ${totalHours}:${String(totalMinutes).padStart(2, '0')}</p>
+                    <p>Загальна ставка: ${totalPayment.toFixed(2)} BGN</p>
+                    <p>Аванс: 741.80 BGN</p>
+                    <p>Залишок: ${(totalPayment - 741.80).toFixed(2)} BGN</p>
+                    <p>+ Премія: ${(balance).toFixed(2)} BGN</p>`;
+
+                resultsDiv.innerHTML = resultHTML;
+            };
+
+            reader.readAsText(file);
+        }
+    </script>
+</body>
+</html>

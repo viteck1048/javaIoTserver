@@ -1,0 +1,45 @@
+<canvas id="canvas" width="800" height="600" style="border:1px solid #000;"></canvas>
+<script>
+	const canvas = document.getElementById('canvas');
+	const ctx = canvas.getContext('2d');
+	// Масив для зберігання елементів
+	const elements = [
+		{ id: 1, x: 100, y: 100, width: 50, height: 50 },
+		{ id: 2, x: 300, y: 100, width: 50, height: 50 }
+	];
+	// Функція для малювання елементів
+	function drawElements() {
+		ctx.clearRect(0, 0, canvas.width, canvas.height);
+		elements.forEach(el => {
+			ctx.fillStyle = 'blue';
+			ctx.fillRect(el.x, el.y, el.width, el.height);
+		});
+	}
+	drawElements();
+	
+	let selectedElement = null;
+	let offsetX, offsetY;
+	canvas.addEventListener('mousedown', (e) => {
+		const mouseX = e.offsetX;
+		const mouseY = e.offsetY;
+		selectedElement = elements.find(el =>
+			mouseX > el.x && mouseX < el.x + el.width &&
+			mouseY > el.y && mouseY < el.y + el.height
+		);
+		if (selectedElement) {
+			offsetX = mouseX - selectedElement.x;
+			offsetY = mouseY - selectedElement.y;
+		}
+	});
+	canvas.addEventListener('mousemove', (e) => {
+		if (selectedElement) {
+			selectedElement.x = e.offsetX - offsetX;
+			selectedElement.y = e.offsetY - offsetY;
+			drawElements();
+		}
+	});
+	canvas.addEventListener('mouseup', () => {
+		selectedElement = null;
+	});
+
+</script>

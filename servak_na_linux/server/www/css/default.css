@@ -1,0 +1,717 @@
+/* Стилі для бокового меню навігації */
+nav {
+	background-color: #f0f0f0;
+	padding: 20px;
+	position: fixed;
+	top: 0;
+	bottom: 20px;
+	left: 0;
+	width: 18%;
+	float: left;
+	overflow-y: auto;
+}
+nav ul {
+	list-style-type: none;
+	margin: 0;
+	padding: 0;
+	bottom: 20px;
+}
+nav ul li {
+	margin-top: 8px;
+	margin-bottom: 5px;
+	font-size: 20px;
+	font-weight: bold;
+}
+nav ul li a {
+	color: #333;
+	text-decoration: none;
+}
+nav ul li a:hover {
+	text-decoration: underline;
+}
+nav a.mysqlviev {
+	font-size: 16px;
+	font-weight: normal;
+	position: fixed;
+	bottom: 0;
+	margin-left: 5%;
+}
+@media (max-width: 768px) {
+    nav {
+        transform: translateX(-100%);
+        transition: transform 0.3s cubic-bezier(.4,0,.2,1);
+        width: 80vw;
+        z-index: 1000;
+    }
+    nav.active {
+        transform: translateX(0);
+    }
+    #menuToggle {
+        position: fixed;
+        top: 50%;
+        left: 0;
+        transform: translateY(-50%) translateX(0);
+        transition: transform 0.3s cubic-bezier(.4,0,.2,1), background 0.3s;
+        z-index: 1001;
+        background-color: #000DFF;
+        color: white;
+        border: none;
+        padding: 5px 3px;
+        font-size: 14px;
+        border-radius: 0 12px 12px 0;
+        cursor: pointer;
+		display: none;
+        width: 10px;
+        height: 150px;
+    }
+    nav.active + #menuToggle,
+    #menuToggle.active {
+        transform: translateY(-50%) translateX(80vw);
+    }
+    .pole_instr {
+        width: 100%;
+        position: relative;
+        padding: 10px;
+    }
+
+    #instr_coment {
+        position: relative;
+        width: 100%;
+        height: auto;
+        bottom: auto;
+    }
+
+    #instr_zvity {
+        position: relative;
+        width: 100%;
+        height: auto;
+        top: auto;
+        bottom: auto;
+    }
+
+    .pole_opysu {
+        width: 100%;
+        margin-left: 0;
+        padding: 10px;
+    }
+
+    main {
+        margin-left: 0;
+        width: 100%;
+    }
+
+    table.layout,
+    table.grid {
+        display: block;
+        overflow-x: auto;
+    }
+
+    input.text, 
+    input[type="text"], 
+    input[type="password"], 
+    .customfile {
+        width: 100%;
+        box-sizing: border-box;
+    }
+
+    .medium {
+        width: 100%;
+    }
+
+    .dovhe {
+        width: 100%;
+    }
+
+    /* Адаптуємо таблиці в mash-edit */
+    main > #mashyn-details > mash-edit > table {
+        width: 100%;
+        margin: 0;
+        padding: 0;
+    }
+
+    main > #mashyn-details > mash-edit > table > tbody {
+        width: 100%;
+        display: block;
+    }
+
+    main > #mashyn-details > mash-edit > table > tbody > tr {
+        width: 100%;
+        display: block;
+        margin-bottom: 10px;
+    }
+
+    main > #mashyn-details > mash-edit > table > tbody > tr > td {
+        width: 100%;
+        display: block;
+        padding: 5px;
+        box-sizing: border-box;
+    }
+
+    main > #mashyn-details > mash-edit > table > tbody > tr > td.panel_mash,
+    main > #mashyn-details > mash-edit > table > tbody > tr > td.panel_lira,
+    main > #mashyn-details > mash-edit > table > tbody > tr > td.panel_zm,
+    main > #mashyn-details > mash-edit > table > tbody > tr > td.panel_zm_npp,
+    main > #mashyn-details > mash-edit > table > tbody > tr > td.panel_um {
+        width: 100%;
+        margin: 0;
+        padding: 10px;
+        box-sizing: border-box;
+    }
+
+    main > #mashyn-details > mash-edit > table > tbody > tr > td.panel_mash,
+    main > #mashyn-details > mash-edit > table > tbody > tr > td.panel_lira,
+    main > #mashyn-details > mash-edit > table > tbody > tr > td.panel_zm,
+    main > #mashyn-details > mash-edit > table > tbody > tr > td.panel_zm_npp,
+    main > #mashyn-details > mash-edit > table > tbody > tr > td.panel_um {
+        width: 100% ;
+        min-width: 0 ;
+        max-width: 100%;
+        box-sizing: border-box;
+        margin: 0 ;
+        padding-left: 0 ;
+        padding-right: 0 ;
+    }
+
+    /* Всі .spoy-* блоки *//*
+    .spoy-panel,
+    .spoy-batja,
+    .spoy-mini,
+    .spoy-mini-l,
+    .spoy-mini-m,
+    .spoy-mini-n,
+    .spoy-kn {
+        width: 100% !important;
+        min-width: 0 !important;
+        max-width: 100% !important;
+        box-sizing: border-box !important;
+        margin: 0 !important;
+        padding-left: 0 !important;
+        padding-right: 0 !important;
+        display: block !important;
+    }
+
+    /* Винятки для меню */
+/*    nav ul,
+    nav ul li,
+    nav ul li a {
+        width: auto !important;
+        display: list-item !important;
+        max-width: none !important;
+        min-width: 0 !important;
+        box-sizing: border-box;
+        text-align: left;
+        white-space: normal;
+    }*/
+}
+
+@media (min-width: 769px) {
+    #menuToggle {
+        display: none;
+    }
+}
+/*
+nav ul li {
+    word-wrap: break-word;
+}
+	
+/* Стилі для контенту */
+/*	
+	main {
+		background-color: #6ff2f3;
+	}*/
+/* 	main {
+		float: left;
+		margin-left: 24%;
+		width: 60%;
+	}
+ */	
+	.pole_instr {
+		padding: 20px;
+		position: fixed;
+		width: 18%;
+		overflow-y: auto;
+	}
+
+	#instr_coment {
+		background-color: #f0f0f0;
+		right: 0;
+		top: 0;
+		bottom: 25%;
+	}
+
+	#instr_zvity {
+		background-color: #121111;
+		top: 75%;
+		bottom: 0;		
+		right: 0;
+		font-size: 12px;
+		text-align: right;
+		font-family: Consolas;
+		
+	}
+	
+	.msg_ok {
+		color: green;
+	}
+	.msg_err {
+		color: red;
+	}
+	.msg_warn {
+		color: yellow;
+	}
+	
+	.pole_opysu {
+		width: 52%;
+		/* right: 20%; */
+		margin-left: 24%;
+		/* left: 20%; */
+	}
+	
+	main mash-viev p {
+		font-size: 20px;
+	}
+	main mash-viev npp_det p {
+		font-size: 20px;
+		margin-left: 50px;
+	}
+	main mash-viev usl_det p {
+		font-size: 20px;
+		margin-left: 50px;
+	}
+	
+	main mash-edit p {
+		font-size: 14px;
+	}
+	.Bukva {
+		font-size: 20px;
+		font-weight: bold;
+	}
+	main mash-edit npp_det p {
+		font-size: 14px;
+		margin-left: 25px;
+	}
+	
+	main mash-edit usl_det p {
+		font-size: 14px;
+		margin-left: 50px;
+	}
+	main mash-edit zminni label {
+	
+		text-align: center;
+	}
+	
+
+
+input,
+select,
+textarea {
+	font-family: Calibri, Arial, Helvetica, sans-serif;
+}
+
+h1 {
+	margin: 0.3em 0 0.2em 0;
+	font-size:1.1em;
+}
+h2 {
+	margin: 0.3em 0 0.2em 0;
+	font-size:1.1em;
+}
+h3 {
+	margin: 0.3em 0 0.2em 0;
+	font-size:1.1em;
+}
+h1 small, h2 small, h3 small{
+	opacity: .4;
+	font-size:.8em;
+}
+
+
+a.dwnldcnf:link,
+a.dwnldcnf:visited,
+a.dwnldcnf:active  {
+	margin-left: 20px;
+	font-size: 16px;
+	font-family: Consolas;
+	color: red;
+}
+
+
+a:link, a:visited, a:active, a.link:link, a.link:visited, a:active { 
+	color: #06a; 
+}
+ table { 
+	font-size: 1em;
+} 
+
+th { text-align:left; }
+a:link, a:visited, a:active { text-decoration:none; }
+a:hover { text-decoration:underline; }
+p {	margin: 0.5em 0 0.5em 0; }
+.b, label { font-weight: bold; }
+.b, label2long { font-weight: bold; }
+.i { font-style: italic; }
+img { border: none; }
+.c{ text-align: center; }
+.r{ text-align: right; }
+.float-l{ float:left; }
+.float-r{ float:right; }
+.center{
+	margin-left:0;
+	margin-right:0;
+}
+.bm { vertical-align:bottom;}
+.m { vertical-align:middle;}
+.t { vertical-align:top;}
+.inline{ display: inline; }
+.inline-block{
+	display: inline-block;
+	vertical-align:middle;
+}
+
+table.layout {
+    /* border-collapse: collapse; */
+    /* table-layout: auto; */
+	width: 100%;
+}
+
+table.grid {
+    border-collapse: collapse;
+    /* table-layout: auto; */
+	width: 100%;
+}
+
+table.grid th,
+table.grid td {
+    border: 1px solid #bbb;
+    padding: 0.3em 0.5em;
+}
+
+table.grid th {
+	background: #ddd;
+}
+table.grid tr,
+table.grid td {
+	background: #fff;
+}
+table.grid tr:hover td{
+	background: #cde !important;
+}
+table.grid th, 
+table.grid td {
+	padding: 0.3em 0.5em;
+}
+
+td.panel_mash {
+	border-radius: 4px;
+	background: #eee;
+	padding: 0.5em;
+	width: 98%;
+}
+td.panel_lira {
+	border: 2px solid #aaa;
+	border-radius: 4px;
+	background: #dededd;
+	padding: 0.5em;
+	min-height:0px;
+	width: 100%;
+}
+td.panel_zm {
+	border: 1px solid #aaa;
+	border-radius: 4px;
+	background: #cdcdcd;
+	padding: 0.1em;
+	width: 100%;
+	min-height:0px;
+}
+td.panel_zm_npp {
+	border: 1px solid #aaa;
+	border-radius: 4px;
+	background: #c5c5c5;
+	padding: 0.1em;
+	width: 100%;
+	min-height:0px;
+}
+td.panel_um {
+	border: 1px solid #aaa;
+	border-radius: 4px;
+	background: #c8c8c0;
+	padding: 0.1em;
+	width: 100%;
+	min-height:0px;
+}/*
+td.panel:hover {
+	background: #efe;
+}*/
+
+.icon { padding-left:16px; }
+.edit_icon { background: transparent url(famfam/pencil.png) top left no-repeat; }
+.add_icon { background: transparent url(famfam/add.png) top left no-repeat; }
+.delete_icon { background: transparent url(famfam/cross.png) top left no-repeat; }
+.view_icon { background: transparent url(famfam/magnifier.png) top left no-repeat; }
+.info_icon { background: transparent url(famfam/information.png) top left no-repeat; }
+.error_icon { background: transparent url(famfam/exclamation.png) top left no-repeat; }
+.user_icon { background: transparent url(famfam/user.png) top left no-repeat; }
+.ok_icon { background: transparent url(famfam/tick.png) top left no-repeat; }
+.refresh_icon { background: transparent url(famfam/arrow_rotate_anticlockwise.png) top left no-repeat; }
+.app_icon { background: transparent url(famfam/brick.png) top left no-repeat; }
+
+.msg_err { color: red; }
+.msg_ok { color: #060; }
+
+label2long {
+	width: 250px;
+	display:inline-block;
+}
+
+label {
+	width: 100px;
+	display:inline-block;
+}
+
+input.text, input[type="text"], input[type="password"], .customfile {
+    background: none repeat scroll 0 0 #FFFFFF;
+    border-radius: 4px 4px 4px 4px;
+    border-width: 1px;
+    box-shadow: 1px 3px 4px #DDDDDD inset;
+    padding: 2px;
+	width: 100px;
+}
+.medium {
+	width: 250px;
+}
+.dovhe {
+	width: 98%;
+}
+
+textarea {
+	resize: vertical; /* Заблокувати зміну розміру */
+	box-sizing: content-box;
+	height: auto; /* Автоматична висота залежно від вмісту */
+	min-height: 35px; /* Мінімальна висота (опціонально) */
+	max-height: 300px; /* Максимальна висота (опціонально) */
+}
+
+.spoy-kn {
+	font-size:12px;
+	font-family: Consolas;
+	cursor: pointer;
+}
+
+a.spoy-kn {
+	font-weight: normal;
+	float: right;
+}
+
+ui.spoy-kn {
+	font-weight: bold;
+}
+
+/*
+
+overflow
+*/
+
+/* Стилі для кнопки меню */
+#menuToggle {
+	transition: transform 0.3s ease;
+	position: fixed;
+	top: 50%;
+	left: 0;
+	transform: translateY(-50%);
+	z-index: 1001;
+	background-color: #000DFF;
+	color: white;
+	border: none;
+	padding: 5px 3px;
+	font-size: 14px;
+	display: none;
+	border-radius: 0 12px 12px 0;
+	cursor: pointer;
+	width: 10px; /* робимо кнопку тоншою */
+	height: 150px; /* збільшуємо висоту для більшої видимості */
+}
+/*
+#menuToggle span {
+    display: block;
+    width: 25px;
+    height: 3px;
+    background-color: #333;
+    margin: 5px 0;
+    transition: 0.3s;
+}
+*/
+#menuToggle:hover {
+	background-color: #0000FF;
+}
+
+#sidebar.active {
+	transform: translateX(100%);
+}
+
+#sidebar.active + #menuToggle {
+	transform: translateX(300px) translateY(-50%); /* Зміщення кнопки разом із сайдбаром */
+}
+
+#menuToggle.active span:nth-child(1) {
+    transform: rotate(-45deg) translate(-5px, 6px);
+}
+
+#menuToggle.active span:nth-child(2) {
+    opacity: 0;
+}
+
+#menuToggle.active span:nth-child(3) {
+    transform: rotate(45deg) translate(-5px, -6px);
+}
+
+/* Стилі для спливаючого вікна інструкцій */
+.tooltip {
+    display: none;
+    position: absolute;
+    background: rgba(0, 0, 0, 0.8);
+    color: white;
+    padding: 10px;
+    border-radius: 4px;
+    z-index: 1000;
+    max-width: 300px;
+    font-size: 14px;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+}
+
+/* Медіа-запити для мобільної версії */
+@media (max-width: 768px) {
+    nav {
+        transform: translateX(-100%);
+        transition: transform 0.3s cubic-bezier(.4,0,.2,1);
+        width: 80vw;
+        z-index: 1000;
+    }
+    nav.active {
+        transform: translateX(0);
+    }
+    #menuToggle {
+        position: fixed;
+        top: 50%;
+        left: 0;
+        transform: translateY(-50%) translateX(0);
+        transition: transform 0.3s cubic-bezier(.4,0,.2,1), background 0.3s;
+        z-index: 1001;
+        background-color: #000DFF;
+        color: white;
+        border: none;
+        padding: 5px 3px;
+        font-size: 14px;
+        border-radius: 0 12px 12px 0;
+        cursor: pointer;
+        width: 10px;
+		display: none;
+        height: 150px;
+    }
+    nav.active + #menuToggle,
+    #menuToggle.active {
+        transform: translateY(-50%) translateX(80vw);
+    }
+    /* Приховуємо інструкції в сайдбарі */
+    .pole_instr {
+        display: none;
+    }
+
+    /* Адаптуємо основні контейнери */
+    main {
+        width: 100%;
+        margin: 0;
+        padding: 0;
+    }
+
+    #mashyn-details {
+        width: 100%;
+        margin: 0;
+        padding: 0;
+    }
+
+    /* Розтягуємо основні блоки на всю ширину */
+    main > #mashyn-details > mash-viev,
+    main > #mashyn-details > mash-edit {
+        width: 100%;
+        margin: 0;
+        padding: 10px;
+        box-sizing: border-box;
+    }
+
+    main > #mashyn-details > mash-viev p,
+    main > #mashyn-details > mash-edit p {
+        font-size: 16px;
+        margin: 5px 0;
+    }
+
+    main > #mashyn-details > mash-viev npp_det p,
+    main > #mashyn-details > mash-viev usl_det p {
+        margin-left: 20px;
+    }
+
+    main > #mashyn-details > mash-edit npp_det p,
+    main > #mashyn-details > mash-edit usl_det p {
+        margin-left: 20px;
+    }
+
+    /* Адаптуємо таблиці */
+    table.layout,
+    table.grid {
+        width: 100%;
+        margin: 0;
+    }
+
+    /* Адаптуємо форми */
+    .edit-lira-form,
+    .edit-zm-form,
+    .edit-npp-form,
+    .edit-usl-form {
+        width: 100%;
+    }
+
+    input.text,
+    input[type="text"],
+    input[type="password"],
+    .customfile,
+    select,
+    textarea {
+        width: 100%;
+        box-sizing: border-box;
+    }
+
+    .medium,
+    .dovhe {
+        width: 100%;
+    }
+
+    main, #mashyn-details, mash-edit, mash-viev, .panel_lira, .panel_zm, .panel_um, .panel_npp, .panel_zm_npp, .panel_mash {
+        width: 100% !important;
+        min-width: 0 !important;
+        max-width: 100% !important;
+        box-sizing: border-box !important;
+        margin: 0 !important;
+        padding-left: 0 !important;
+        padding-right: 0 !important;
+    }
+    input, select, textarea {
+        width: 100% !important;
+        min-width: 0 !important;
+        max-width: 100% !important;
+        box-sizing: border-box !important;
+    }
+    .spoyler, .spoy-panel, .spoy-batja {
+        width: 100% !important;
+        min-width: 0 !important;
+        max-width: 100% !important;
+    }
+    body, html {
+        overflow-x: hidden !important;
+    }/*
+    .icon, .edit_icon, .add_icon, .delete_icon, .view_icon, .info_icon, .error_icon, .user_icon, .ok_icon, .refresh_icon, .app_icon {
+        width: auto !important;
+        min-width: 16px !important;
+        max-width: 24px !important;
+        display: inline-block !important;
+        vertical-align: middle !important;
+    }*/
+}

@@ -1,0 +1,143 @@
+/*body { 
+	font-family: Arial, sans-serif; 
+	text-align: center; 
+}*/
+/*.container {
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	padding: 20px;
+	margin-left: auto;
+	margin-right: auto;
+}*/
+.gadget-container {
+	background: #f5f5f5;
+	border-radius: 10px;
+	padding: 15px;
+	margin-bottom: 20px;
+	max-width: 800px;
+	margin: auto;
+}
+.gadget-header {
+	display: flex;
+	justify-content: space-between;
+	align-items: center;
+	margin-bottom: 15px;
+	padding: 10px;
+	background: #fff;
+	border-radius: 5px;
+	box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+}
+.gadget-header h2 {
+	margin: 0;
+	font-size: 18px;
+	font-weight: bold;
+	color: #333;
+}
+.gadget-header .edit-link {
+	color: #007bff;
+	text-decoration: none;
+	font-size: 14px;
+	padding: 5px 10px;
+	border-radius: 4px;
+	background: rgba(0, 123, 255, 0.1);
+}
+.gadget-header .edit-link:hover {
+	color: #0056b3;
+	background: rgba(0, 86, 179, 0.1);
+}
+.buttons-container {
+	display: flex;
+	flex-wrap: wrap;
+	justify-content: center;
+	gap: 10px;
+}/*
+.button { 
+	width: 300px; 
+	height: 50px; 
+	margin: 10px; 
+	background-color: grey; 
+	color: #fff; 
+	border: none; 
+	border-radius: 5px; 
+	font-size: 16px; 
+	cursor: pointer;
+	transition: all 0.2s ease;
+}
+.button:hover {
+	background-color: #666;
+}
+.button.red {
+	background-color: red;
+}
+.button.green {
+	background-color: green;
+}*/
+#output { 
+	width: 80%; 
+	height: 50px; 
+	margin-top: 20px;
+	border: 2px solid #007bff;
+	border-radius: 5px;
+	font-size: 20px;
+	padding: 10px;
+	box-sizing: border-box;
+	text-align: center;
+}
+.button {
+	position: relative;
+	display: inline-block;
+	width: 280px;
+	height: 60px;
+	margin: 5px;
+	/*border: none;*/
+	border-radius: 30px;
+	font-size: 16px;
+	color: #fff;
+	cursor: pointer;
+	transition: all 0.3s ease;
+	text-align: left;
+	padding-left: 70px;
+	background-color: #555; /* базовий колір */
+	overflow: hidden;
+  }
+  
+  /* Кружечок перемикача */
+  .button::before {
+	content: '';
+	position: absolute;
+	top: 5px;
+	left: 5px;
+	width: 46px;
+	height: 46px;
+	background: #eee;
+	border-radius: 50%;
+	transition: 0.3s;
+	box-shadow: 0 0 5px rgba(0,0,0,0.3);
+  }
+  
+  /* Активна кнопка (зелена) */
+  .button[style*="green"] {
+	background-color: #2ecc71;
+  }
+  
+  .button[style*="green"]::before {
+	background-color: #fff;
+	left: 225px;
+  }
+  
+  /* Вимкнена (червона) */
+  .button[style*="red"] {
+	background-color: #e74c3c;
+  }
+  
+  /* Неактивна (сіра) */
+  .button[style*="grey"] {
+	background-color: #777;
+  }
+  
+  /* Ховер ефект */
+  .button:hover {
+	filter: brightness(1.1);
+  }
+  

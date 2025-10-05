@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Edit Relay Names</title>
+    <link rel="stylesheet" href="edit_relay_names.css">
+    </head>
+<body>
+    <div class="container">
+        <h1 style="font-size: 1.2em">Edit Relay Names</h1>
+        <div class="device-name-form">
+            <h3 style="font-size: 1.0em">Device Name</h3>
+            <form id="deviceNameForm">
+                <input type="text" id="deviceName" placeholder="Enter device name">
+                <button type="submit" style="font-size: 1.0em">Save Name</button>
+                <a href="view_log_order.html?command=log_file&sn=" id="logLink" style="font-size: 1.0em">View&nbsp;Log</a>
+            </form>
+        </div>
+        <form id="relayForm" style="font-size: 1.0em">
+            <div class="relay-list" id="relayList">
+                <!-- Relay names will be dynamically added here -->
+            </div>
+            <button type="submit" style="font-size: 1.0em">Save All</button>
+        </form>
+    </div>
+
+    <!-- Модальне вікно для редагування -->
+    <div id="editModal" class="modal">
+        <div class="modal-content">
+            <span class="close-modal">&times;</span>
+            <h2>Редагування імені</h2>
+            <form id="editForm">
+                <div class="input-group">
+                    <label for="relayNumber">Номер релейного виходу:</label>
+                    <input type="text" id="relayNumber" readonly>
+                </div>
+                <div class="input-group">
+                    <label for="relayName">Нове ім'я:</label>
+                    <input type="text" id="relayName" required>
+                </div>
+                <div class="input-group">
+                    <button type="submit" class="btn">Зберегти</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script src="edit_relay_names.js"></script>
+</body>
+</html>

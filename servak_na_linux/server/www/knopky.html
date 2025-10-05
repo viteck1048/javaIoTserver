@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Кнопки та поле виводу у відсотках</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            text-align: center;
+        }
+        .container {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: left-side;
+            align-items: center;
+            margin-top: 20px;
+        }
+        .button {
+            display: inline-block;
+            width: 100px;
+            height: 50px;
+            margin: 10px;
+            background-color: #007bff;
+            color: #fff;
+            border: none;
+            border-radius: 5px;
+            font-size: 16px;
+            cursor: pointer;
+        }
+        #output {
+            width: 80%;
+            height: 50px;
+            margin-top: 20px;
+            border: 2px solid #007bff;
+            border-radius: 5px;
+            font-size: 20px;
+            padding: 10px;
+            box-sizing: border-box;
+        }
+    </style>
+</head>
+<body>
+    <input type="text" id="output" readonly><p>
+    <div class="container">
+        <button class="button" onclick="calculate(10)">R1</button><p>
+        <button class="button" onclick="calculate(20)">R2</button><p>
+        <button class="button" onclick="calculate(30)">R3</button><p>
+        <button class="button" onclick="calculate(40)">R4</button><p>
+        <button class="button" onclick="calculate(50)">R5</button><p>
+        <button class="button" onclick="calculate(60)">R6</button><p>
+        <button class="button" onclick="calculate(70)">R7</button><p>
+        <button class="button" onclick="calculate(80)">R8</button><p>
+    </div>
+    <script>
+        function calculate(percent) {
+            document.getElementById('output').value = percent + '%';
+        }
+    </script>
+</body>
+</html>

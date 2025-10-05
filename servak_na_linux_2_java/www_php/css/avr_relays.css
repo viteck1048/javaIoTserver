@@ -1,0 +1,141 @@
+/* Стилі для AVR Relays Control */
+
+/* Стилі для таблиці з реле */
+table.tabl_prnt {
+	border-collapse: separate;
+	border-spacing: 1px;
+	width: 100%;
+	max-width: 350px;
+	table-layout: fixed;
+	margin: 10px;
+	font-family: 'Courier New', Courier, monospace;
+}
+
+table.tabl_prnt th, table.tabl_prnt td {
+	border: 1px solid black;
+	padding: 8px;
+	text-align: center;
+	width: 50%;
+}
+
+table.tabl_prnt tr td.name {
+	font-family: Arial, sans-serif;
+}
+
+table.tabl_prnt tr td.znach {
+	font-family: 'Courier New', Courier, monospace;
+	font-size: 22px;
+	font-weight: bold;
+}
+
+/* Стилі для кнопки скидання */
+.content-wrapper {
+	width: 100%;
+	display: flex;
+	justify-content: center;
+	align-items: center;
+}
+
+td.name {
+	justify-content: center;
+	align-items: center;
+}
+
+.reset {
+	left: 0;
+	background-color: green;
+	color: white;
+	border: none;
+	border-radius: 3px;
+	padding: 2px 5px;
+	margin-right: 5px;
+	cursor: pointer;
+}
+
+.text {
+	flex-grow: 1;
+	text-align: center;
+}
+
+/* Стилі для матриці з'єднань */
+table.zjednannja {
+	border-collapse: collapse;
+	margin-top: 20px;
+}
+
+table.zjednannja th {
+	padding: 1px;
+	background-color: #f0f0f0;
+}
+
+table.zjednannja td {
+	border: none;
+	padding: 1px;
+}
+
+table.zjednannja tr.nyz td {
+	border-bottom: 1px solid black;
+}
+
+table.zjednannja tr.verkh td {
+	border-top: 1px solid black;
+}
+
+/* Стилі для блоків реле */
+.blockrele {
+	border-bottom: 2px solid #ccc;
+	margin-bottom: 10px;
+}
+
+/* Стилі для полів вводу */
+.kl_1_znak {
+	width: 8px;
+	text-align: center;
+	font-family: monospace;
+	border: none;
+}
+
+/* Стилі для інформаційних полів */
+div#poleopysu, div#poleopysu2 {
+	margin-top: 20px;
+	padding: 10px;
+	background-color: #f9f9f9;
+	border-radius: 5px;
+}
+
+div#namerele, div#comentar {
+	font-weight: bold;
+	margin-bottom: 10px;
+}
+
+#sn_mega, #sn_esp {
+	font-family: "Courier New", Courier, monospace;
+	font-size: 14px;
+	margin: 5px 0;
+}
+
+/* Стилі для кнопки відправки форми */
+.matrycja_zjednanj2 {
+	margin-top: 15px;
+	padding: 8px 15px;
+	background-color: #4CAF50;
+	color: white;
+	border: none;
+	border-radius: 4px;
+	cursor: pointer;
+}
+
+.matrycja_zjednanj2:hover {
+	background-color: #45a049;
+}
+
+
+.icon {	
+	padding-left:24px;
+/*	padding-right:0.5rem;
+	padding-bottom:0.5rem;
+	padding-top:0.5rem;
+*/ }
+.gray_ball { background: transparent url(ball_gray_icon_16x16.png) center right 0.5rem no-repeat; }
+.red_ball {background: transparent url(ball_red_icon_16x16.png) center right 0.5rem no-repeat; }
+.green_ball { background: transparent url(ball_green_icon_16x16.png) center right 0.5rem no-repeat; }

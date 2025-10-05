@@ -1,0 +1,1135 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+	<meta charset="UTF-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1.0">
+	<title>Аналіз CSV файлу</title>
+	<style>
+		.outdated-rate {
+			color: #888;
+			font-style: italic;
+		}
+		body {
+			font-family: Arial, sans-serif;
+			margin: 20px;
+		}
+		.container {
+			max-width: 800px;
+			margin: auto;
+			padding: 20px;
+			border: 1px solid #ccc;
+			border-radius: 10px;
+			background-color: #f9f9f9;
+		}
+		input[type="file"] {
+			display: block;
+			margin-bottom: 20px;
+		}
+		table {
+			width: 100%;
+			border-collapse: collapse;
+			margin-top: 20px;
+		}
+		th, td {
+			border: 1px solid #ddd;
+			padding: 8px;
+			text-align: left;
+		}
+		th {
+			background-color: #f2f2f2;
+		}
+	</style>
+</head>
+<body>
+	<div>
+		<label>
+			Погодинна ставка (BGN):
+			<input type="number" id="hourlyRate" step="0.01" value="13">
+		</label>
+		<br>
+		<label>
+			Аванс (BGN):
+			<input type="number" id="advance" step="0.01" value="741.80">
+		</label>
+		<br>
+		<label>
+			Премія (BGN):
+			<input type="number" id="bonus" step="0.01" value="300">
+		</label>
+		<br>
+		<label>
+			Відпускні (BGN):
+			<input type="number" id="vacationRate" step="0.01" value="50">
+		</label>
+		<br>
+		<label>
+			Днів відпустки:
+			<input type="number" id="vacationDays" step="1" value="0" min="0">
+		</label>
+		<br>
+		<label>
+			Початок роботи (HH:MM):
+			<input type="time" id="workStart" step="60" value="07:50">
+		</label>
+		<br>
+		<label>
+			Кінець роботи (HH:MM):
+			<input type="time" id="workEnd" step="60" value="16:40">
+		</label>
+		<br>
+		<label>
+			Початок обіду (HH:MM):
+			<input type="time" id="lunchStart" step="60" value="11:40">
+		</label>
+		<br>
+		<label>
+			Кінець обіду (HH:MM):
+			<input type="time" id="lunchEnd" step="60" value="12:20">
+		</label>
+		<br>
+		<label>
+			Валюта:
+			<select id="currencySelect">
+				<option value="EUR">EUR (€) - Euro</option>
+				<option value="BGN" selected>BGN (лв) - Bulgarian Lev</option>
+				<option value="USD">USD ($) - US Dollar</option>
+				<option value="GBP">GBP (£) - British Pound</option>
+				<option value="UAH">UAH (₴) - Ukrainian Hryvnia</option>
+				<option value="PLN">PLN (zł) - Polish Złoty</option>
+				<option value="RON">RON (lei) - Romanian Leu</option>
+				<option value="JPY">JPY (¥) - Japanese Yen</option>
+				<option value="CHF">CHF (Fr) - Swiss Franc</option>
+				<option value="CAD">CAD ($) - Canadian Dollar</option>
+				<option value="AUD">AUD ($) - Australian Dollar</option>
+				<option value="CNY">CNY (¥) - Chinese Yuan</option>
+				<option value="HUF">HUF (Ft) - Hungarian Forint</option>
+				<option value="CZK">CZK (Kč) - Czech Koruna</option>
+				<option value="DKK">DKK (kr) - Danish Krone</option>
+				<option value="NOK">NOK (kr) - Norwegian Krone</option>
+				<option value="SEK">SEK (kr) - Swedish Krona</option>
+				<option value="TRY">TRY (₺) - Turkish Lira</option>
+				<option value="INR">INR (₹) - Indian Rupee</option>
+				<option value="RUB">RUB (₽) - Russian Ruble</option>
+				<option value="BRL">BRL (R$) - Brazilian Real</option>
+				<option value="ZAR">ZAR (R) - South African Rand</option>
+				<option value="SGD">SGD ($) - Singapore Dollar</option>
+				<option value="NZD">NZD ($) - New Zealand Dollar</option>
+				<option value="MXN">MXN ($) - Mexican Peso</option>
+				<option value="HKD">HKD ($) - Hong Kong Dollar</option>
+				<option value="THB">THB (฿) - Thai Baht</option>
+				<option value="ISK">ISK (kr) - Icelandic Króna</option>
+				<option value="HRK">HRK (kn) - Croatian Kuna</option>
+				<option value="IDR">IDR (Rp) - Indonesian Rupiah</option>
+				<option value="PHP">PHP (₱) - Philippine Peso</option>
+				<option value="MYR">MYR (RM) - Malaysian Ringgit</option>
+				<option value="KRW">KRW (₩) - South Korean Won</option>
+				<option value="ILS">ILS (₪) - Israeli New Shekel</option>
+			</select>
+			<span id="rateInfo"></span>
+		</label>
+	</div>
+	<div class="container">
+		<h1>Аналіз CSV файлу</h1>
+		<input type="file" id="fileInput" accept=".csv">
+		<!--button onclick="analyzeCSV()">Аналізувати</button-->
+		<h2 id='pers_name'></h2>
+		<h3 id='date'></h2>
+		<div id="results"></div>
+	</div>
+
+	<script>
+		
+		document.getElementById('fileInput').addEventListener('change', () => {
+			analyzeCSV();
+		});
+
+		const STRT_RAB = 7 * 3600 + 50 * 60;
+		const STRT_OBID = 11 * 3600 + 40 * 60;
+		const END_OBID = 12 * 3600 + 20 * 60;
+		const END_RAB = 16 * 3600 + 40 * 60;
+		
+		const hourlyRateInput = document.getElementById('hourlyRate');
+		const advanceInput = document.getElementById('advance');
+		const bonusInput = document.getElementById('bonus');
+		const vacationRateInput = document.getElementById('vacationRate');
+		const vacationDaysInput = document.getElementById('vacationDays');
+		const currencySelect = document.getElementById('currencySelect');
+		const rateInfoSpan = document.getElementById('rateInfo');
+		
+		// Exchange rates (stored in EUR as base)
+		let exchangeRates = {
+			'EUR': 1,
+			'BGN': 0,  // Fixed rate for BGN
+			'GBP': 0,
+			'USD': 0,
+			'UAH': 0,
+			'PLN': 0,
+			'RON': 0,
+			'JPY': 0,
+			'CHF': 0,
+			'CAD': 0,
+			'AUD': 0,
+			'CNY': 0,
+			'HUF': 0,
+			'CZK': 0,
+			'DKK': 0,
+			'NOK': 0,
+			'SEK': 0,
+			'TRY': 0,
+			'INR': 0,
+			'RUB': 0,
+			'BRL': 0,
+			'ZAR': 0,
+			'SGD': 0,
+			'NZD': 0,
+			'MXN': 0,
+			'HKD': 0,
+			'THB': 0,
+			'ISK': 0,
+			'HRK': 0,
+			'IDR': 0,
+			'PHP': 0,
+			'MYR': 0,
+			'KRW': 0,
+			'ILS': 0,
+			'_lastUpdated': 0
+		};
+		
+		// Currency symbols and formatting
+		const currencySymbols = {
+			'EUR': '€', 
+			'BGN': 'лв', 
+			'USD': '$', 
+			'GBP': '£', 
+			'UAH': '₴', 
+			'PLN': 'zł', 
+			'RON': 'lei',
+			'JPY': '¥', 
+			'CHF': 'Fr', 
+			'CAD': '$', 
+			'AUD': '$', 
+			'CNY': '¥', 
+			'HUF': 'Ft', 
+			'CZK': 'Kč',
+			'DKK': 'kr', 
+			'NOK': 'kr', 
+			'SEK': 'kr', 
+			'TRY': '₺', 
+			'INR': '₹', 
+			'RUB': '₽', 
+			'BRL': 'R$',
+			'ZAR': 'R', 
+			'SGD': '$', 
+			'NZD': '$', 
+			'MXN': '$', 
+			'HKD': '$', 
+			'THB': '฿', 
+			'ISK': 'kr',
+			'HRK': 'kn', 
+			'IDR': 'Rp', 
+			'PHP': '₱', 
+			'MYR': 'RM', 
+			'KRW': '₩', 
+			'ILS': '₪'
+		};
+
+		// Store values in EUR
+		let valuesInEUR = {
+			hourlyRate: 0,
+			advance: 0,
+			bonus: 0,
+			vacationRate: 0
+		};
+		
+		hourlyRateInput.addEventListener('input', () => {
+			localStorage.setItem('hourlyRate', hourlyRateInput.value || 1);
+			//analyzeCSV();
+			updateResultsTable();
+		});
+		advanceInput.addEventListener('input', () => {
+			localStorage.setItem('advance', advanceInput.value || 0);
+			//analyzeCSV();
+			updateResultsTable();
+		});
+		bonusInput.addEventListener('input', () => {
+			localStorage.setItem('bonus', bonusInput.value || 0);
+			//analyzeCSV();
+			updateResultsTable();
+		});
+		vacationRateInput.addEventListener('input', () => {
+			localStorage.setItem('vacationRate', vacationRateInput.value || 50);
+			//analyzeCSV();
+			updateResultsTable();
+		});
+				// Load saved values and settings
+		const savedCurrency = localStorage.getItem('selectedCurrency') || 'BGN';
+		const savedRates = localStorage.getItem('exchangeRates');
+		const savedValues = localStorage.getItem('valuesInEUR');
+		
+		if (savedRates) {
+			try {
+				const rates = JSON.parse(savedRates);
+				Object.assign(exchangeRates, rates);
+			} catch (e) {
+				console.error('Failed to parse saved exchange rates', e);
+			}
+		}
+		
+		if (savedValues) {
+			try {
+				Object.assign(valuesInEUR, JSON.parse(savedValues));
+			} catch (e) {
+				console.error('Failed to parse saved values', e);
+			}
+		}
+		
+		currencySelect.value = savedCurrency;
+		
+		// Update rates if they're older than 1 day
+		const oneHour = 60 * 60 * 1000;
+		if (!exchangeRates._lastUpdated || (Date.now() - exchangeRates._lastUpdated > oneHour)) {
+			updateExchangeRates();
+		} else {
+			updateRateInfo();
+		}
+		
+		// Function to update input values when currency changes
+		// Update labels using parent elements
+		function updateInputValues() {
+			const currency = currencySelect.value;
+			const rate = exchangeRates[currency] || 1;
+			
+			// Update input values with converted amounts
+		/*    if (activeInput !== hourlyRateInput) {
+				hourlyRateInput.value = (valuesInEUR.hourlyRate * rate).toFixed(2);
+			}
+			if (activeInput !== advanceInput) {
+				advanceInput.value = (valuesInEUR.advance * rate).toFixed(2);
+			}
+			if (activeInput !== bonusInput) {
+				bonusInput.value = (valuesInEUR.bonus * rate).toFixed(2);
+			}
+			if (activeInput !== vacationRateInput) {
+				vacationRateInput.value = (valuesInEUR.vacationRate * rate).toFixed(2);
+			}*/
+			hourlyRateInput.value = (valuesInEUR.hourlyRate * rate).toFixed(2);
+			advanceInput.value = (valuesInEUR.advance * rate).toFixed(2);
+			bonusInput.value = (valuesInEUR.bonus * rate).toFixed(2);
+			vacationRateInput.value = (valuesInEUR.vacationRate * rate).toFixed(2);
+			   
+			// Update labels by finding the parent label of each input
+			function updateLabel(input, text) {
+				const label = input.closest('label');
+				if (label) {
+					label.firstChild.textContent = text + ' (' + currency + '): ';
+				}
+			}
+			
+			// Update all labels with current currency
+			updateLabel(hourlyRateInput, 'Погодинна ставка');
+			updateLabel(advanceInput, 'Аванс');
+			updateLabel(bonusInput, 'Премія');
+			updateLabel(vacationRateInput, 'Відпускні');
+			
+			// Update table header with current currency
+			const salaryHeader = document.querySelector('#results > table > thead > tr > th:nth-child(4)');
+			if (salaryHeader) {
+				salaryHeader.textContent = 'Зарплата (' + currency + ')';
+			}
+		}
+		
+		// Function to save input values to EUR
+		function saveInputValue(input, key) {
+			const currency = currencySelect.value;
+			const rate = exchangeRates[currency] || 1;
+			const value = parseFloat(input.value) || 0;
+			valuesInEUR[key] = value / rate;
+			localStorage.setItem('valuesInEUR', JSON.stringify(valuesInEUR));
+			updateInputValues();
+			// Don't call analyzeCSV here to avoid duplicate calls
+		}
+		
+		// Add event listeners for currency change
+		currencySelect.addEventListener('change', (e) => {
+			e.preventDefault();
+			const newCurrency = currencySelect.value;
+			// Save the new currency to localStorage
+			localStorage.setItem('selectedCurrency', newCurrency);
+			
+			// Update the rate info and input values with new currency
+			updateRateInfo();
+			updateInputValues();
+			
+			// Always update the results to reflect the new currency
+			//analyzeCSV();
+			updateResultsTable();
+			
+			// Also update the values in localStorage with the new currency
+			const valuesToSave = {
+				hourlyRate: valuesInEUR.hourlyRate,
+				advance: valuesInEUR.advance,
+				bonus: valuesInEUR.bonus,
+				vacationRate: valuesInEUR.vacationRate
+			};
+			localStorage.setItem('valuesInEUR', JSON.stringify(valuesToSave));
+			
+			return false;
+		});
+		
+		// Function to convert HH:MM time to seconds since midnight
+        function timeToSeconds(timeStr) {
+            if (!timeStr) return 0;
+            const [hours, minutes] = timeStr.split(':').map(Number);
+            return hours * 3600 + minutes * 60;
+        }
+
+        // Function to convert seconds to HH:MM format
+        function secondsToTime(seconds) {
+            const hrs = Math.floor(seconds / 3600);
+            const mins = Math.floor((seconds % 3600) / 60);
+            return `${String(hrs).padStart(2, '0')}:${String(mins).padStart(2, '0')}`;
+        }
+
+        // Function to update and save time values
+        function updateTimeValues() {
+            const workStart = document.getElementById('workStart').value;
+            const workEnd = document.getElementById('workEnd').value;
+            const lunchStart = document.getElementById('lunchStart').value;
+            const lunchEnd = document.getElementById('lunchEnd').value;
+            
+            // Save raw time values
+            localStorage.setItem('workStartTime', workStart);
+            localStorage.setItem('workEndTime', workEnd);
+            localStorage.setItem('lunchStartTime', lunchStart);
+            localStorage.setItem('lunchEndTime', lunchEnd);
+            
+            // Save as seconds
+            localStorage.setItem('workStartSeconds', timeToSeconds(workStart));
+            localStorage.setItem('workEndSeconds', timeToSeconds(workEnd));
+            localStorage.setItem('lunchStartSeconds', timeToSeconds(lunchStart));
+            localStorage.setItem('lunchEndSeconds', timeToSeconds(lunchEnd));
+            
+            // Update the analysis
+            //setTimeout(analyzeCSV, 10);
+			setTimeout(updateResultsTable, 10);
+        }
+
+        // Add event listeners for input changes - using 'input' event for immediate feedback
+        function handleInputChange(input, key) {
+            saveInputValue(input, key);
+            // Small delay to ensure all values are updated
+            //setTimeout(analyzeCSV, 10);
+			setTimeout(updateResultsTable, 10);
+        }
+
+		// Add event listeners for time inputs
+		document.getElementById('workStart').addEventListener('input', updateTimeValues);
+		document.getElementById('workEnd').addEventListener('input', updateTimeValues);
+		document.getElementById('lunchStart').addEventListener('input', updateTimeValues);
+		document.getElementById('lunchEnd').addEventListener('input', updateTimeValues);
+		
+		// Initialize input values
+        if (Object.values(valuesInEUR).every(v => v === 0)) {
+            // Set default values in EUR if none exist
+            valuesInEUR = {
+                hourlyRate: 13 / exchangeRates.BGN,
+                advance: 741.80 / exchangeRates.BGN,
+                bonus: 300 / exchangeRates.BGN,
+                vacationRate: 50 / exchangeRates.BGN
+            };
+            localStorage.setItem('valuesInEUR', JSON.stringify(valuesInEUR));
+        }
+
+        // Initialize time inputs with saved values or defaults
+        const workStartInput = document.getElementById('workStart');
+        const workEndInput = document.getElementById('workEnd');
+        const lunchStartInput = document.getElementById('lunchStart');
+        const lunchEndInput = document.getElementById('lunchEnd');
+        
+        // Set default values if not in localStorage
+        if (!localStorage.getItem('workStartTime')) {
+            localStorage.setItem('workStartTime', '07:50');
+            localStorage.setItem('workEndTime', '16:40');
+            localStorage.setItem('lunchStartTime', '11:40');
+            localStorage.setItem('lunchEndTime', '12:20');
+            
+            // Save as seconds
+            localStorage.setItem('workStartSeconds', timeToSeconds('07:50'));
+            localStorage.setItem('workEndSeconds', timeToSeconds('16:40'));
+            localStorage.setItem('lunchStartSeconds', timeToSeconds('11:40'));
+            localStorage.setItem('lunchEndSeconds', timeToSeconds('12:20'));
+        }
+        
+        // Set input values from localStorage
+        workStartInput.value = localStorage.getItem('workStartTime');
+        workEndInput.value = localStorage.getItem('workEndTime');
+        lunchStartInput.value = localStorage.getItem('lunchStartTime');
+        lunchEndInput.value = localStorage.getItem('lunchEndTime');
+        
+        // Add event listeners for other inputs
+        hourlyRateInput.addEventListener('input', () => handleInputChange(hourlyRateInput, 'hourlyRate'));
+        advanceInput.addEventListener('input', () => handleInputChange(advanceInput, 'advance'));
+        bonusInput.addEventListener('input', () => handleInputChange(bonusInput, 'bonus'));
+        vacationRateInput.addEventListener('input', () => handleInputChange(vacationRateInput, 'vacationRate'));
+        vacationDaysInput.addEventListener('input', () => {
+			const dateParts = document.getElementById('date').textContent.split(' ');
+			if (dateParts.length >= 2) {
+				const month = getMonthNumber(dateParts[0]);
+				const year = dateParts[1];
+				const key = `vacation_${year}_${month}`;
+				localStorage.setItem(key, vacationDaysInput.value || '0');
+			}
+			// Small delay to ensure all values are updated
+			//setTimeout(analyzeCSV, 10);
+			setTimeout(updateResultsTable, 10);
+		});
+        updateInputValues();
+		
+		vacationDaysInput.addEventListener('input', () => {
+			const dateParts = document.getElementById('date').textContent.split(' ');
+			if (dateParts.length >= 2) {
+				const month = getMonthNumber(dateParts[0]);
+				const year = dateParts[1];
+				const key = `vacation_${year}_${month}`;
+				localStorage.setItem(key, vacationDaysInput.value || '0');
+			}
+			//analyzeCSV();
+			updateResultsTable();
+		});
+		
+		hourlyRateInput.value = localStorage.getItem('hourlyRate') || 10;
+		advanceInput.value = localStorage.getItem('advance') || 0;
+		bonusInput.value = localStorage.getItem('bonus') || 0;
+		vacationRateInput.value = localStorage.getItem('vacationRate') || 50;
+		
+		function getDayOfWeek(day, month, year) {
+			const daysOfWeek = [
+				{ name: "неділя", number: 7 },
+				{ name: "понеділок", number: 1 },
+				{ name: "вівторок", number: 2 },
+				{ name: "середа", number: 3 },
+				{ name: "четвер", number: 4 },
+				{ name: "п’ятниця", number: 5 },
+				{ name: "субота", number: 6 }
+			];
+
+			const date = new Date(year, month - 1, day);
+			const dayIndex = date.getDay();
+
+			return daysOfWeek[dayIndex];
+		}
+		
+		function getMonthNumber(monthName) {
+			const months = {
+				'Січень': '01', 'Лютий': '02', 'Березень': '03', 'Квітень': '04',
+				'Травень': '05', 'Червень': '06', 'Липень': '07', 'Серпень': '08',
+				'Вересень': '09', 'Жовтень': '10', 'Листопад': '11', 'Грудень': '12'
+			};
+			return months[monthName] || '00';
+		}
+
+		function getMonth(month, year) {
+			const monthName = [
+				"Січень",
+				"Лютий",
+				"Березень",
+				"Квітень",
+				"Травень",
+				"Червень",
+				"Липень",
+				"Серпень",
+				"Вересень",
+				"Жовтень",
+				"Листопад",
+				"Грудень"
+			];
+			return monthName[month - 1] + " " + year + " року";
+		}
+		
+		async function fetchWithTimeout(resource, options = {}) {
+			const { timeout = 5000 } = options;
+			const controller = new AbortController();
+			const id = setTimeout(() => controller.abort(), timeout);
+			
+			try {
+				const response = await fetch(resource, {
+					...options,
+					signal: controller.signal  
+				});
+				clearTimeout(id);
+				return response;
+			} catch (error) {
+				clearTimeout(id);
+				throw error;
+			}
+		}
+
+		async function updateExchangeRates() {
+			//const primaryApiUrl = 'https://api.exchangerate-api.com/v4/latest/EUR';
+			const primaryApiUrl = 'https://open.er-api.com/v6/latest/EUR';
+			
+			try {
+				// Try primary API first
+				let data;
+				try {
+					const response = await fetchWithTimeout(primaryApiUrl);
+					data = await response.json();
+				} catch (primaryError) {
+					console.warn('Primary API failed, trying fallback...', primaryError);
+				}
+				
+				// Update direct rates
+				const rates = data.rates || {};
+				const updatedRates = {
+					USD: rates.USD,
+					GBP: rates.GBP,
+					UAH: rates.UAH,
+					PLN: rates.PLN,
+					RON: rates.RON,
+					JPY: rates.JPY,
+					CHF: rates.CHF,
+					CAD: rates.CAD,
+					AUD: rates.AUD,
+					CNY: rates.CNY,
+					HUF: rates.HUF,
+					CZK: rates.CZK,
+					DKK: rates.DKK,
+					NOK: rates.NOK,
+					SEK: rates.SEK,
+					TRY: rates.TRY,
+					INR: rates.INR,
+					RUB: rates.RUB,
+					BRL: rates.BRL,
+					ZAR: rates.ZAR,
+					SGD: rates.SGD,
+					NZD: rates.NZD,
+					MXN: rates.MXN,
+					HKD: rates.HKD,
+					THB: rates.THB,
+					ISK: rates.ISK,
+					HRK: rates.HRK,
+					IDR: rates.IDR,
+					PHP: rates.PHP,
+					MYR: rates.MYR,
+					KRW: rates.KRW,
+					ILS: rates.ILS,
+					BGN: rates.BGN,
+					_lastUpdated: Date.now()
+				};
+				/*
+				// If any rates are missing, try to get them through USD cross-rates
+				const missingCurrencies = Object.entries(updatedRates)
+					.filter(([_, rate]) => !rate && rate !== 0)
+					.map(([curr]) => curr);
+				
+				if (missingCurrencies.length > 0) {
+					try {
+						const usdResponse = await fetchWithTimeout(usdRatesApi);
+						const usdData = await usdResponse.json();
+						const usdRates = usdData.rates || {};
+						
+						// Calculate missing rates through USD: EUR -> USD -> Target
+						const eurToUsd = updatedRates.USD || (1 / (usdRates.EUR || 1));
+						
+						missingCurrencies.forEach(currency => {
+							if (usdRates[currency]) {
+								updatedRates[currency] = (1 / eurToUsd) * usdRates[currency];
+							}
+						});
+					} catch (crossRateError) {
+						console.warn('Failed to fetch cross-rates:', crossRateError);
+					}
+				}
+				*/
+				// Update exchange rates with new values
+				Object.assign(exchangeRates, updatedRates);
+				
+				// Save to localStorage
+				localStorage.setItem('exchangeRates', JSON.stringify(exchangeRates));
+				updateRateInfo();
+				//analyzeCSV();
+				updateResultsTable();
+				
+			} catch (error) {
+				console.error('All exchange rate update attempts failed:', error);
+				rateInfoSpan.textContent = ' (останнє оновлення: ' + 
+					(exchangeRates._lastUpdated ? new Date(exchangeRates._lastUpdated).toLocaleDateString() : 'ніколи') + ')';
+				rateInfoSpan.className = 'outdated-rate';
+			}
+		}
+		
+		function updateRateInfo() {
+			const selectedCurrency = currencySelect.value;
+			if (selectedCurrency === 'EUR') {
+				rateInfoSpan.textContent = '';
+				rateInfoSpan.className = '';
+				return;
+			}
+			
+			const rate = exchangeRates[selectedCurrency];
+			if (rate) {
+				rateInfoSpan.textContent = ` (1 EUR = ${rate.toFixed(4)} ${selectedCurrency})`;
+				rateInfoSpan.className = '';
+			} else {
+				rateInfoSpan.textContent = ' (не вдалося оновити курс)';
+				rateInfoSpan.className = 'outdated-rate';
+			}
+		}
+		
+		function convertFromEUR(amount, currency) {
+			if (currency === 'EUR') return amount;
+			const rate = exchangeRates[currency] || 1;
+			return amount * rate;
+		}
+		
+		function formatCurrency(amount, currency) {
+			const symbol = currencySymbols[currency] || '';
+			const converted = convertFromEUR(amount, currency);
+			// Special handling for JPY (no decimals)
+			const decimals = currency === 'JPY' ? 0 : 2;
+			return `${converted.toFixed(decimals)} ${symbol}`;
+		}
+		let days = Array(31).fill(null).map(() => ({ alarm: 1, subtime: 0, pod: [], br: 0, DtoW: { name: "none", number: 0 } }));
+		function analyzeCSV() {
+			const fileInput = document.getElementById('fileInput');
+			const resultsDiv = document.getElementById('results');
+			const dataStr = document.getElementById('date');
+			const personStr = document.getElementById('pers_name');
+			days = Array(31).fill(null).map(() => ({ alarm: 1, subtime: 0, pod: [], br: 0, DtoW: { name: "none", number: 0 } }));
+			
+			if (!fileInput.files.length) {
+	//            alert("Будь ласка, виберіть CSV файл.");
+				return;
+			}
+
+			const file = fileInput.files[0];
+			const reader = new FileReader();
+			reader.onload = function(event) {
+				const csvData = event.target.result;
+				const lines = csvData.split('\n').map(line => line.split(';'));
+//				const days = Array(31).fill(null).map(() => ({ alarm: 1, subtime: 0, pod: [], br: 0, DtoW: { name: "none", number: 0 } }));
+						
+				personStr.innerHTML = lines[1][3].slice(1, -1);
+				const dateMonth = lines[1][0].slice(1, -1).split(' ')[0].split('-');
+				const monthYear = getMonth(dateMonth[1], dateMonth[0]);
+				dataStr.innerHTML = monthYear;
+				
+				// Load vacation days for this month/year
+				const monthName = monthYear.split(' ')[0];
+				const year = monthYear.split(' ')[1];
+				const key = `vacation_${year}_${getMonthNumber(monthName)}`;
+				const savedVacationDays = localStorage.getItem(key);
+				if (savedVacationDays !== null) {
+					vacationDaysInput.value = savedVacationDays;
+				} else {
+					vacationDaysInput.value = '0';
+				}
+				
+				let headerProcessed = false;
+				for (let line of lines) {
+					if (!headerProcessed) {
+						headerProcessed = true;
+						continue;
+					}
+
+					if (line.length < 7 || !line[0].startsWith('"')) continue;
+
+					const dateTimeStr = line[0].slice(1, -1);
+					const action = line[6].slice(1, -1).includes("ВХОД") ? 1 : 0;
+					const dateParts = dateTimeStr.split(' ')[0].split('-');
+					const timeParts = dateTimeStr.split(' ')[1].split(':');
+
+					const day = parseInt(dateParts[2]) - 1;
+					const timeInSeconds = parseInt(timeParts[0]) * 3600 + parseInt(timeParts[1]) * 60 + parseInt(timeParts[2]);
+
+					days[day].DtoW = getDayOfWeek(dateParts[2], dateParts[1], dateParts[0]);
+
+					days[day].pod.push({ inout: action, time: timeInSeconds });
+					days[day].br++;
+				}
+
+				let totalTime = 0;
+				for (let i = 0; i < days.length; i++) {
+					days[i].alarm = 0;
+					days[i].subtime = 0;
+					
+					// Skip if no time entries
+					if (days[i].br === 0) continue;
+					
+					// Get work and lunch times from localStorage or use defaults
+					const workStart = parseInt(localStorage.getItem('workStartSeconds')) || STRT_RAB;
+					const workEnd = parseInt(localStorage.getItem('workEndSeconds')) || END_RAB;
+					const lunchStart = parseInt(localStorage.getItem('lunchStartSeconds')) || STRT_OBID;
+					const lunchEnd = parseInt(localStorage.getItem('lunchEndSeconds')) || END_OBID;
+					
+					// Get first and last time entries
+					const firstEntry = days[i].pod[0].time;
+					const lastEntry = days[i].pod[days[i].br - 1].time;
+					
+					// Check if it's a workday (Monday=1, Sunday=7)
+					const isWorkday = days[i].DtoW.number <= 5;
+					
+					let startWork, endWork;
+					
+					if (isWorkday) {
+						// For workdays: start is max of first entry or work start, end is last entry
+						startWork = Math.max(firstEntry, workStart);
+						endWork = lastEntry;
+						
+						// If end work is after work end, it's overtime (count it by default)
+						if (endWork > workEnd + 1800) {
+							// Optionally add a note about overtime
+							days[i].note = `Перепрацювання: ${Math.floor((endWork - workEnd) / 3600)} год ${Math.floor(((endWork - workEnd) % 3600) / 60)} хв`;
+						}
+						
+						// Calculate working time with lunch break handling
+						if (startWork < lunchStart && endWork > lunchEnd) {
+							// If work period covers the entire lunch break
+							days[i].subtime = (endWork - startWork) - (lunchEnd - lunchStart);
+						} else if (startWork < lunchEnd && endWork > lunchStart) {
+							// If work period partially overlaps with lunch break
+							const workSeconds = new Array(24 * 60 * 60).fill(0);
+							
+							// Mark working seconds (from startWork to endWork)
+							for (let sec = startWork; sec < endWork; sec++) {
+								if (sec >= 0 && sec < workSeconds.length) {
+									workSeconds[sec] = 1;
+								}
+							}
+							
+							// Unmark lunch break seconds
+							for (let sec = lunchStart; sec < lunchEnd; sec++) {
+								if (sec >= 0 && sec < workSeconds.length) {
+									workSeconds[sec] = 0;
+								}
+							}
+							
+							// Count remaining working seconds
+							days[i].subtime = workSeconds.reduce((sum, val) => sum + val, 0);
+						} else {
+							// No lunch break in work period
+							days[i].subtime = endWork - startWork;
+						}
+					} else {
+						// For weekends: simple calculation from first to last entry
+						startWork = firstEntry;
+						endWork = lastEntry;
+						days[i].subtime = endWork - startWork;
+						days[i].note = "Вихідний";
+					}
+					days[i].startWork = startWork;
+					days[i].endWork = endWork;
+					// Add to total time if work time is positive
+					if (days[i].subtime > 0) {
+						totalTime += days[i].subtime;
+					}
+				}
+
+				let totalHours = Math.floor(totalTime / 3600);
+				let totalMinutes = Math.floor((totalTime % 3600) / 60);
+				// Calculate in EUR
+				const hourlyRateInEUR = valuesInEUR.hourlyRate;
+				const vacationRateInEUR = valuesInEUR.vacationRate;
+				const totalSalary = (totalTime / 3600 * hourlyRateInEUR).toFixed(2);
+				const vacationPay = (vacationRateInEUR * vacationDaysInput.value).toFixed(2);
+				let resultHTML = `
+					<table border="1">
+						<tr>
+							<th>#</th>
+							<th>День</th>
+							<th>Початок</th>
+							<th>Кінець</th>
+							<th>Час</th>
+							<th>Сума</th>
+							<th>Зауваження</th>
+						</tr>`;
+
+					days.forEach((day, index) => {
+						if (day.br > 0) {
+							const defaultStart = parseInt(localStorage.getItem('workStartSeconds')) || STRT_RAB;
+							const defaultEnd = parseInt(localStorage.getItem('workEndSeconds')) || END_RAB;
+							
+							const startTime = day.startWork !== undefined ? secondsToTime(day.startWork) : secondsToTime(defaultStart);
+							const endTime = day.endWork !== undefined ? secondsToTime(day.endWork) : secondsToTime(defaultEnd);
+							
+							resultHTML += `
+							<tr>
+								<td>${index + 1}</td>
+								<td>${day.DtoW.name}</td>
+								<td><input type="time" value="${startTime}" onblur="handleTimeChange(${index}, 'start', this.value, event)" oninput="handleTimeChange(${index}, 'start', this.value, event)" style="width: 80px;"></td>
+								<td><input type="time" value="${endTime}" onblur="handleTimeChange(${index}, 'end', this.value, event)" oninput="handleTimeChange(${index}, 'end', this.value, event)" style="width: 80px;"></td>
+								<td>${Math.floor(day.subtime / 3600)}:${String(Math.floor((day.subtime % 3600) / 60)).padStart(2, '0')}</td>
+								<td>${formatCurrency(day.subtime / 3600 * valuesInEUR.hourlyRate, currencySelect.value)}</td>`;
+							
+							if (day.br == 1) {
+								resultHTML += `<td style="color: red; font-weight: bold;">!!! ПОМИЛКА !!!</td>`;
+							} else {
+								resultHTML += `<td>${day.note || ''}</td>`;
+							}
+							
+							resultHTML += "</tr>";
+						}
+					});
+					
+					// Add total row
+					//let totalSalary = formatCurrency(totalTime / 3600 * valuesInEUR.hourlyRate, currencySelect.value);
+									// Add total row
+			//	const totalHours = Math.floor(totalTime / 3600);
+			//	const totalMinutes = Math.floor((totalTime % 3600) / 60);
+				const totalSalaryEUR = valuesInEUR.hourlyRate * (totalTime / 3600);
+				const bonusEUR = valuesInEUR.bonus;
+				const vacationPayEUR = valuesInEUR.vacationRate * parseFloat(vacationDaysInput.value);
+				const advanceEUR = valuesInEUR.advance;
+				
+				resultHTML += `</tbody>
+					</table>
+					<p>Загальний час: ${totalHours}:${String(totalMinutes).padStart(2, '0')}</p>
+					<p>Загальна ставка: ${formatCurrency(totalSalaryEUR, currencySelect.value)}</p>
+					<p>+ премія: ${formatCurrency(bonusEUR, currencySelect.value)}</p>
+					<p>+ відпускні: ${formatCurrency(vacationPayEUR, currencySelect.value)} (${formatCurrency(valuesInEUR.vacationRate, currencySelect.value)} × ${vacationDaysInput.value} дн.)</p>
+					<p>Аванс: ${formatCurrency(advanceEUR, currencySelect.value)}</p>
+					<p>До сплати: ${formatCurrency(totalSalaryEUR + bonusEUR + vacationPayEUR - advanceEUR, currencySelect.value)}</p>`;
+
+				resultsDiv.innerHTML = resultHTML;
+					document.getElementById('results').innerHTML = resultHTML;
+				};
+				
+				reader.readAsText(file, 'windows-1251');
+			}
+			
+			// Function to handle time input changes
+			function handleTimeChange(dayIndex, type, value, event) {
+				// If this is a blur event, update the results
+				if (event && event.type === 'blur') {
+					const seconds = timeToSeconds(value);
+					const day = days[dayIndex];
+					
+					// Update the day's work times
+					if (type === 'start') {
+						day.customStart = seconds;
+					} else {
+						day.customEnd = seconds;
+					}
+					
+					// Recalculate the day's working time
+					calculateDayWorkTime(day);
+					
+					// Update the total time
+					totalTime = days.reduce((sum, d) => sum + (d.subtime || 0), 0);
+					
+					// Update the table
+					updateResultsTable();
+				}
+				// For input events, just update the model but don't recalculate yet
+				else if (event && event.type === 'input') {
+					const seconds = timeToSeconds(value);
+					if (type === 'start') {
+						days[dayIndex].customStart = seconds;
+					} else {
+						days[dayIndex].customEnd = seconds;
+					}
+				}
+			}
+			
+			// Function to calculate work time for a day
+			function calculateDayWorkTime(day) {
+				if (day.br === 0) {
+					day.subtime = 0;
+					return;
+				}
+				
+				const workStart = day.customStart !== undefined ? day.customStart : (parseInt(localStorage.getItem('workStartSeconds')) || STRT_RAB);
+				const workEnd = day.customEnd !== undefined ? day.customEnd : (parseInt(localStorage.getItem('workEndSeconds')) || END_RAB);
+				const lunchStart = parseInt(localStorage.getItem('lunchStartSeconds')) || STRT_OBID;
+				const lunchEnd = parseInt(localStorage.getItem('lunchEndSeconds')) || END_OBID;
+				
+				const firstEntry = day.pod[0].time;
+				const lastEntry = day.pod[day.pod.length - 1].time;
+				
+				const isWorkday = day.DtoW.number <= 5;
+				
+				let startWork, endWork;
+				
+				if (isWorkday) {
+					startWork = Math.max(firstEntry, workStart);
+					endWork = Math.max(lastEntry, startWork);
+					
+					if (endWork > workEnd + 1800) {
+						day.note = `Перепрацювання: ${Math.floor((endWork - workEnd) / 3600)} год ${Math.floor(((endWork - workEnd) % 3600) / 60)} хв`;
+					} else {
+						day.note = '';
+					}
+					
+					if (startWork < lunchStart && endWork > lunchEnd) {
+						day.subtime = (endWork - startWork) - (lunchEnd - lunchStart);
+					} else if (startWork < lunchEnd && endWork > lunchStart) {
+						const workSeconds = new Array(24 * 60 * 60).fill(0);
+						
+						for (let sec = startWork; sec < endWork; sec++) {
+							if (sec >= 0 && sec < workSeconds.length) workSeconds[sec] = 1;
+						}
+						
+						for (let sec = lunchStart; sec < lunchEnd; sec++) {
+							if (sec >= 0 && sec < workSeconds.length) workSeconds[sec] = 0;
+						}
+						
+						day.subtime = workSeconds.reduce((sum, val) => sum + val, 0);
+					} else {
+						day.subtime = endWork - startWork;
+					}
+				} else {
+					startWork = firstEntry;
+					endWork = lastEntry;
+					day.subtime = endWork - startWork;
+					day.note = "Вихідний";
+				}
+				
+			}
+			
+			// Function to update the results table
+			function updateResultsTable() {
+				// Recalculate total time
+				let totalTime = 0;
+				days.forEach((day, index) => {
+					let startWork, endWork;
+					const isWorkday = days[index].DtoW.number <= 5;
+					// Find the row by day number in the first column
+					const dayNumber = index + 1;
+					const row = Array.from(document.querySelectorAll('#results table tbody tr')).find(tr => {
+						const firstCell = tr.querySelector('td:first-child');
+						return firstCell && firstCell.textContent.trim() === dayNumber.toString();
+					});
+					
+					if (!row) return;
+					
+					// Get the time inputs from the row
+					const startInput = row.querySelector('td:nth-child(3) input[type="time"]');
+					const endInput = row.querySelector('td:nth-child(4) input[type="time"]');
+					if (!startInput || !endInput) {
+						return;
+					}
+					// Convert input values to seconds
+					startWork = timeToSeconds(startInput.value);
+					endWork = timeToSeconds(endInput.value);
+					//console.log(index + 1, startWork, endWork);
+					if (isWorkday) {
+						// Get start and end times from the table inputs
+						workEnd = localStorage.getItem('workEndSeconds');
+						lunchStart = localStorage.getItem('lunchStartSeconds');
+						lunchEnd = localStorage.getItem('lunchEndSeconds');
+						// If end work is after work end, it's overtime (count it by default)
+						if (endWork > workEnd + 1800) {
+							// Optionally add a note about overtime
+							days[index].note = `Перепрацювання: ${Math.floor((endWork - workEnd) / 3600)} год ${Math.floor(((endWork - workEnd) % 3600) / 60)} хв`;
+						}
+						else
+							days[index].note = '';
+
+						// Calculate working time with lunch break handling
+						if (startWork < lunchStart && endWork > lunchEnd) {
+							// If work period covers the entire lunch break
+							days[index].subtime = (endWork - startWork) - (lunchEnd - lunchStart);
+						} else if (startWork < lunchEnd && endWork > lunchStart) {
+							// If work period partially overlaps with lunch break
+							const workSeconds = new Array(24 * 60 * 60).fill(0);
+							
+							// Mark working seconds (from startWork to endWork)
+							for (let sec = startWork; sec < endWork; sec++) {
+								if (sec >= 0 && sec < workSeconds.length) {
+									workSeconds[sec] = 1;
+								}
+							}
+							
+							// Unmark lunch break seconds
+							for (let sec = lunchStart; sec < lunchEnd; sec++) {
+								if (sec >= 0 && sec < workSeconds.length) {
+									workSeconds[sec] = 0;
+								}
+							}
+							
+							// Count remaining working seconds
+							days[index].subtime = workSeconds.reduce((sum, val) => sum + val, 0);
+						} else {
+							// No lunch break in work period
+							days[index].subtime = endWork - startWork;
+						}
+					} else {
+						// For weekends: simple calculation from first to last entry
+						days[index].subtime = endWork - startWork;
+						days[index].note = "Вихідний";
+					}
+					days[index].startWork = startWork;
+					days[index].endWork = endWork;
+					// Add to total time if work time is positive
+					if (days[index].subtime > 0) {
+						totalTime += days[index].subtime;
+					}
+				});
+				
+				totalTime = days.reduce((sum, day) => sum + (day.subtime || 0), 0);
+				
+				let html = `<table border="1">
+					<tr>
+						<th>#</th>
+						<th>День</th>
+						<th>Початок</th>
+						<th>Кінець</th>
+						<th>Час</th>
+						<th>Сума</th>
+						<th>Зауваження</th>
+					</tr>`;
+				
+				days.forEach((day, index) => {
+					if (day.br > 0) {
+						const defaultStart = parseInt(localStorage.getItem('workStartSeconds')) || STRT_RAB;
+						const defaultEnd = parseInt(localStorage.getItem('workEndSeconds')) || END_RAB;
+						
+						const startTime = day.startWork !== undefined ? secondsToTime(day.startWork) : secondsToTime(defaultStart);
+						const endTime = day.endWork !== undefined ? secondsToTime(day.endWork) : secondsToTime(defaultEnd);
+						
+						html += `
+						<tr>
+							<td>${index + 1}</td>
+							<td>${day.DtoW.name}</td>
+							<td><input type="time" value="${startTime}" onchange="handleTimeChange(${index}, 'start', this.value)" style="width: 80px;"></td>
+							<td><input type="time" value="${endTime}" onchange="handleTimeChange(${index}, 'end', this.value)" style="width: 80px;"></td>
+							<td>${Math.floor(day.subtime / 3600)}:${String(Math.floor((day.subtime % 3600) / 60)).padStart(2, '0')}</td>
+							<td>${formatCurrency(day.subtime / 3600 * valuesInEUR.hourlyRate, currencySelect.value)}</td>`;
+						
+						if (day.br == 1) {
+							html += `<td style="color: red; font-weight: bold;">!!! ПОМИЛКА !!!</td>`;
+						} else {
+							html += `<td>${day.note || ''}</td>`;
+						}
+						
+						html += "</tr>";
+					}
+				});
+				
+				// Add total row
+				const totalHours = Math.floor(totalTime / 3600);
+				const totalMinutes = Math.floor((totalTime % 3600) / 60);
+				const totalSalary = formatCurrency(totalTime / 3600 * valuesInEUR.hourlyRate, currencySelect.value);
+				// We'll use the values directly from valuesInEUR which are stored in EUR
+				const totalSalaryEUR = valuesInEUR.hourlyRate * (totalTime / 3600);
+				const bonusEUR = valuesInEUR.bonus;
+				const vacationPayEUR = valuesInEUR.vacationRate * parseFloat(vacationDaysInput.value);
+				const advanceEUR = valuesInEUR.advance;
+				
+				let resultHTML = html + `</tbody>
+					</table>
+					<p>Загальний час: ${totalHours}:${String(totalMinutes).padStart(2, '0')}</p>
+					<p>Загальна ставка: ${formatCurrency(totalSalaryEUR, currencySelect.value)}</p>
+					<p>+ премія: ${formatCurrency(bonusEUR, currencySelect.value)}</p>
+					<p>+ відпускні: ${formatCurrency(vacationPayEUR, currencySelect.value)} (${formatCurrency(valuesInEUR.vacationRate, currencySelect.value)} × ${vacationDaysInput.value} дн.)</p>
+					<p>Аванс: ${formatCurrency(advanceEUR, currencySelect.value)}</p>
+					<p>До сплати: ${formatCurrency(totalSalaryEUR + bonusEUR + vacationPayEUR - advanceEUR, currencySelect.value)}</p>`;
+
+				document.getElementById('results').innerHTML = resultHTML;
+			};
+			
+			
+		updateInputValues();
+	</script>
+</body>
+</html>

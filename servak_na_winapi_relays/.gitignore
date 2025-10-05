@@ -1,0 +1,68 @@
+# Build directories
+build/
+bin/
+obj/
+lin_obj/
+*.user
+*.suo
+*.sln
+*.vcxproj*
+*.sdf
+*.opensdf
+*.pdb
+*.vcxproj.user
+*.tlog
+*.log
+*.idb
+*.pch
+*.ilk
+*.sln
+*.vcxproj.filters
+
+# Executables
+*.exe
+*.out
+
+# Database
+*.db
+*.sqlite
+*.sqlite3
+
+# IDE specific files
+.vs/
+.idea/
+*.code-workspace
+
+# OS generated files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# CMake
+CMakeCache.txt
+CMakeFiles/
+cmake_install.cmake
+Makefile
+*.a
+*.lib
+*.dll
+*.so
+*.dylib
+
+# Debug files
+*.dSYM/
+*.dSYM.zip
+*.dSYM/
+
+def_rand.h
+
+source/sqlite3.c
+source/sqlite3.h
+source/sqlite3.md5
+source/obj/
+source/lin_obj/
+source/lib/

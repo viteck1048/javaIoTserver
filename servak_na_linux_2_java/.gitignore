@@ -1,0 +1,48 @@
+*.class
+*.jar
+*.jks
+*.db
+*.crt
+*.key
+*.pem
+*.csr
+*.sha*
+*.md5
+*.sfv
+*.ini
+*.properties
+*.args
+*javac.*
+*Servak.class
+mykeystore*
+# Java class files
+*.class
+
+# Jar files
+*.jar
+
+# Keystores
+*.jks
+*.pem
+*.crt
+*.key
+
+# Databases
+*.db
+
+# IDE configs (наприклад IntelliJ IDEA)
+.idea/
+*.iml
+
+# Git repositories
+**/.git/
+
+www80/qqq/*
+www/download/*
+canvas/*
+*/.well-known/*
+old/*
+lib/*
+
+
+logs/

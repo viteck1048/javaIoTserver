@@ -1,11 +1,12 @@
-import java.io.BufferedReader;              // Для читання даних з InputStream
+import java.io.ByteArrayOutputStream;
 import java.io.IOException;                 // Для обробки виключень, пов'язаних з IO операціями
 import java.io.InputStream;                 // Для отримання вхідного потоку
-import java.io.InputStreamReader;           // Для перетворення InputStream у Reader
 import java.net.InetAddress;                // Для роботи з IP-адресами
 import java.net.URLDecoder;                 // Для декодування URL-даних
 import java.net.UnknownHostException;       // Для обробки винятків, пов'язаних з IP-адресами
 import java.util.ArrayList;                 // Для роботи з динамічними списками
+import java.io.*;
+import java.util.zip.*;
 
 public class HTTPRequest {
 	public String method;
@@ -53,6 +54,9 @@ public class HTTPRequest {
 	private static final int MAX_HEADER_COUNT = 50;   // Максимальна кількість заголовків
 	private static final int MAX_HEADER_SIZE = 8192;  // 8KB - розумний ліміт для заголовків
 	private static final int MAX_QUERY_PARAM_LENGTH = 1024;  // Максимальна довжина параметра
+	private boolean chunked_flag;
+	private boolean gzip_flag;
+	private InputStream inputStream;
 
 	private String convertString(String str) {
 		try {
@@ -70,12 +74,10 @@ public class HTTPRequest {
 		}
 	}
 	
-	// Допоміжний метод для перевірки, чи символ є шістнадцятковою цифрою
 	private boolean isHexDigit(char c) {
 		return (c >= '0' && c <= '9') || (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f');
 	}
 	
-	// Допоміжний метод для перетворення шістнадцяткової цифри у ціле число
 	private int hexToInt(char c) {
 		if (c >= '0' && c <= '9') {
 			return c - '0';
@@ -117,8 +119,165 @@ public class HTTPRequest {
 		return false;
 	}
 
+	private boolean checkHost(String host) {
+		if(host.compareTo(Configs.getParam("host")) == 0)
+			return true;
+		if(host.compareTo("localhost") == 0)
+			return true;
+		if(host.compareTo("127.0.0.1") == 0)
+			return true;
+		if(host.compareTo("::1") == 0)
+			return true;
+		if(isInSubnet())
+			return true;
+		return false;
+	}
+
+	private byte[] readBody(InputStream in, int contentLength, boolean chunked_flag, boolean gzip_flag) throws IOException {
+		if(chunked_flag) {
+			ByteArrayOutputStream bodyData = new ByteArrayOutputStream();
+
+			while (true) {
+				// Read chunk size line (hex number followed by CRLF)
+				StringBuilder sizeLine = new StringBuilder();
+				int ch;
+				while ((ch = in.read()) != -1) {
+					if (ch == '\r') {
+						// Check for LF
+						int nextCh = in.read();
+						if (nextCh == '\n') {
+							break;
+						} else {
+							// Put back the character if it's not LF
+							if (nextCh != -1) {
+								// This is a bit tricky with InputStream, we'll handle it differently
+								throw new IOException("Invalid chunk size line format");
+							}
+						}
+					}
+					sizeLine.append((char) ch);
+				}
+
+				// Parse chunk size (ignore chunk extensions for now)
+				String sizeStr = sizeLine.toString().trim().split(";")[0];
+				int chunkSize = 0;
+				try {
+					chunkSize = Integer.parseInt(sizeStr, 16);
+				} catch (NumberFormatException e) {
+					throw new IOException("Invalid chunk size: " + sizeStr);
+				}
+
+				// Check if this is the last chunk (size 0)
+				if (chunkSize == 0) {
+					// Read final CRLF (or trailer headers + final CRLF)
+					// For now, just read until we find the final CRLF
+					while (true) {
+						ch = in.read();
+						if (ch == -1) break;
+						if (ch == '\r') {
+							int nextCh = in.read();
+							if (nextCh == '\n') {
+								break;
+							}
+						}
+					}
+					break;
+				}
+
+				// Read chunk data
+				byte[] chunkBuffer = new byte[chunkSize];
+				int bytesRead = 0;
+				while (bytesRead < chunkSize) {
+					int result = in.read(chunkBuffer, bytesRead, chunkSize - bytesRead);
+					if (result == -1) {
+						throw new IOException("Unexpected end of stream while reading chunk data");
+					}
+					bytesRead += result;
+				}
+
+				// Write chunk data to output
+				bodyData.write(chunkBuffer, 0, chunkSize);
+
+				// Read trailing CRLF after chunk data
+				int cr = in.read();
+				int lf = in.read();
+				if (cr != '\r' || lf != '\n') {
+					throw new IOException("Expected CRLF after chunk data");
+				}
+			}
+			if(gzip_flag)
+				return gzipDecompress(bodyData.toByteArray());
+			else
+				return bodyData.toByteArray();
+		}
+		else {
+			byte[] bodyData = new byte[contentLength];
+			int bytesRead = 0;
+			while (bytesRead < contentLength) {
+				int result = in.read(bodyData, bytesRead, contentLength - bytesRead);
+				if (result == -1) {
+					System.out.println("Unexpected end of stream while reading body data");
+					break;
+				}
+				bytesRead += result;
+			}
+			//System.out.println("l=" + contentLength + "r=" + bytesRead + "bodyData = " );
+			//for(int i = 0; i < bodyData.length; i++) {
+			//	System.out.println((char)bodyData[i] + " " + bodyData[i]);
+			//}
+			//System.out.println();
+			if(gzip_flag)
+				return gzipDecompress(bodyData);
+			else
+				return bodyData;
+		}
+	}
+	
+	private static byte[] gzipDecompress(byte[] data) {
+		if(data == null || data.length == 0)
+			return data;
+		try {
+			ByteArrayOutputStream byteArrayOutputStream = new ByteArrayOutputStream();
+			GZIPInputStream gzipInputStream = new GZIPInputStream(new ByteArrayInputStream(data));
+			byte[] buffer = new byte[4096];
+			int len;
+			while ((len = gzipInputStream.read(buffer)) != -1) {
+				byteArrayOutputStream.write(buffer, 0, len);
+			}
+			gzipInputStream.close();
+			return byteArrayOutputStream.toByteArray();
+		} catch (IOException e) {
+			e.printStackTrace();
+			return null;
+		}
+	}
+
+	private String readLineFromInputStream(InputStream inputStream) throws IOException {
+		StringBuilder line = new StringBuilder();
+		int ch;
+		while ((ch = inputStream.read()) != -1) {
+			if (ch == '\r') {
+				// Перевіряємо наступний символ
+				int nextCh = inputStream.read();
+				if (nextCh == '\n') {
+					// Знайшли \r\n, повертаємо рядок
+					return line.toString();
+				} else {
+					// Якщо наступний символ не \n, повертаємо його назад і продовжуємо
+					line.append((char) ch);
+					if (nextCh != -1) {
+						line.append((char) nextCh);
+					}
+				}
+			} else {
+				line.append((char) ch);
+			}
+		}
+		// Якщо досягнуто кінець потоку і є дані, повертаємо їх
+		return line.length() > 0 ? line.toString() : null;
+	}
+
 	private boolean isInSubnet() {
-		//System.out.println("перевірка адреси");
 		if(!Configs.getBoolean("lanSettings"))
 			return true;
 		try {
@@ -135,7 +294,6 @@ public class HTTPRequest {
 					return false;
 				}
 			}
-			//System.out.println("true");
 			return true;
 
 		} catch (UnknownHostException e) {
@@ -146,6 +304,7 @@ public class HTTPRequest {
 	
 	public HTTPRequest(InputStream inputStream, int port, InetAddress clientAddress) {
 		this.clientAddress = clientAddress;
+		this.inputStream = inputStream;
 //		if(clientAddress == )
 		this.port = port;
 		this.portTrue = port;
@@ -156,19 +315,21 @@ public class HTTPRequest {
 		XwwwFormUrlEncodedString = "";
 		X_Session_ID = 0;
 		contentLength = 0;
+		chunked_flag = false;
+		gzip_flag = false;
 		revers = ReversType.NO_REVERSE;
 		userID = 0; // Початково користувач не автентифікований
 		// Removed backdoor initialization
 		old_servak_flag = false;
 		try {
-			BufferedReader in = new BufferedReader(new InputStreamReader(inputStream));
+			// BufferedReader in = new BufferedReader(new InputStreamReader(inputStream));
 			String line;
 			StringBuilder requestBuilder = new StringBuilder();
 			queryArr = new ArrayList<>();
 			phpQueryArr = new ArrayList<>();
 			headerArr = new ArrayList<>();
 			cookieArr = new ArrayList<>();
-			line = in.readLine();
+			line = readLineFromInputStream(inputStream);
 			
 			if(line == null || line.length() < 3 || line.split(" ").length != 3) {
 //				ban = true;
@@ -294,16 +455,16 @@ public class HTTPRequest {
 					}
 				}
 			}
-			while (!(line = in.readLine()).isBlank()) {
+			while (!(line = readLineFromInputStream(inputStream)).isBlank()) {
 				requestBuilder.append(line).append("\r\n");
 				if(requestBuilder.toString().length() > 1024 * 1024) {
 					ban = true;
 					return;
 				}
 				int idx = line.indexOf(": ");
-					if(idx >= 0 && idx < line.length() - 2) {
-						headerArr.add(new Query(line.substring(0, idx), line.substring(idx + 2)));
-					}
+				if(idx >= 0 && idx < line.length() - 2) {
+					headerArr.add(new Query(line.substring(0, idx), line.substring(idx + 2)));
+				}
 					
 				if(revers == ReversType.PHP_FPM) {
 					phpQueryArr.add(new Query(toCGIHeader(line.split(":", 2)[0].trim()), line.split(":", 2)[1].trim()));
@@ -312,6 +473,20 @@ public class HTTPRequest {
 			
 			
 			host = getZnach("Host", arrType.HEADER);
+			if(protocol.compareTo("HTTP/1.1") == 0) {
+				if(host.length() == 0) {
+					ban = true;
+					return;
+				}
+				if(!checkHost(host)) {
+					ban = true;
+					return;
+				}
+			}
+			else if(protocol.compareTo("HTTP/1.0") != 0) {
+				ban = true;
+				return;
+			}
 				
 			if(getZnach("X-Forwarded-For", arrType.HEADER).length() > 0) {
 				clientAddress = InetAddress.getByName(getZnach("X-Forwarded-For", arrType.HEADER));
@@ -339,11 +514,14 @@ public class HTTPRequest {
 			}
 			Content_Type = getZnach("Content-Type", arrType.HEADER);
 			
-			// Блокування Transfer-Encoding: chunked - вважаємо його вразливістю
 			String transferEncoding = getZnach("Transfer-Encoding", arrType.HEADER);
 			if (transferEncoding != null && transferEncoding.toLowerCase().contains("chunked")) {
-				ban = true;
-				return;
+				chunked_flag = true;
+			}
+			
+			String contentEncoding = getZnach("Content-Encoding", arrType.HEADER);
+			if (contentEncoding != null && contentEncoding.toLowerCase().contains("gzip")) {
+				gzip_flag = true;
 			}
 			
 			if(getZnach("Cookie", arrType.HEADER).length() > 0) {
@@ -371,63 +549,51 @@ public class HTTPRequest {
 				}
 			}
 			header += requestBuilder.toString();
-			if((method.compareTo("PUT") == 0 || method.compareTo("POST") == 0 || method.compareTo("DELETE") == 0) && contentLength != 0) {
-				if(Content_Type.startsWith("application/x-www-form-urlencoded") && revers == ReversType.NO_REVERSE) {
-					char[] bodyChArr = new char[contentLength];
-					int bytesRead = 0;
-					while (bytesRead < contentLength) {
-						int result = in.read(bodyChArr, bytesRead, contentLength - bytesRead);
-						if (result == -1) {
-							break;
-						}
-						bytesRead += result;
-					}
-					// Перевіряємо що фактично прочитали правильну кількість байт
-					if (bytesRead != contentLength) {
-						ban = true;
-						return;
+
+
+			if((method.compareTo("PUT") == 0 || method.compareTo("POST") == 0 || method.compareTo("DELETE") == 0) && (contentLength != 0 || chunked_flag)) {
+				
+				bodyData = readBody(inputStream, contentLength, chunked_flag, gzip_flag);
+				if(bodyData.length == 0) {
+					ban = true;
+					return;
+				}
+				try {
+					char[] bodyChArr = new char[bodyData.length];
+					for(int ii = 0; ii < bodyData.length; ii++) {
+						bodyChArr[ii] = (char)bodyData[ii];
 					}
 					body = new String(bodyChArr);
+				} catch (Exception e) {
+					body = "hexData";
+				}
+				contentLength = bodyData.length;
+				//System.out.println(body);
+				if (header.matches("(?im).*^Content-Length: .*\\r?\\n.*")) {
+					header = header.replaceAll("(?im)^Content-Length: .*\\r?\\n", "Content-Length: " + contentLength + "\r\n");
+				} else {
+					header = header.replaceFirst("\\r?\\n", "\r\nContent-Length: " + contentLength + "\r\n");
+				}
+				header = header.replaceAll("(?im)^Content-Encoding: .*\\r?\\n", "");
+				header = header.replaceAll("(?im)^Transfer-Encoding: chunked\\r?\\n", "");
+				
+				if(Content_Type.startsWith("application/x-www-form-urlencoded") && revers == ReversType.NO_REVERSE) {
 					XwwwFormUrlEncodedString = body;
 					for(String tmp2 : body.split("&")) {
 						String param = convertString(tmp2.split("=")[0]);
 						String value = convertString(tmp2.split("=").length == 2 ? tmp2.split("=")[1] : "");
 						queryArr.add(new Query(param, value));
+						//System.out.println(param + "|" + value);
 					}
 				}
 				else if(Content_Type.compareTo("application/octet-stream") == 0 && path.startsWith(Configs.getParam("dbg_post_message_path"))) {
-					char[] bodyChArr = new char[contentLength];
-					bodyData = new byte[contentLength];
-					int bytesRead = 0;
-					while (bytesRead < contentLength) {
-						int result = in.read(bodyChArr, bytesRead, contentLength - bytesRead);
-						if (result == -1) {
-							break;
-						}
-						bytesRead += result;
-					}
-					if (bytesRead != contentLength) {
-						ban = true;
-						return;
-					}
-					body = new String(bodyChArr);
-					for(int i = 0; i < bodyData.length; i++) {
-						bodyData[i] = (byte)bodyChArr[i];
-					}
+					//TODO
 				}
 				else if(Content_Type.compareTo("application/octet-stream") == 0 && revers == ReversType.NO_REVERSE && path.startsWith(Configs.getParam("avr_path")) && user_agent.startsWith(Configs.getParam("avr_user_agent"))) {
+					contentLength = bodyData.length;
 					char[] bodyChArr = new char[contentLength];
-					int bytesRead = 0;
-					while (bytesRead < contentLength) {
-						int result = in.read(bodyChArr, bytesRead, contentLength - bytesRead);
-						if (result == -1) {
-							break;
-						}
-						bytesRead += result;
-					}
-					if (bytesRead != contentLength) {
-						ban = true;
-						return;
+					for(int ii = 0; ii < contentLength; ii++) {
+						bodyChArr[ii] = (char)bodyData[ii];
 					}
 					short blocks;
 					byte reshta = (byte)(bodyChArr[contentLength - 1] & 0x03);
@@ -453,59 +619,16 @@ public class HTTPRequest {
 					for(short ii = 0; ii < contentLength; ii++) {
 						bodyData[ii] = bodyDataTmp[ii];
 					}
-					port = 8083;
 				}
 				else {
-					char[] bodyChArr = new char[contentLength];
-					int bytesRead = 0;
-					while (bytesRead < contentLength) {
-						int result = in.read(bodyChArr, bytesRead, contentLength - bytesRead);
-						if (result == -1) {
-							break;
-						}
-						bytesRead += result;
-					}
-					if (bytesRead != contentLength) {
-						ban = true;
-						return;
-					}
-					body = new String(bodyChArr);
+					//TODO
 				}
 			}
 		} catch (IOException e) {
 			ban = true;
 			return;
 		}
-		if(false) {
-//		if(true) {
-			if(port == 80 && revers == ReversType.OLD_SERVAK) {
-				prnt();
-			}
-		}
-		if(false) {
-//		if(true) {
-			if(clientAddress.getHostAddress().equals("89.42.231.140")) {
-				prnt();
-			}
-		}
-		if(false) {
-//		if(true) {
-			if(path != null && path.startsWith("/relay_servak/log_file")) {
-				prnt();
-			}
-		}
-		if(false) {
-//		if(true) {
-			if(port == 80 && revers == ReversType.NO_REVERSE) {
-				prnt();
-			}
-		}
-		if(false) {
-//		if(true) {
-			if(port == 8083) {
-				prnt();
-			}
-		}
+		
 		// Перевірка ключа та встановлення userID
 		if (X_Session_ID != 0 && userID == 0) {
 			userID = KeyManager.checkKey(X_Session_ID, clientAddress);
@@ -513,25 +636,14 @@ public class HTTPRequest {
 				sn_megaList = KeyManager.getSnMegaList(X_Session_ID, clientAddress);
 			}
 		}
-		if(host == null && header != null && !(isInSubnet() || clientAddress.getHostAddress().equals("127.0.0.1") || clientAddress.getHostAddress().equals("::1"))) {
-			ban = true;
-		}
-		if(host != null && host.equals(Configs.getParam("host")) == false) {
-			if(isInSubnet() || clientAddress.getHostAddress().equals("127.0.0.1") || clientAddress.getHostAddress().equals("::1"))
-				;
-			else {
-//				System.out.println(host);
-//				System.out.println(Configs.getParam("host"));
-				ban = true;
-			}
-		}
+
 		if(revers == ReversType.PHP_FPM && phpFirewall(path, queryArr.size()) == false) {
 			ban = true;
 		}
-		// Валідація протоколу версії
-		if (!protocol.equals("HTTP/1.1") && !protocol.equals("HTTP/1.0")) {
-			ban = true;
-		}
+		
+		//prnt();
+		//System.out.println("\n***\n***\n" + body);
+
 	}
 	
 	public void prnt() {

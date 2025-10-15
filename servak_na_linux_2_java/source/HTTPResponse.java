@@ -270,7 +270,7 @@ public class HTTPResponse {
 					System.out.println("$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$");
 				}
 				else {
-					System.out.println("\r" + formattedDate + "\tBAN " + httpRequest.clientAddress + ":" + String.format("%d;  ", httpRequest.port) + httpRequest.header.split("\r\n")[0] + " -> " + headers.split("\r\n")[0]);
+					System.out.println("\r" + formattedDate + "\tBANRESPONSE " + httpRequest.clientAddress + ":" + String.format("%d;  ", httpRequest.port) + httpRequest.header.split("\r\n")[0] + " -> " + headers.split("\r\n")[0]);
 				}
 			}
 			else if(Configs.getBoolean("revers_log"))

@@ -70,6 +70,9 @@ public final class ReverseProxy {
 					if(!Configs.getBoolean("ban_response"))
 						return new HTTPResponse(503);
 					proxySocket.connect(new java.net.InetSocketAddress(Configs.getParam("ip_ban_response_server"), Configs.getInt("port_ban_response_server")), 2000);
+					httpRequest.header = httpRequest.header.replaceFirst("Content-Length: \\d+\r\n", "Content-Length: 0\r\n");
+					httpRequest.body = "";
+					httpRequest.bodyData = "".getBytes();
 					break;
 				case PHP_FPM:
 					//System.out.println("PHP_FPM ip: " + Configs.getParam("ip_php_fpm_server") + ", port: " + Configs.getInt("port_php_fpm_server"));

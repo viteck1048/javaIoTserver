@@ -64,12 +64,12 @@ public class ClientHandler extends Thread {
 					httpRequest.ban = true;
 				}
 
-				if(httpRequest.clientAddress.toString().compareTo("/185.40.4.51") == 0) {
+				/*if(httpRequest.clientAddress.toString().compareTo("/185.40.4.51") == 0) {
 					httpResponse = new HTTPResponse("HTTP/1.1 400 ujmis, djatel\r\n\r\n", null);
 				}
 				else if(httpRequest.clientAddress.toString().compareTo("/185.177.72.7") == 0) {
 					httpResponse = new HTTPResponse("HTTP/1.1 400 ujmis, djatel\r\n\r\n", null);
-				}
+				}*/
 				else if(httpRequest.ban == false) {
 					port = httpRequest.port;
 					if(!Configs.getBoolean("https_run") && Configs.getBoolean("test_all_services") && port == 80) {

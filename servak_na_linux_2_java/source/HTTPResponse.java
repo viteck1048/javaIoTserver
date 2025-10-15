@@ -10,7 +10,8 @@ import java.time.ZoneId;
 import java.util.Locale;
 import java.util.regex.Pattern;
 import java.util.regex.Matcher;
-
+import java.io.*;
+import java.util.zip.*;
 
 public class HTTPResponse {
 	
@@ -202,15 +203,49 @@ public class HTTPResponse {
 		this.msg += "\n                                                                                        " + msg;
 	}
 
+	private static byte[] gzipCompress(byte[] data) {
+		if(data == null || data.length == 0)
+			return data;
+		try {
+			ByteArrayOutputStream byteArrayOutputStream = new ByteArrayOutputStream();
+			GZIPOutputStream gzipOutputStream = new GZIPOutputStream(byteArrayOutputStream);
+			gzipOutputStream.write(data);
+			gzipOutputStream.close();
+			return byteArrayOutputStream.toByteArray();
+		} catch (IOException e) {
+			e.printStackTrace();
+			return null;
+		}
+	}
+
+	private static byte[] gzipDecompress(byte[] data) {
+		if(data == null || data.length == 0)
+			return data;
+		try {
+			ByteArrayOutputStream byteArrayOutputStream = new ByteArrayOutputStream();
+			GZIPInputStream gzipInputStream = new GZIPInputStream(new ByteArrayInputStream(data));
+			byte[] buffer = new byte[4096];
+			int len;
+			while ((len = gzipInputStream.read(buffer)) != -1) {
+				byteArrayOutputStream.write(buffer, 0, len);
+			}
+			gzipInputStream.close();
+			return byteArrayOutputStream.toByteArray();
+		} catch (IOException e) {
+			e.printStackTrace();
+			return null;
+		}
+	}
+	
 	public void prntMsg(HTTPRequest httpRequest) {
 		SimpleDateFormat formatter = new SimpleDateFormat("EEE, dd MMM yyyy HH:mm:ss z");		//SimpleDateFormat("EEE, dd MMM yyyy HH:mm:ss z", Locale.ENGLISH);
 		String formattedDate = formatter.format(new Date());
 		int userID = 0;
-		if(httpRequest.port == 8083)
+		if(httpRequest.port == Configs.getInt("avr_port"))
 			userID = -1;
 		else
 			userID = httpRequest.userID;
-		if(httpRequest.port == 8083) {
+		if(httpRequest.port == Configs.getInt("avr_port")) {
 			if(Configs.getBoolean("avr_log"))
 				System.out.println("\r" + formattedDate + "\t\tNew client " + httpRequest.clientAddress + " on port " + String.format("%5d;", httpRequest.port) + (userID == -1 ? "\t\t\t\t\t" : ("\tuserID: " + userID + "\t\t")) + msg);
 			else{
@@ -218,25 +253,27 @@ public class HTTPResponse {
 					System.out.print(".");
 				else if(httpRequest.contentLength == 40)
 					System.out.printf("%02X", httpRequest.bodyData[35]);
-				else
-					httpRequest.prnt();
+				else {
+					//httpRequest.prnt();
+					System.out.println("\r" + formattedDate + "\tBAN AVR " + httpRequest.clientAddress + ":" + String.format("%d;  ", httpRequest.port) + httpRequest.header.split("\r\n")[0] + " -> " + headers.split("\r\n")[0]);
+				}
 			}
 		}
 		else if(httpRequest.revers != HTTPRequest.ReversType.NO_REVERSE) {
 			if(httpRequest.revers == HTTPRequest.ReversType.BANRESPONSE) {
-				System.out.print("Request:");
-				httpRequest.prnt();
-				System.out.println("Response. Headers:");
-				System.out.println("##################################################################");
-				System.out.print(headers);
-				System.out.println("Response. Body:");
-				if(body.length < 500)
-					System.out.println(new String(body));
-				else
-					System.out.println("Body is too long");
-				System.out.println("$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$");
+				if(Configs.getBoolean("revers_log")){
+					System.out.print("Request:");
+					httpRequest.prnt();
+					System.out.println("Response:");
+					System.out.println("##################################################################");
+					System.out.print(headers);
+					System.out.println("$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$");
+				}
+				else {
+					System.out.println("\r" + formattedDate + "\tBAN " + httpRequest.clientAddress + ":" + String.format("%d;  ", httpRequest.port) + httpRequest.header.split("\r\n")[0] + " -> " + headers.split("\r\n")[0]);
+				}
 			}
-			if(Configs.getBoolean("revers_log"))
+			else if(Configs.getBoolean("revers_log"))
 				System.out.println("\r" + formattedDate + "\t\tNew client " + httpRequest.clientAddress + " on port " + String.format("%5d;", httpRequest.port) + (userID == -1 ? "\t\t\t\t\t" : ("\tuserID: " + userID + "\t\t")) + msg);
 		}
 		else
@@ -244,6 +281,21 @@ public class HTTPResponse {
 		
 		if(fl_err_prnt_hdr == true)
 			httpRequest.prnt();
+	}
+
+	boolean isTextual(String contentType) {
+		if (contentType == null) return false;
+
+		contentType = contentType.toLowerCase();
+
+		return contentType.startsWith("text/")
+			|| contentType.contains("json")
+			|| contentType.contains("xml")
+			|| contentType.contains("javascript")
+			|| contentType.contains("ecmascript")
+			|| contentType.contains("xhtml")
+			|| contentType.contains("svg")
+			|| contentType.contains("csv");
 	}
 
 	public void normalizeHeaders(HTTPRequest httpRequest) {
@@ -260,11 +312,6 @@ public class HTTPResponse {
 				headers = new String(Arrays.copyOfRange(body, 0, headerEndIndex));
 				body = Arrays.copyOfRange(body, headerEndIndex, body.length);
 			}
-		}
-		if (httpRequest.revers == HTTPRequest.ReversType.BANRESPONSE && body != null && body.length < 500) {
-			String oldPort = "Port " + Configs.getParam("port_ban_response_server");
-			String newPort = "Port " + httpRequest.portTrue;
-			body = new String(body).replace(oldPort, newPort).getBytes();
 		}
 		if (headers != null) {
 			if(headers.startsWith("Status: ")) {
@@ -309,6 +356,27 @@ public class HTTPResponse {
 					addMsg("Gadget's Timezone: \"" + timezone + "\" doesn't exist, X-Timezone-Offset: 0 seconds");
 				}
 			}
+			
+			if(headers.contains("Content-Encoding: gzip")) {
+				body = gzipDecompress(body);
+				headers = headers.replace("Content-Encoding: gzip\r\n", "");
+			}
+			if (httpRequest.revers == HTTPRequest.ReversType.BANRESPONSE && body != null) {
+				String oldPort = Configs.getParam("port_ban_response_server").trim();
+				String newPort = String.valueOf(httpRequest.portTrue).trim();
+				body = new String(body).replace(oldPort, newPort).getBytes();
+			}
+			
+			if(headers.contains("Content-Type: ")) {
+				String contentType = headers.split("Content-Type: ")[1].split("\r\n")[0];
+				if(isTextual(contentType)) {
+					if(httpRequest.getZnach("Accept-Encoding", HTTPRequest.arrType.HEADER).contains("gzip")) {
+						body = gzipCompress(body);
+						headers = headers.replace("\r\n\r\n", "\r\nContent-Encoding: gzip\r\n\r\n");
+					}
+				}
+			}
+
 			String contentLengthPattern = "Content-Length: \\d+\r\n";
 			Pattern pattern = Pattern.compile(contentLengthPattern);
 			Matcher matcher = pattern.matcher(headers);
@@ -322,6 +390,7 @@ public class HTTPResponse {
 				else
 					headers = headers.replace("\r\n\r\n", "\r\nContent-Length: 0\r\n\r\n");
 			}
+			
 			if (!headers.contains("X-Content-Type-Options:")) {
 				headers = headers.replace("\r\n\r\n", "\r\nX-Content-Type-Options: nosniff\r\n\r\n");
 			}

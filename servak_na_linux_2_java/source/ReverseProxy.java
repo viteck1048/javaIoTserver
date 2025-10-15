@@ -117,27 +117,30 @@ public final class ReverseProxy {
 						else
 							httpRequest.body += "&userID=" + userID;
 						// Оновлюємо content-length
-						int contentLength = httpRequest.body.length();
-						httpRequest.header = httpRequest.header.replaceFirst("Content-Length: \\d+", "Content-Length: " + contentLength);
+						httpRequest.bodyData = httpRequest.body.getBytes();
+						httpRequest.contentLength = httpRequest.body.length();
+						httpRequest.header = httpRequest.header.replaceFirst("Content-Length: \\d+", "Content-Length: " + httpRequest.contentLength);
 					}
 					break;
 				default:
 					throw new IOException("Unknown reverse type: " + httpRequest.revers);
 			}
 		
-			// Відправляємо запит на проксі-сервер
 			if(httpRequest.revers != HTTPRequest.ReversType.PHP_FPM) {
 				proxySocket.getOutputStream().write(httpRequest.header.getBytes());//System.out.print("***\r" + httpRequest.header + "\r\n***");
 				proxySocket.getOutputStream().write("\r\n".getBytes());
 							// Відправляємо body частинами
-				byte[] bodyBytes = httpRequest.body.getBytes();
+				byte[] bodyBytes = httpRequest.bodyData;
 				int bytesSent = 0;
 				int chunkSize = 8192; // 8KB chunks
-				
-				while (bytesSent < bodyBytes.length) {
-					int bytesToWrite = Math.min(chunkSize, bodyBytes.length - bytesSent);
-					proxySocket.getOutputStream().write(bodyBytes, bytesSent, bytesToWrite);
-					bytesSent += bytesToWrite;
+
+				// Перевіряємо чи bodyBytes не null і має достатню довжину
+				if(bodyBytes != null && bodyBytes.length > 0 && httpRequest.contentLength > 0) {
+					while (bytesSent < httpRequest.contentLength) {
+						int bytesToWrite = Math.min(chunkSize, httpRequest.contentLength - bytesSent);
+						proxySocket.getOutputStream().write(bodyBytes, bytesSent, bytesToWrite);
+						bytesSent += bytesToWrite;
+					}
 				}
 
 				proxySocket.getOutputStream().flush();
@@ -257,9 +260,11 @@ public final class ReverseProxy {
 
 		} catch (SocketTimeoutException e) {
 			System.out.println("Timeout forwarding request: " + e.getMessage());
+			e.printStackTrace();
 			return new HTTPResponse(504);
 		} catch (Exception e) {
 			System.out.println("Error in reverse proxy: " + e.getMessage());
+			e.printStackTrace();
 			return new HTTPResponse(500);
 		} finally {
 			if (proxySocket != null) {

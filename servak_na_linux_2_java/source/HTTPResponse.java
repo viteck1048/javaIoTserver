@@ -372,23 +372,24 @@ public class HTTPResponse {
 				if(isTextual(contentType)) {
 					if(httpRequest.getZnach("Accept-Encoding", HTTPRequest.arrType.HEADER).contains("gzip")) {
 						body = gzipCompress(body);
-						headers = headers.replace("\r\n\r\n", "\r\nContent-Encoding: gzip\r\n\r\n");
+						if(body != null && body.length > 0)
+							headers = headers.replace("\r\n\r\n", "\r\nContent-Encoding: gzip\r\n\r\n");
 					}
 				}
 			}
-
+			int contentLength = 0;
+			if(body != null && body.length > 0) {
+				contentLength = body.length;
+			}
 			String contentLengthPattern = "Content-Length: \\d+\r\n";
 			Pattern pattern = Pattern.compile(contentLengthPattern);
 			Matcher matcher = pattern.matcher(headers);
 			if(matcher.find()) {
-				String newContentLength = "Content-Length: " + body.length + "\r\n";
+				String newContentLength = "Content-Length: " + contentLength + "\r\n";
 				headers = matcher.replaceFirst(newContentLength);
 			}
 			else {
-				if(body != null)
-					headers = headers.replace("\r\n\r\n", "\r\nContent-Length: " + body.length + "\r\n\r\n");
-				else
-					headers = headers.replace("\r\n\r\n", "\r\nContent-Length: 0\r\n\r\n");
+				headers = headers.replace("\r\n\r\n", "\r\nContent-Length: " + contentLength + "\r\n\r\n");
 			}
 			
 			if (!headers.contains("X-Content-Type-Options:")) {

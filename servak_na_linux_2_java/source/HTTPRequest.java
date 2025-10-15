@@ -1,10 +1,9 @@
-import java.io.ByteArrayOutputStream;
-import java.io.IOException;                 // Для обробки виключень, пов'язаних з IO операціями
-import java.io.InputStream;                 // Для отримання вхідного потоку
 import java.net.InetAddress;                // Для роботи з IP-адресами
 import java.net.URLDecoder;                 // Для декодування URL-даних
 import java.net.UnknownHostException;       // Для обробки винятків, пов'язаних з IP-адресами
 import java.util.ArrayList;                 // Для роботи з динамічними списками
+// Для обробки виключень, пов'язаних з IO операціями
+// Для отримання вхідного потоку
 import java.io.*;
 import java.util.zip.*;
 
@@ -255,23 +254,29 @@ public class HTTPRequest {
 	private String readLineFromInputStream(InputStream inputStream) throws IOException {
 		StringBuilder line = new StringBuilder();
 		int ch;
-		while ((ch = inputStream.read()) != -1) {
-			if (ch == '\r') {
-				// Перевіряємо наступний символ
-				int nextCh = inputStream.read();
-				if (nextCh == '\n') {
-					// Знайшли \r\n, повертаємо рядок
-					return line.toString();
-				} else {
-					// Якщо наступний символ не \n, повертаємо його назад і продовжуємо
-					line.append((char) ch);
-					if (nextCh != -1) {
-						line.append((char) nextCh);
+		try {
+			while ((ch = inputStream.read()) != -1) {
+				if (ch == '\r') {
+					// Перевіряємо наступний символ
+					int nextCh = inputStream.read();
+					if (nextCh == '\n') {
+						// Знайшли \r\n, повертаємо рядок
+						return line.toString();
+					} else {
+						// Якщо наступний символ не \n, повертаємо його назад і продовжуємо
+						line.append((char) ch);
+						if (nextCh != -1) {
+							line.append((char) nextCh);
+						}
 					}
+				} else {
+					line.append((char) ch);
 				}
-			} else {
-				line.append((char) ch);
 			}
+		} catch (java.net.SocketTimeoutException e) {
+			//System.err.println("Socket timeout while reading line from input stream: " + e.getMessage());
+			//throw new IOException("Socket timeout while reading HTTP request line", e);
+			return null;
 		}
 		// Якщо досягнуто кінець потоку і є дані, повертаємо їх
 		return line.length() > 0 ? line.toString() : null;
@@ -310,8 +315,10 @@ public class HTTPRequest {
 		this.portTrue = port;
 		ban = false;
 		close_connect_flag = true;
+		path = "";
 		Content_Type = "";
 		body = "";
+		bodyData = null;
 		XwwwFormUrlEncodedString = "";
 		X_Session_ID = 0;
 		contentLength = 0;
@@ -568,14 +575,13 @@ public class HTTPRequest {
 					body = "hexData";
 				}
 				contentLength = bodyData.length;
-				//System.out.println(body);
-				if (header.matches("(?im).*^Content-Length: .*\\r?\\n.*")) {
-					header = header.replaceAll("(?im)^Content-Length: .*\\r?\\n", "Content-Length: " + contentLength + "\r\n");
+				if (header.contains("Content-Length:")) {
+					header = header.replaceFirst("Content-Length: .*\\r?\\n", "Content-Length: " + contentLength + "\r\n");
 				} else {
-					header = header.replaceFirst("\\r?\\n", "\r\nContent-Length: " + contentLength + "\r\n");
+					header = header.replaceFirst("\\r\\n", "\r\nContent-Length: " + contentLength + "\r\n");
 				}
-				header = header.replaceAll("(?im)^Content-Encoding: .*\\r?\\n", "");
-				header = header.replaceAll("(?im)^Transfer-Encoding: chunked\\r?\\n", "");
+				header = header.replaceAll("Content-Encoding: .*\\r?\\n", "");
+				header = header.replaceAll("Transfer-Encoding: chunked\\r?\\n", "");
 				
 				if(Content_Type.startsWith("application/x-www-form-urlencoded") && revers == ReversType.NO_REVERSE) {
 					XwwwFormUrlEncodedString = body;
@@ -583,11 +589,7 @@ public class HTTPRequest {
 						String param = convertString(tmp2.split("=")[0]);
 						String value = convertString(tmp2.split("=").length == 2 ? tmp2.split("=")[1] : "");
 						queryArr.add(new Query(param, value));
-						//System.out.println(param + "|" + value);
 					}
-				}
-				else if(Content_Type.compareTo("application/octet-stream") == 0 && path.startsWith(Configs.getParam("dbg_post_message_path"))) {
-					//TODO
 				}
 				else if(Content_Type.compareTo("application/octet-stream") == 0 && revers == ReversType.NO_REVERSE && path.startsWith(Configs.getParam("avr_path")) && user_agent.startsWith(Configs.getParam("avr_user_agent"))) {
 					contentLength = bodyData.length;
@@ -620,11 +622,10 @@ public class HTTPRequest {
 						bodyData[ii] = bodyDataTmp[ii];
 					}
 				}
-				else {
-					//TODO
-				}
 			}
 		} catch (IOException e) {
+			System.err.println("Error reading request body: " + e.getMessage());
+			//e.printStackTrace();
 			ban = true;
 			return;
 		}

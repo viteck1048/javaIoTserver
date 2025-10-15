@@ -19,7 +19,16 @@ public class ClientHandler extends Thread {
 
 	public void run() {
 		try  {
-			socket.setSoTimeout(5000);
+			// Таймаут читання налаштовується через конфігурацію (за замовчуванням 30 секунд)
+			int readTimeout = 30000; // Default 30 seconds
+			int lastRequestTimeOut = 60000; // Default 60 seconds
+			if (Configs.getDefine("socket_read_timeout")) {
+				readTimeout = Configs.getInt("socket_read_timeout");
+			}
+			if (Configs.getDefine("socket_last_request_timeout")) {
+				lastRequestTimeOut = Configs.getInt("socket_last_request_timeout");
+			}
+			socket.setSoTimeout(readTimeout);
 			out = new BufferedOutputStream(socket.getOutputStream());
 			
 			long lastRequestTime = System.currentTimeMillis(); // Час останнього запиту
@@ -34,7 +43,7 @@ public class ClientHandler extends Thread {
 				
 				if (httpRequest.header == null) {
 					// Якщо користувач не надсилав запити довго - відключаємо
-					if (System.currentTimeMillis() - lastRequestTime > 30000) { // 30 секунд
+					if (System.currentTimeMillis() - lastRequestTime > lastRequestTimeOut) {
 						if (!socket.isClosed()) {
 							socket.close();
 						}

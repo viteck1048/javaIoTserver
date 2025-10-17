@@ -40,7 +40,13 @@ public class ClientHandler extends Thread {
 				
 				InputStream inputStream = socket.getInputStream();
 				HTTPRequest httpRequest = new HTTPRequest(inputStream, port, socket.getInetAddress());
-				
+				if(httpRequest.quickBan) {
+					if (out != null) {
+						out.write("HTTP/1.1 500 Internal Server quickBan\r\n\r\n".getBytes());
+						out.flush();
+					}
+					break;
+				}
 				if (httpRequest.header == null) {
 					// Якщо користувач не надсилав запити довго - відключаємо
 					if (System.currentTimeMillis() - lastRequestTime > lastRequestTimeOut) {
@@ -152,7 +158,7 @@ public class ClientHandler extends Thread {
 					}
 				}
 				else {
-					if(Configs.getBoolean("ban_response")) {
+					if(Configs.getBoolean("ban_response") || Configs.getBoolean("Firewall")) {
 						httpRequest.revers = HTTPRequest.ReversType.BANRESPONSE;
 						httpResponse = ReverseProxy.handleReverseRequest(httpRequest);
 					}

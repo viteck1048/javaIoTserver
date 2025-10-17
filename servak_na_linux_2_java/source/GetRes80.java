@@ -35,14 +35,14 @@ public final class GetRes80 {
 						else
 							return new HTTPResponse(fileData.length, fileData, requestedFile);
 					} else {
-						if(Configs.getBoolean("ban_response")) {
+						if(Configs.getBoolean("ban_response") || Configs.getBoolean("Firewall")) {
 							httpRequest.revers = HTTPRequest.ReversType.BANRESPONSE;
 							return ReverseProxy.handleReverseRequest(httpRequest);
 						}
 						return new HTTPResponse(500);
 					}
 				} catch (Exception e) {
-					if(Configs.getBoolean("ban_response")) {
+					if(Configs.getBoolean("ban_response") || Configs.getBoolean("Firewall")) {
 						httpRequest.revers = HTTPRequest.ReversType.BANRESPONSE;
 						return ReverseProxy.handleReverseRequest(httpRequest);
 					}
@@ -50,7 +50,7 @@ public final class GetRes80 {
 				}
 			}
 			else {
-				if(Configs.getBoolean("ban_response")) {
+				if(Configs.getBoolean("ban_response") || Configs.getBoolean("Firewall")) {
 					httpRequest.revers = HTTPRequest.ReversType.BANRESPONSE;
 					return ReverseProxy.handleReverseRequest(httpRequest);
 				}
@@ -68,7 +68,7 @@ public final class GetRes80 {
 				}
 			}
 		}
-		if(Configs.getBoolean("ban_response")) {
+		if(Configs.getBoolean("ban_response") || Configs.getBoolean("Firewall")) {
 			httpRequest.revers = HTTPRequest.ReversType.BANRESPONSE;
 			return ReverseProxy.handleReverseRequest(httpRequest);
 		}

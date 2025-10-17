@@ -17,7 +17,7 @@ public final class PostRes {
 			userID = KeyManager.checkKey(httpRequest.X_Session_ID, httpRequest.clientAddress);
 		if(userID == 0) {
 			httpRequest.prnt();
-			if(Configs.getBoolean("ban_response")) {
+			if(Configs.getBoolean("ban_response") || Configs.getBoolean("Firewall")) {
 				httpRequest.revers = HTTPRequest.ReversType.BANRESPONSE;
 				return ReverseProxy.handleReverseRequest(httpRequest);
 			}
@@ -33,7 +33,7 @@ public final class PostRes {
 		if(httpRequest.path.startsWith("/reset_") == true && httpRequest.chkParam("pin"))
 			return sendReset(httpRequest, KeyManager.getGadget(httpRequest.X_Session_ID, httpRequest.clientAddress));
 		
-		if(Configs.getBoolean("ban_response")) {
+		if(Configs.getBoolean("ban_response") || Configs.getBoolean("Firewall")) {
 			httpRequest.revers = HTTPRequest.ReversType.BANRESPONSE;
 			return ReverseProxy.handleReverseRequest(httpRequest);
 		}

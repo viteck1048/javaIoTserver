@@ -2,6 +2,7 @@ import java.net.InetAddress;                // Для роботи з IP-адр�
 import java.net.URLDecoder;                 // Для декодування URL-даних
 import java.net.UnknownHostException;       // Для обробки винятків, пов'язаних з IP-адресами
 import java.util.ArrayList;                 // Для роботи з динамічними списками
+import java.util.List;
 // Для обробки виключень, пов'язаних з IO операціями
 // Для отримання вхідного потоку
 import java.io.*;
@@ -25,6 +26,7 @@ public class HTTPRequest {
 	public ArrayList<Query> cookieArr;
 	public int contentLength;
 	public boolean ban;
+	public boolean quickBan;
 	public InetAddress clientAddress;
 	public long X_Session_ID;
 	public ReversType revers;
@@ -43,7 +45,6 @@ public class HTTPRequest {
 		HEADER,
 		COOKIE
 	}
-	// Removed backdoor flag
 	public boolean old_servak_flag;
 	public boolean close_connect_flag;
 	//public boolean php_redirect_directory_flag;
@@ -55,8 +56,7 @@ public class HTTPRequest {
 	private static final int MAX_QUERY_PARAM_LENGTH = 1024;  // Максимальна довжина параметра
 	private boolean chunked_flag;
 	private boolean gzip_flag;
-	private InputStream inputStream;
-
+	
 	private String convertString(String str) {
 		try {
 	    String decoded = URLDecoder.decode(str, "UTF-8");
@@ -104,20 +104,6 @@ public class HTTPRequest {
 		ban = true;
 	}
 	
-	private boolean phpFirewall(String scriptName) {
-		//тут буде перевірка на корректність запиту до php файлу
-		if(Configs.getBoolean("php_fpm"))
-			return true;
-		return false;
-	}
-	
-	private boolean phpFirewall(String scriptName, int queryArrSize) {
-		//тут буде перевірка на корректність запиту до php файлу
-		if(Configs.getBoolean("php_fpm"))
-			return true;
-		return false;
-	}
-
 	private boolean checkHost(String host) {
 		if(host.compareTo(Configs.getParam("host")) == 0)
 			return true;
@@ -127,8 +113,10 @@ public class HTTPRequest {
 			return true;
 		if(host.compareTo("::1") == 0)
 			return true;
-		if(isInSubnet())
-			return true;
+		if(Configs.getBoolean("lanSettings")) {
+			if(Configs.getParam("localIP").compareTo(host) == 0)
+				return true;
+		}
 		return false;
 	}
 
@@ -141,6 +129,9 @@ public class HTTPRequest {
 				StringBuilder sizeLine = new StringBuilder();
 				int ch;
 				while ((ch = in.read()) != -1) {
+					if (ch == '\n') {
+						throw new IOException("Invalid chunk size line (found LF without preceding CR)");
+					}
 					if (ch == '\r') {
 						// Check for LF
 						int nextCh = in.read();
@@ -154,11 +145,19 @@ public class HTTPRequest {
 							}
 						}
 					}
-					sizeLine.append((char) ch);
+					if(ch >= 48 && ch <= 57 || ch >= 65 && ch <= 70 || ch >= 97 && ch <= 102 || ch == 59 || ch == 32) {
+						sizeLine.append((char)(ch & 0xFF));
+						if (sizeLine.length() > 64) {
+							throw new IOException("Chunk size line too long");
+						}
+					}
+					else {
+						throw new IOException("Invalid chunk size line format, char isn't hex digit or space or semicolon");
+					}
 				}
 
 				// Parse chunk size (ignore chunk extensions for now)
-				String sizeStr = sizeLine.toString().trim().split(";")[0];
+				String sizeStr = sizeLine.toString().trim().split(";", 2)[0];
 				int chunkSize = 0;
 				try {
 					chunkSize = Integer.parseInt(sizeStr, 16);
@@ -168,17 +167,30 @@ public class HTTPRequest {
 
 				// Check if this is the last chunk (size 0)
 				if (chunkSize == 0) {
-					// Read final CRLF (or trailer headers + final CRLF)
-					// For now, just read until we find the final CRLF
-					while (true) {
-						ch = in.read();
-						if (ch == -1) break;
+					// Read trailers (until blank line)
+					StringBuilder trailerLine = new StringBuilder();
+					boolean lastCR = false;
+
+					while ((ch = in.read()) != -1) {
 						if (ch == '\r') {
-							int nextCh = in.read();
-							if (nextCh == '\n') {
-								break;
+							lastCR = true;
+							continue;
+						}
+						if (ch == '\n') {
+							if (lastCR) {
+								// End of line
+								if (trailerLine.length() == 0)
+									break; // empty line => end of trailers
+								// можна логувати або ігнорувати трейлер:
+								System.out.println("Trailer: " + trailerLine);
+								trailerLine.setLength(0);
+								lastCR = false;
+								continue;
 							}
 						}
+						// звичайний символ трейлера
+						trailerLine.append((char) ch);
+						lastCR = false;
 					}
 					break;
 				}
@@ -220,11 +232,6 @@ public class HTTPRequest {
 				}
 				bytesRead += result;
 			}
-			//System.out.println("l=" + contentLength + "r=" + bytesRead + "bodyData = " );
-			//for(int i = 0; i < bodyData.length; i++) {
-			//	System.out.println((char)bodyData[i] + " " + bodyData[i]);
-			//}
-			//System.out.println();
 			if(gzip_flag)
 				return gzipDecompress(bodyData);
 			else
@@ -235,15 +242,13 @@ public class HTTPRequest {
 	private static byte[] gzipDecompress(byte[] data) {
 		if(data == null || data.length == 0)
 			return data;
-		try {
-			ByteArrayOutputStream byteArrayOutputStream = new ByteArrayOutputStream();
-			GZIPInputStream gzipInputStream = new GZIPInputStream(new ByteArrayInputStream(data));
-			byte[] buffer = new byte[4096];
+		try (ByteArrayOutputStream byteArrayOutputStream = new ByteArrayOutputStream();
+			 GZIPInputStream gzipInputStream = new GZIPInputStream(new ByteArrayInputStream(data)))
+			{byte[] buffer = new byte[4096];
 			int len;
 			while ((len = gzipInputStream.read(buffer)) != -1) {
 				byteArrayOutputStream.write(buffer, 0, len);
 			}
-			gzipInputStream.close();
 			return byteArrayOutputStream.toByteArray();
 		} catch (IOException e) {
 			e.printStackTrace();
@@ -263,14 +268,10 @@ public class HTTPRequest {
 						// Знайшли \r\n, повертаємо рядок
 						return line.toString();
 					} else {
-						// Якщо наступний символ не \n, повертаємо його назад і продовжуємо
-						line.append((char) ch);
-						if (nextCh != -1) {
-							line.append((char) nextCh);
-						}
+						throw new IOException("Invalid line format");
 					}
 				} else {
-					line.append((char) ch);
+					line.append((char) (ch & 0xFF));
 				}
 			}
 		} catch (java.net.SocketTimeoutException e) {
@@ -284,7 +285,7 @@ public class HTTPRequest {
 
 	private boolean isInSubnet() {
 		if(!Configs.getBoolean("lanSettings"))
-			return true;
+			return false;
 		try {
 			byte[] subnetBytes = InetAddress.getByName(Configs.getParam("localIP")).getAddress();
 			byte[] maskBytes = InetAddress.getByName(Configs.getParam("localMask")).getAddress();
@@ -308,9 +309,14 @@ public class HTTPRequest {
 	}
 	
 	public HTTPRequest(InputStream inputStream, int port, InetAddress clientAddress) {
+		quickBan = false;
 		this.clientAddress = clientAddress;
-		this.inputStream = inputStream;
-//		if(clientAddress == )
+		if(!isInSubnet()) {
+			if(Firewall.checkBlackList(clientAddress)) {
+				quickBan = true;
+				return;
+			}
+		}
 		this.port = port;
 		this.portTrue = port;
 		ban = false;
@@ -325,11 +331,9 @@ public class HTTPRequest {
 		chunked_flag = false;
 		gzip_flag = false;
 		revers = ReversType.NO_REVERSE;
-		userID = 0; // Початково користувач не автентифікований
-		// Removed backdoor initialization
+		userID = 0; 
 		old_servak_flag = false;
 		try {
-			// BufferedReader in = new BufferedReader(new InputStreamReader(inputStream));
 			String line;
 			StringBuilder requestBuilder = new StringBuilder();
 			queryArr = new ArrayList<>();
@@ -414,7 +418,7 @@ public class HTTPRequest {
 						if (pathPart.length() > scriptEnd) {
 							pathInfo = convertString(pathPart.substring(scriptEnd));
 						}
-					if(!phpFirewall(scriptName)) {
+					if(!Firewall.phpFirewall(scriptName)) {
 						ban = true;
 					}
 					else {
@@ -624,7 +628,7 @@ public class HTTPRequest {
 				}
 			}
 		} catch (IOException e) {
-			System.err.println("Error reading request body: " + e.getMessage());
+			//System.err.println("Error reading request body: " + e.getMessage());
 			//e.printStackTrace();
 			ban = true;
 			return;
@@ -638,8 +642,14 @@ public class HTTPRequest {
 			}
 		}
 
-		if(revers == ReversType.PHP_FPM && phpFirewall(path, queryArr.size()) == false) {
-			ban = true;
+		if(revers == ReversType.PHP_FPM){
+			List<String> param = new ArrayList<>();
+			for(Query query : queryArr) {
+				param.add(query.getParam());
+			}
+			if(!Firewall.phpFirewall(path, param)) {
+				ban = true;
+			}
 		}
 		
 		//prnt();

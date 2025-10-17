@@ -44,6 +44,9 @@ public class CacheAgent implements Runnable {
                 // Очищаємо застарілі ключі в KeyManager
                 KeyManager.cleanUpExpiredKeys();
 
+                // Очищаємо firewall blacklist
+        		Firewall.cleanupBlackList();
+
             } catch (InterruptedException e) {
                 running = false;
                 Thread.currentThread().interrupt();

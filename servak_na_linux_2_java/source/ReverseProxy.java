@@ -67,6 +67,9 @@ public final class ReverseProxy {
 			proxySocket.setSoTimeout(2000);
 			switch (httpRequest.revers) {
 				case BANRESPONSE:
+					if(!Configs.getBoolean("firewall")) {
+						Firewall.statisticCollection(httpRequest);
+					}
 					if(!Configs.getBoolean("ban_response"))
 						return new HTTPResponse(503);
 					proxySocket.connect(new java.net.InetSocketAddress(Configs.getParam("ip_ban_response_server"), Configs.getInt("port_ban_response_server")), 2000);

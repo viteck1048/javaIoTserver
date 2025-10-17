@@ -44,5 +44,6 @@ canvas/*
 old/*
 lib/*
 
-
+whitePathList.txt
+blackPathList.txt
 logs/

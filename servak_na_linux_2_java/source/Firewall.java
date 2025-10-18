@@ -8,7 +8,6 @@ import java.net.URL;
 import java.nio.charset.StandardCharsets;
 import java.time.Instant;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
@@ -38,12 +37,22 @@ public class Firewall {
 
     // Дані для блокування по країнах
     private static final List<String> bannedCountries = new ArrayList<>();
-    private static final List<IP4Range> ipv4CountryRanges = new ArrayList<>();
-    private static final List<IP6Range> ipv6CountryRanges = new ArrayList<>();
+    // Масиви списків для швидкого пошуку по першому байту
+    @SuppressWarnings("unchecked")
+    private static final List<IP4Range>[] ipv4CountryRanges = new ArrayList[256];
+    @SuppressWarnings("unchecked")
+    private static final List<IP6Range>[] ipv6CountryRanges = new ArrayList[256];
 
     // Статичний блок ініціалізації для завантаження списків шляхів
     static {
         System.out.println("FIREWALL: Ініціалізація firewall...");
+        
+        // Ініціалізуємо 256 списків для IPv4 та IPv6
+        for (int i = 0; i < 256; i++) {
+            ipv4CountryRanges[i] = new ArrayList<>();
+            ipv6CountryRanges[i] = new ArrayList<>();
+        }
+        
         loadPathLists();
         loadBannedCountries();
         System.out.println("FIREWALL: Ініціалізацію завершено");
@@ -112,7 +121,14 @@ public class Firewall {
             }
         }
         
-        System.out.println("FIREWALL: Завантажено діапазонів IPv4: " + ipv4CountryRanges.size() + ", IPv6: " + ipv6CountryRanges.size());
+        // Підраховуємо загальну кількість діапазонів у всіх списках
+        int totalIPv4 = 0;
+        int totalIPv6 = 0;
+        for (int i = 0; i < 256; i++) {
+            totalIPv4 += ipv4CountryRanges[i].size();
+            totalIPv6 += ipv6CountryRanges[i].size();
+        }
+        System.out.println("FIREWALL: Завантажено діапазонів IPv4: " + totalIPv4 + ", IPv6: " + totalIPv6);
     }
 
     /**
@@ -188,6 +204,105 @@ public class Firewall {
     }
 
     /**
+     * Оптимізує IPv4 діапазон перед додаванням до списку
+     * Видаляє дублікати та об'єднує діапазони що перетинаються
+     * @param newIp нова мережева адреса
+     * @param newMask нова маска
+     * @param firstByte перший байт адреси для вибору списку
+     * @return оптимізований діапазон або null якщо повністю включений в існуючий
+     */
+    private static IP4Range optimizeIPv4Range(int newIp, int newMask, int firstByte) {
+        int currentIp = newIp;
+        int currentMask = newMask;
+        boolean needRecheck = true;
+        
+        List<IP4Range> targetList = ipv4CountryRanges[firstByte];
+
+        while (needRecheck) {
+            needRecheck = false;
+            for (int i = 0; i < targetList.size(); i++) {
+                IP4Range existing = targetList.get(i);
+                
+                // Перевірка на співпадіння/включення через обоюдне накладання масок
+                if ((currentIp & existing.getSubnetMask()) == (existing.getNetworkAddress() & currentMask)) {
+                    //System.out.println("FIREWALL: IPv4 співпадіння знайдено - видаляємо старий діапазон");
+                    targetList.remove(i);
+                    
+                    // Модифікуємо новий діапазон
+                    //int oldIp = currentIp;
+                    //int oldMask = currentMask;
+                    currentIp &= currentMask & existing.getSubnetMask();
+                    currentMask &= existing.getSubnetMask();
+                    
+                    //System.out.println("FIREWALL: IPv4 модифіковано - було: " + Integer.toHexString(oldIp) + "/" + Integer.toHexString(oldMask) + 
+                    //                 ", стало: " + Integer.toHexString(currentIp) + "/" + Integer.toHexString(currentMask));
+                    
+                    needRecheck = true;
+                    break;
+                }
+            }
+        }
+
+        return new IP4Range(currentIp, currentMask);
+    }
+
+    /**
+     * Оптимізує IPv6 діапазон перед додаванням до списку
+     * Видаляє дублікати та об'єднує діапазони що перетинаються
+     * @param newIp нова мережева адреса (long[2])
+     * @param newMask нова маска (long[2])
+     * @param firstByte перший байт адреси для вибору списку
+     * @return оптимізований діапазон або null якщо повністю включений в існуючий
+     */
+    private static IP6Range optimizeIPv6Range(long[] newIp, long[] newMask, int firstByte) {
+        long[] currentIp = newIp.clone();
+        long[] currentMask = newMask.clone();
+        boolean needRecheck = true;
+        
+        List<IP6Range> targetList = ipv6CountryRanges[firstByte];
+
+        while (needRecheck) {
+            needRecheck = false;
+            for (int i = 0; i < targetList.size(); i++) {
+                IP6Range existing = targetList.get(i);
+                
+                // Перевірка на співпадіння/включення через обоюдне накладання масок
+                boolean match = true;
+                for (int j = 0; j < 2; j++) {
+                    if ((currentIp[j] & existing.getSubnetMask()[j]) != (existing.getNetworkAddress()[j] & currentMask[j])) {
+                        match = false;
+                        break;
+                    }
+                }
+                
+                if (match) {
+                    //System.out.println("FIREWALL: IPv6 співпадіння знайдено - видаляємо старий діапазон");
+                    targetList.remove(i);
+                    
+                    // Модифікуємо новий діапазон
+                    //long[] oldIp = currentIp.clone();
+                    //long[] oldMask = currentMask.clone();
+                    
+                    for (int j = 0; j < 2; j++) {
+                        currentIp[j] &= currentMask[j] & existing.getSubnetMask()[j];
+                        currentMask[j] &= existing.getSubnetMask()[j];
+                    }
+                    
+                    /*System.out.println("FIREWALL: IPv6 модифіковано - було: " + Long.toHexString(oldIp[0]) + ":" + Long.toHexString(oldIp[1]) + 
+                                     "/" + Long.toHexString(oldMask[0]) + ":" + Long.toHexString(oldMask[1]) + 
+                                     ", стало: " + Long.toHexString(currentIp[0]) + ":" + Long.toHexString(currentIp[1]) + 
+                                     "/" + Long.toHexString(currentMask[0]) + ":" + Long.toHexString(currentMask[1]));
+                    */
+                    needRecheck = true;
+                    break;
+                }
+            }
+        }
+
+        return new IP6Range(currentIp, currentMask);
+    }
+
+    /**
      * Парсить CIDR діапазони та додає їх до відповідних списків
      * @param ranges рядок з CIDR діапазонами через кому
      * @param isIPv4 true для IPv4, false для IPv6
@@ -198,8 +313,6 @@ public class Firewall {
             System.out.println("FIREWALL: Порожній рядок діапазонів для " + (isIPv4 ? "IPv4" : "IPv6") + " країни " + countryCode.toUpperCase());
             return;
         }
-        //int successCount = 0;
-        //int errorCount = 0;
 
         String[] rangeStrings = ranges.split(",");
         for (String rangeStr : rangeStrings) {
@@ -209,26 +322,29 @@ public class Firewall {
                     if (isIPv4) {
                         IP4Range range = parseIPv4CIDRRange(trimmed);
                         if (range != null) {
-                            ipv4CountryRanges.add(range);
+                            // Визначаємо перший байт адреси для вибору списку
+                            int firstByte = (range.getNetworkAddress() >> 24) & 0xFF;
+                            IP4Range optimized = optimizeIPv4Range(range.getNetworkAddress(), range.getSubnetMask(), firstByte);
+                            if (optimized != null) {
+                                ipv4CountryRanges[firstByte].add(optimized);
+                            }
                         }
                     } else {
                         IP6Range range = parseIPv6CIDRRange(trimmed);
                         if (range != null) {
-                            ipv6CountryRanges.add(range);
-                            //successCount++;
-                        } else {
-                            //errorCount++;
-                            System.err.println("FIREWALL: Помилка парсингу IPv6 діапазону '" + trimmed + "' для " + countryCode.toUpperCase());
+                            // Визначаємо перший байт адреси для вибору списку (старший байт long[1])
+                            int firstByte = (int) ((range.getNetworkAddress()[0] >> 56) & 0xFF);
+                            IP6Range optimized = optimizeIPv6Range(range.getNetworkAddress(), range.getSubnetMask(), firstByte);
+                            if (optimized != null) {
+                                ipv6CountryRanges[firstByte].add(optimized);
+                            }
                         }
                     }
                 } catch (Exception e) {
-                    //errorCount++;
                     System.err.println("FIREWALL: Помилка парсингу CIDR діапазону '" + trimmed + "' для країни " + countryCode + ": " + e.getMessage());
                 }
             }
         }
-
-        //System.out.println("FIREWALL: " + (isIPv4 ? "IPv4" : "IPv6") + " для " + countryCode.toUpperCase() + " - успішно: " + successCount + ", помилок: " + errorCount);
     }
 
     /**
@@ -257,15 +373,15 @@ public class Firewall {
                 return null; // Не IPv4
             }
 
-            // Конвертуємо IPv4 в long
-            long ipLong = ((ipBytes[0] & 0xFFL) << 24) | ((ipBytes[1] & 0xFFL) << 16) |
-                         ((ipBytes[2] & 0xFFL) << 8) | (ipBytes[3] & 0xFFL);
+            // Конвертуємо IPv4 в int
+            int ipInt = ((ipBytes[0] & 0xFF) << 24) | ((ipBytes[1] & 0xFF) << 16) |
+                        ((ipBytes[2] & 0xFF) << 8) | (ipBytes[3] & 0xFF);
 
-            // Обчислюємо мережеву маску
-            long mask = (prefixLength == 0) ? 0L : (~0L << (32 - prefixLength));
+            // Обчислюємо мережеву маску (32 біти)
+            int mask = (prefixLength == 0) ? 0 : (~0 << (32 - prefixLength));
 
             // Обчислюємо мережеву адресу (побітове AND з маскою)
-            long networkAddress = ipLong & mask;
+            int networkAddress = ipInt & mask;
 
             return new IP4Range(networkAddress, mask);
         } catch (Exception e) {
@@ -388,12 +504,14 @@ public class Firewall {
 
         if (ipBytes.length == 4) {
             // IPv4 - використовуємо побітові операції
-            long ipLong = ((ipBytes[0] & 0xFFL) << 24) | ((ipBytes[1] & 0xFFL) << 16) | ((ipBytes[2] & 0xFFL) << 8) | (ipBytes[3] & 0xFFL);
-
-            return ipv4CountryRanges.stream().anyMatch(range -> range.containsIPv4(ipLong));
+            // Визначаємо перший байт для вибору списку
+            int firstByte = ipBytes[0] & 0xFF;
+            return ipv4CountryRanges[firstByte].stream().anyMatch(range -> range.containsIPv4(ipBytes));
         } else if (ipBytes.length == 16) {
             // IPv6 - використовуємо побітові операції
-            return ipv6CountryRanges.stream().anyMatch(range -> range.containsIPv6(ipBytes));
+            // Визначаємо перший байт для вибору списку
+            int firstByte = ipBytes[0] & 0xFF;
+            return ipv6CountryRanges[firstByte].stream().anyMatch(range -> range.containsIPv6(ipBytes));
         }
 
         return false;
@@ -403,25 +521,33 @@ public class Firewall {
      * Клас для представлення IPv4 діапазону з побітовими операціями
      */
     private static class IP4Range {
-        private final long networkAddress;
-        private final long subnetMask;
+        private final int networkAddress;
+        private final int subnetMask;
 
-        public IP4Range(long networkAddress, long subnetMask) {
+        public IP4Range(int networkAddress, int subnetMask) {
             this.networkAddress = networkAddress;
             this.subnetMask = subnetMask;
         }
 
         /**
          * Перевіряє чи IPv4 адреса знаходиться в цьому діапазоні
-         * @param ipLong IPv4 адреса як long
+         * @param ipBytes IPv4 адреса як byte array (4 bytes)
          * @return true якщо адреса в діапазоні
          */
-        public boolean containsIPv4(long ipLong) {
-            return (ipLong & subnetMask) == networkAddress;
+        public boolean containsIPv4(byte[] ipBytes) {
+            if (ipBytes.length != 4) {
+                return false;
+            }
+
+            // Конвертуємо byte array в int (big-endian)
+            int ipInt = ((ipBytes[0] & 0xFF) << 24) | ((ipBytes[1] & 0xFF) << 16) |
+                        ((ipBytes[2] & 0xFF) << 8) | (ipBytes[3] & 0xFF);
+
+            return (ipInt & subnetMask) == networkAddress;
         }
 
-        public long getNetworkAddress() { return networkAddress; }
-        public long getSubnetMask() { return subnetMask; }
+        public int getNetworkAddress() { return networkAddress; }
+        public int getSubnetMask() { return subnetMask; }
     }
 
     /**
@@ -577,6 +703,13 @@ public class Firewall {
             return false;
         }
 
+        Instant blockTime = blackList.get(clientAddress);
+
+        if (blockTime != null) {
+            System.out.println("FIREWALL: IP " + clientAddress.getHostAddress() + " заблоковано через знаходження у бан-листі");
+            return true; // IP в чорному списку
+        }
+
         // Перевіряємо чи IP з заблокованої країни
         if (Configs.getDefine("countriesBan")) {
             if (isIPFromBannedCountry(clientAddress)) {
@@ -584,21 +717,8 @@ public class Firewall {
                 return true;
             }
         }
-
-        Instant blockTime = blackList.get(clientAddress);
-
-        if (blockTime == null) {
-            return false; // IP не в чорному списку
-        }
-
-        // Перевіряємо чи не минув час блокування
-        if (blockTime.plusSeconds(BLACKLIST_EXPIRATION_SECONDS).isBefore(Instant.now())) {
-            // Якщо минув - видаляємо з чорного списку
-            blackList.remove(clientAddress);
-            return false;
-        }
-        System.out.println("FIREWALL: IP " + clientAddress.getHostAddress() + " заблоковано через знаходження у бан-листі");
-        return true; // IP заблоковано
+        
+        return false; // IP дозволено
     }
 
     /**

@@ -22,6 +22,8 @@ lin_obj/
 # Executables
 *.exe
 *.out
+*.bin
+
 
 # Database
 *.db

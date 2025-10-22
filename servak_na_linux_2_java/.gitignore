@@ -18,6 +18,8 @@ mykeystore*
 # Java class files
 *.class
 
+*jquery-2.1.3.js
+
 # Jar files
 *.jar
 
@@ -43,7 +45,8 @@ canvas/*
 */.well-known/*
 old/*
 lib/*
-
+backup/*
 whitePathList.txt
 blackPathList.txt
-logs/
+logs/*
+phpMemFile.xml

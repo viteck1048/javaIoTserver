@@ -1,3 +1,4 @@
+import java.text.SimpleDateFormat;  
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
@@ -5,6 +6,7 @@ import java.io.EOFException;
 import java.net.Socket;
 //import java.nio.charset.StandardCharsets;
 import java.net.SocketTimeoutException;
+import java.util.Date;
 
 /**
  * Клас для обробки реверс-проксі запитів
@@ -68,7 +70,7 @@ public final class ReverseProxy {
 			switch (httpRequest.revers) {
 				case BANRESPONSE:
 					if(!Configs.getBoolean("firewall")) {
-						Firewall.statisticCollection(httpRequest);
+						FirewallIP.statisticCollection(httpRequest);
 					}
 					if(!Configs.getBoolean("ban_response"))
 						return new HTTPResponse(503);
@@ -212,7 +214,9 @@ public final class ReverseProxy {
 					int contentLength = (((responseHeader[4] & 0xFF) << 8) + (responseHeader[5] & 0xFF));
 					switch(responseHeader[1]) {
 						case FastCGIRecordType.FCGI_END_REQUEST:
-							System.out.println("FCGI_END_REQUEST");
+							SimpleDateFormat formatter = new SimpleDateFormat("EEE, dd MMM yyyy HH:mm:ss z");							//SimpleDateFormat("EEE, dd MMM yyyy HH:mm:ss z", Locale.ENGLISH);
+							String formattedDate = formatter.format(new Date());
+							System.out.println("\r" + formattedDate + " PHP Request from " + httpRequest.clientAddress + "; FCGI_END_REQUEST: " + httpRequest.path);
 							//System.out.println(new String(baos.toByteArray()));
 							return new HTTPResponse(null, baos.toByteArray(), "revers to old server");
 						case FastCGIRecordType.FCGI_STDOUT:

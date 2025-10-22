@@ -45,7 +45,7 @@ public class CacheAgent implements Runnable {
                 KeyManager.cleanUpExpiredKeys();
 
                 // Очищаємо firewall blacklist
-        		Firewall.cleanupBlackList();
+        		FirewallIP.cleanupBlackList();
 
             } catch (InterruptedException e) {
                 running = false;

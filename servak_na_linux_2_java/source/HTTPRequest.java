@@ -283,7 +283,7 @@ public class HTTPRequest {
 		return line.length() > 0 ? line.toString() : null;
 	}
 
-	private boolean isInSubnet() {
+	public boolean isInSubnet() {
 		if(!Configs.getBoolean("lanSettings"))
 			return false;
 		try {
@@ -312,7 +312,7 @@ public class HTTPRequest {
 		quickBan = false;
 		this.clientAddress = clientAddress;
 		if(!isInSubnet()) {
-			if(Firewall.checkBlackList(clientAddress)) {
+			if(FirewallIP.checkBlackList(clientAddress)) {
 				quickBan = true;
 				return;
 			}
@@ -418,7 +418,7 @@ public class HTTPRequest {
 						if (pathPart.length() > scriptEnd) {
 							pathInfo = convertString(pathPart.substring(scriptEnd));
 						}
-					if(!Firewall.phpFirewall(scriptName)) {
+					if(!FirewallPHP.phpFirewall(scriptName)) {
 						ban = true;
 					}
 					else {
@@ -438,8 +438,8 @@ public class HTTPRequest {
 						phpQueryArr.add(new Query("SERVER_PORT", String.valueOf(port)));
 						phpQueryArr.add(new Query("SERVER_NAME", Configs.getParam("host")));
 						phpQueryArr.add(new Query("REQUEST_METHOD", method));
-						phpQueryArr.add(new Query("DOCUMENT_ROOT", Configs.getParam("php_directory")));
-						phpQueryArr.add(new Query("SCRIPT_FILENAME", Configs.getParam("php_directory") + scriptName));
+						phpQueryArr.add(new Query("DOCUMENT_ROOT", Configs.getParam("php_directory_abs")));
+						phpQueryArr.add(new Query("SCRIPT_FILENAME", Configs.getParam("php_directory_abs") + scriptName));
 						phpQueryArr.add(new Query("SCRIPT_NAME", scriptName));
 						if((method.compareTo("GET") == 0 || method.compareTo("HEAD") == 0) && XwwwFormUrlEncodedString.length() > 0) {
 							phpQueryArr.add(new Query("REQUEST_URI", path + "?" + XwwwFormUrlEncodedString));
@@ -587,7 +587,7 @@ public class HTTPRequest {
 				header = header.replaceAll("Content-Encoding: .*\\r?\\n", "");
 				header = header.replaceAll("Transfer-Encoding: chunked\\r?\\n", "");
 				
-				if(Content_Type.startsWith("application/x-www-form-urlencoded") && revers == ReversType.NO_REVERSE) {
+				if(Content_Type.startsWith("application/x-www-form-urlencoded")/* && revers == ReversType.NO_REVERSE*/) {
 					XwwwFormUrlEncodedString = body;
 					for(String tmp2 : body.split("&")) {
 						String param = convertString(tmp2.split("=")[0]);
@@ -645,9 +645,10 @@ public class HTTPRequest {
 		if(revers == ReversType.PHP_FPM){
 			List<String> param = new ArrayList<>();
 			for(Query query : queryArr) {
+				//System.out.println("query.getParam() = " + query.getParam());
 				param.add(query.getParam());
 			}
-			if(!Firewall.phpFirewall(path, param)) {
+			if(!FirewallPHP.phpFirewall(path, param)) {
 				ban = true;
 			}
 		}

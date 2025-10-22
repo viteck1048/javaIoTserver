@@ -55,7 +55,11 @@ public class Servak {
 			System.out.println("Invalid configs");
 			return;
 		}
-		
+
+		// Explicit initialization of Firewall components
+		System.out.println("Initializing Firewall components...");
+		initializeFirewallComponents();
+
 		if(Configs.getDefine("logToFile")) {
 			MyOutClass.setPrintToFile(Configs.getBoolean("logToFile"));
 			if(Configs.getDefine("maxLogFileSize"))
@@ -136,5 +140,32 @@ public class Servak {
 		Thread cacheAgent = new Thread(cacheAgentInstance);
 		cacheAgent.setDaemon(true);
 		cacheAgent.start();
+	}
+
+	/**
+	 * Explicitly initialize Firewall components
+	 */
+	private static void initializeFirewallComponents() {
+		System.out.println("FIREWALL IP: Explicit initialization...");
+		// Access FirewallIP class to trigger static initialization
+		try {
+			// Force class loading and static initialization
+			FirewallIP.initialize();
+			System.out.println("FIREWALL IP: Initialization completed");
+		} catch (Exception e) {
+			System.err.println("Error initializing FirewallIP: " + e.getMessage());
+		}
+
+		System.out.println("FIREWALL PHP: Explicit initialization...");
+		// Access FirewallPHP class to trigger static initialization
+		try {
+			// Force class loading and static initialization
+			FirewallPHP.initialize();
+			System.out.println("FIREWALL PHP: Initialization completed");
+		} catch (Exception e) {
+			System.err.println("Error initializing FirewallPHP: " + e.getMessage());
+		}
+
+		System.out.println("Firewall components initialized successfully");
 	}
 }

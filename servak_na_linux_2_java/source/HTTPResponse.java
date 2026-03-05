@@ -108,6 +108,9 @@ public class HTTPResponse {
 		else if(nameFile.contains(Configs.getParam("acme_challenge_path"))) {
 			typeFile = "text/plain";
 		}
+		else if(typeFile.compareTo("apk") == 0) {
+			typeFile = "application/vnd.android.package-archive";
+		}
 	/*	else if(typeFile.compareTo("") == 0) {
 			typeFile = "";
 		} */
@@ -134,7 +137,12 @@ public class HTTPResponse {
 	}
 	
 	public HTTPResponse(int codeErr, HTTPRequest httpRequest) {
-		fl_err_prnt_hdr = true;
+		if(codeErr == 200) {
+			fl_err_prnt_hdr = false;
+		}
+		else {
+			fl_err_prnt_hdr = true;
+		}
 		this.body = null;
 		close_connect_flag = true;
 		switch(codeErr) {

@@ -154,6 +154,21 @@ document.addEventListener('touchend', function(event) {
     handleGesture();
 }, false);
 
+// Слухаємо повідомлення від iframe про свайпи
+window.addEventListener('message', function(event) {
+    // Перевіряємо, що повідомлення від надійного джерела
+    if (event.origin !== window.location.origin) return;
+    
+    if (event.data && event.data.type === 'swipe') {
+        const sidebar = document.getElementById('sidebar');
+        if (event.data.direction === 'left') {
+            sidebar.classList.remove('active');
+        } else if (event.data.direction === 'right') {
+            sidebar.classList.add('active');
+        }
+    }
+}, false);
+
 function handleGesture() {
     const sidebar = document.getElementById('sidebar');
     if (touchEndX < touchStartX && Math.abs(touchStartX - touchEndX) > 50 && Math.abs(touchStartX - touchEndX) > Math.abs(touchStartY - touchEndY)) { // свайп вліво

@@ -12,6 +12,7 @@
 .vscode/
 .idea/
 *.iml
+.vs/
 
 # Build artifacts
 bin/

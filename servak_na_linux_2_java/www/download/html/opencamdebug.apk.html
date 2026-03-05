@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html lang="bg">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>OpenCam With MijServak Integration</title>
+</head>
+<body>
+    <h2>OpenCamWithMijServak</h2>
+    <img src="opencamera/1.jpeg" alt="OpenCam екранна снимка" style="max-width: 300px; border-radius: 8px;">
+    <p><strong>OpenCam</strong> е модифицирана версия на Open Camera с интеграция с MijServak за автоматично качване на сървър. Приложението поддържа изключване на локалното запазване и работа с временна директория при липса на връзка.</p>
+    <p><strong>Основни промени и функционалности:</strong></p>
+    <ul>
+        <li><strong>Изключване на локално запазване:</strong> При активиране на <code>preference_disable_local_save=true</code> снимките не се записват в DCIM/OpenCamera.</li>
+        <li><strong>Автоматично качване:</strong> Всички снимки се изпращат към сървъра веднага след заснемане.</li>
+        <li><strong>Временна директория:</strong> При неуспешно качване снимките и JSON метаданните се записват в /OpenCameraTmp/ (или в app-specific директория при Android 10+).</li>
+        <li><strong>Повторно качване:</strong> При стартиране на приложението всички чакащи снимки се опитват да бъдат качени отново, независимо от времето за повторен опит.</li>
+        <li><strong>Фоново продължаване:</strong> Активните качвания продължават да работят и при минимизиране на приложението чрез ForegroundService.</li>
+        <li><strong>Намаляване на таймаути:</strong> Оптимизирани са мрежовите таймаути за по-бърза реакция при липса на връзка.</li>
+        <li><strong>Уникални имена на файлове:</strong> Предотвратяват се конфликти при бързо заснемане без връзка чрез UUID имена.</li>
+        <li><strong>Атомарни JSON операции:</strong> Предотвратява се повреда на pending_images.json при едновременен достъп.</li>
+        <li><strong>Съвместимост с Android 10:</strong> Автоматично fallback към app-specific директория, когато коренът на външното хранилище е недостъпен.</li>
+        <li><strong>Разрешения:</strong> Поддържа се MANAGE_EXTERNAL_STORAGE (Android 11+) и POST_NOTIFICATIONS (Android 13+).</li>
+    </ul>
+    <p><strong>Версия:</strong> Release Build<br>
+    <strong>Размер:</strong> 6.0 MB<br>
+    <strong>Съвместимост:</strong> Android 5.0+</p>
+</body>
+</html>

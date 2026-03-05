@@ -28,6 +28,8 @@ import java.util.Map;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.io.BufferedInputStream;
+import java.util.List;
+import java.util.stream.Collectors;
 
 
 public final class GetRes {
@@ -115,6 +117,40 @@ public final class GetRes {
 		return getResFile("redirect_log_in.html");
 	}
 	
+	public static HTTPResponse scanDwnldDirectory(HTTPRequest httpRequest) {
+		try {
+			// Отримуємо список файлів з кешу директорії www80
+			String dwnldPath = Configs.getParam("dwnld_directory") + "/files/";
+			List<String> files = FileCacheManager.scanDir(dwnldPath);
+
+			// Формуємо JSON-відповідь
+			StringBuilder jsonBuilder = new StringBuilder();
+			
+			jsonBuilder.append("{\"files\":[\n");
+
+			for (int i = 0; i < files.size(); i++) {
+				jsonBuilder.append("\"").append(files.get(i)).append("\"");
+				if (i < files.size() - 1) {
+					jsonBuilder.append(",\n");
+				}
+			}
+
+			jsonBuilder.append("\n]}");
+
+			String jsonString = jsonBuilder.toString();
+
+			if(httpRequest.method.compareTo("HEAD") == 0)
+				return new HTTPResponse(jsonString.getBytes().length, jsonString.getBytes(), "scan_dwnld_directory.app-json", true);
+			return new HTTPResponse(jsonString.getBytes().length, jsonString.getBytes(), "scan_dwnld_directory.app-json");
+		} catch (Exception e) {
+			// В разі помилки повертаємо порожній JSON
+			String jsonString = "{\"files\":[]}";
+			if(httpRequest.method.compareTo("HEAD") == 0)
+				return new HTTPResponse(jsonString.getBytes().length, jsonString.getBytes(), "scan_dwnld_directory.app-json", true);
+			return new HTTPResponse(jsonString.getBytes().length, jsonString.getBytes(), "scan_dwnld_directory.app-json");
+		}
+	}
+
 	public static HTTPResponse getLinks(HTTPRequest httpRequest) {
 		String name = KeyManager.getUserName(httpRequest.userID);
 		if(name == null) {
@@ -223,12 +259,12 @@ public final class GetRes {
 						switch(avrRele.arr_golovne_menu[i]) {
 							case 0x0c:
 								tdName.html("<span class='text'>Маш. време общто</span>");
-								tdZnach.text(String.format("%4d:%02d", ((avrRele.obscht_r) / 3600) % 10000, ((avrRele.obscht_r) / 60) % 60));
+								tdZnach.text(String.format("%d:%02d", (avrRele.obscht_r) / 3600, ((avrRele.obscht_r) / 60) % 60));
 								break;
 							case 0x0d:
 								tdName.html("<button class='reset' href='reset_null_tek'>R</button><span class='text'>Маш.вр.детайл</span>");
 								if(avrRele.online) {
-									tdZnach.text(String.format("%4d:%02d", ((avrRele.tek_r) / 3600) % 10000, ((avrRele.tek_r) / 60) % 60));
+									tdZnach.text(String.format("%d:%02d", (avrRele.tek_r) / 3600, ((avrRele.tek_r) / 60) % 60));
 								}
 								else {
 									tdZnach.text("offline");

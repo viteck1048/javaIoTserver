@@ -252,7 +252,7 @@ public class KeyManager {
 			return null;
 		}
 		LocalDateTime now = LocalDateTime.now();
-		if(equals2(ip, keyInfo.ip, 1) && (EXPIRATION_TIME_MINUTES == 0 || keyInfo.lastAccessTime.plusMinutes(EXPIRATION_TIME_MINUTES).isAfter(now))) {
+		if(equals2(ip, keyInfo.ip, 3) && (EXPIRATION_TIME_MINUTES == 0 || keyInfo.lastAccessTime.plusMinutes(EXPIRATION_TIME_MINUTES).isAfter(now))) {
 			keyInfo.lastAccessTime = now;
 			return keyInfo;
 		} 

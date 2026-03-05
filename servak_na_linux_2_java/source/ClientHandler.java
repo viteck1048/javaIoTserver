@@ -158,6 +158,7 @@ public class ClientHandler extends Thread {
 					}
 				}
 				else {
+					//httpRequest.prnt();
 					if(Configs.getBoolean("ban_response") || Configs.getBoolean("Firewall")) {
 						httpRequest.revers = HTTPRequest.ReversType.BANRESPONSE;
 						httpResponse = ReverseProxy.handleReverseRequest(httpRequest);
@@ -373,6 +374,9 @@ public class ClientHandler extends Thread {
 		if(httpRequest.userID != 0) {
 			if(httpRequest.path.compareTo("/www_scripts/get_links") == 0) {
 				return GetRes.getLinks(httpRequest);
+			}
+			else if(httpRequest.path.compareTo("/www_scripts/scan_dwnld_directory") == 0 && Configs.getBoolean("download")) {
+				return GetRes.scanDwnldDirectory(httpRequest);
 			}
 			else if(httpRequest.path.compareTo("/www_scripts/logout") == 0) {
 				KeyManager.logout(httpRequest.X_Session_ID, httpRequest.clientAddress);

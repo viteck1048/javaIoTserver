@@ -32,14 +32,55 @@ public final class PostRes {
 		
 		if(httpRequest.path.startsWith("/reset_") == true && httpRequest.chkParam("pin"))
 			return sendReset(httpRequest, KeyManager.getGadget(httpRequest.X_Session_ID, httpRequest.clientAddress));
-		
+
+		if(Configs.getBoolean("photo_upload")) {
+			if(httpRequest.path.startsWith(Configs.getParam("photo_post_message_path")))
+				return photoUpload(httpRequest);
+		}
+	//	httpRequest.prnt();
 		if(Configs.getBoolean("ban_response") || Configs.getBoolean("Firewall")) {
 			httpRequest.revers = HTTPRequest.ReversType.BANRESPONSE;
 			return ReverseProxy.handleReverseRequest(httpRequest);
 		}
 		return new HTTPResponse(400);
 	}
-	
+
+	private static HTTPResponse photoUpload(HTTPRequest httpRequest) {
+		String userName = KeyManager.getUserName(httpRequest.userID);
+		String pathDir;
+		if(Configs.getDefine("individual_user_photo_path_" + userName)) {
+			pathDir = Configs.getParam("individual_user_photo_path_" + userName);
+		} else {
+			pathDir = Configs.getParam("path_to_save_photo") + userName;
+		}
+		String fileName = "photo_" + System.currentTimeMillis() + ".jpg";
+		
+		// Створюємо директорію, якщо вона не існує
+		try {
+			java.io.File directory = new java.io.File(pathDir);
+			if(!directory.exists()) {
+				directory.mkdirs();
+			}
+			
+			// Формуємо повний шлях до файлу
+			java.io.File outputFile = new java.io.File(directory, fileName);
+			
+			// Зберігаємо тіло запиту як файл
+			try(java.io.FileOutputStream fos = new java.io.FileOutputStream(outputFile)) {
+				fos.write(httpRequest.bodyData);
+				fos.flush();
+			}
+			
+			System.out.println("Photo saved: " + outputFile.getAbsolutePath());
+			return new HTTPResponse(200);
+			
+		} catch(Exception e) {
+			System.err.println("Error saving photo: " + e.getMessage());
+			e.printStackTrace();
+			return new HTTPResponse(500);
+		}
+	}
+
 	private static HTTPResponse sendReset(HTTPRequest httpRequest, long sn_mega) {
 		DBClass dBClass = DBClass.getInstance();
 		AvrRele avrRele = dBClass.findAvrReleBySerialNumber(sn_mega);

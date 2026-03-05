@@ -61,9 +61,9 @@ public class HTTPRequest {
 		try {
 	    String decoded = URLDecoder.decode(str, "UTF-8");
         for (char c : decoded.toCharArray()) {
-            if (c >= 0x01 && c <= 0x1F) {
+            if (c >= 0x01 && c <= 0x1f) {
                 ban = true;
-                return "INVALID";
+                return null;
             }
         }
         return decoded;	
@@ -307,6 +307,19 @@ public class HTTPRequest {
 			return false;
 		}
 	}
+
+
+	private boolean firstLineHeaderCheck(String line) {
+		char[] ch = new char[3];
+		for (int i = 0; i < 3; i++) {
+			ch[i] = line.charAt(i);
+			if(ch[i] < 'A' || ch[i] > 'Z') {
+				return false;
+			}
+		}
+		return true;
+	}
+	
 	
 	public HTTPRequest(InputStream inputStream, int port, InetAddress clientAddress) {
 		quickBan = false;
@@ -346,6 +359,11 @@ public class HTTPRequest {
 //				ban = true;
 				return;
 			}
+
+			if(!firstLineHeaderCheck(line)) {
+				quickBan = true;
+				return;
+			}
 			
 			if(line.split(" ")[1].startsWith("/old_servak")) {
 				header = line.split(" ")[0];
@@ -376,8 +394,9 @@ public class HTTPRequest {
 				close_connect_flag = false;
 			String tmp =  line.split(" ")[1];
 			path = convertString(tmp.split("\\?")[0]);
-			if(path.contains("..") || path.contains("\\") || path.length() > 255) {
+			if(path == null || path.contains("..") || path.contains("\\") || path.length() > 255) {
 				ban = true;
+				quickBan = true;
 				return;
 			}
 			//php_redirect_directory_flag = false;
@@ -393,7 +412,17 @@ public class HTTPRequest {
 				for(String tmp2 : XwwwFormUrlEncodedString.split("&")) {
 					if(tmp2.split("=").length == 2) {
 						String param = convertString(tmp2.split("=")[0]);
+						if(param == null) {
+							quickBan = true;
+							ban = true;
+							return;
+						}
 						String value = convertString(tmp2.split("=")[1]);
+						if(value == null) {
+							quickBan = true;
+							ban = true;
+							return;
+						}
 						queryArr.add(new Query(param, value));
 					}
 				}

@@ -32,7 +32,7 @@ mykeystore*
 # Databases
 *.db
 
-# IDE configs (наприклад IntelliJ IDEA)
+# IDE configs 
 .idea/
 *.iml
 
@@ -40,7 +40,16 @@ mykeystore*
 **/.git/
 
 www80/qqq/*
-www/download/*
+
+#www/download/*
+www/download/files/Моя Аплікуха_1.0.apk
+www/download/files/app-release-unsigned.apk
+www/download/files/HS-16 calc_1.0.apk
+www/download/files/mg.apk
+www/download/files/rv.apk
+www/download/files/wifi_switch_app.apk
+www/download/html/сміття/*
+
 */.well-known/*
 old/*
 lib/*
@@ -49,3 +58,7 @@ whitePathList.txt
 blackPathList.txt
 logs/*
 phpMemFile.xml
+
+.xdp-*
+site_radm/*
+www80/BlockOut*

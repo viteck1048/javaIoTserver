@@ -401,7 +401,17 @@ std::string obrobnyk_relay(const char* sn_txt, const char* acp_txt, const char* 
 {
 	// Перевірка довжини параметрів
 	if (!sn_txt || !acp_txt || !relays || !init_txt || !cs_txt) {
-		printf("obrobnyk_relay, invalid parameters nullptr\n");
+		printf("obrobnyk_relay, invalid parameters nullptr: ");
+		if(!sn_txt) 
+			printf("sn\n");
+		else if(!acp_txt)
+			printf("acp\n");
+		else if(!relays)
+			printf("relays\n");
+		else if(!init_txt)
+			printf("init\n");
+		else if(!cs_txt)
+			printf("cs\n");
 		return "{\"relays\":\"XXXXXXXX\",\"online\":\"0\",\"cs\":\"0\"}";
 	}
 	if (strlen(sn_txt) != 10 || strlen(relays) != 8 || strlen(acp_txt) != 10 || strlen(init_txt) != 4 || strlen(cs_txt) < 2) {
@@ -497,6 +507,11 @@ std::string obrobnyk_relay(const char* sn_txt, const char* acp_txt, const char* 
 	ii = strlen(init_txt);
 	for(int iii = 0; iii < ii; iii++)
 		contr_sum += (int)((unsigned char)init_txt[iii] ^ (unsigned char)(rr->my_rand.rand() & (int)0xff));
+	if(pin_txt != nullptr) {
+		ii = strlen(pin_txt);
+		for(int iii = 0; iii < ii; iii++)
+			contr_sum += (int)((unsigned char)pin_txt[iii] ^ (unsigned char)(rr->my_rand.rand() & (int)0xff));
+	}
 	if(cs != contr_sum) {
 		init = 1;
 		bbbi += sprintf(bbb + bbbi, " cs = %d contr = %d", cs, contr_sum);

@@ -91,7 +91,19 @@ public final class GetRes80 {
 
 			// Формуємо JSON-відповідь
 			StringBuilder jsonBuilder = new StringBuilder();
-			jsonBuilder.append("{\"files\":[\n");
+			
+			jsonBuilder.append("{");
+			
+			if(httpRequest.userID != 0) {
+				jsonBuilder.append("\"links\":[\n");
+				if(Configs.getBoolean("download"))
+					jsonBuilder.append("{\"url\":\"download/html/index.html\",\"title\":\"Downloads\"}\n");
+				//jsonBuilder.append(",");
+
+				jsonBuilder.append("],\n");
+			}
+			
+			jsonBuilder.append("\"files\":[\n");
 
 			for (int i = 0; i < files.size(); i++) {
 				jsonBuilder.append("\"").append(files.get(i)).append("\"");
@@ -109,7 +121,7 @@ public final class GetRes80 {
 			return new HTTPResponse(jsonString.getBytes().length, jsonString.getBytes(), "scan_www80_directory.app-json");
 		} catch (Exception e) {
 			// В разі помилки повертаємо порожній JSON
-			String jsonString = "{\"files\":[]}";
+			String jsonString = "{\"links\":[],\"files\":[]}";
 			if(httpRequest.method.compareTo("HEAD") == 0)
 				return new HTTPResponse(jsonString.getBytes().length, jsonString.getBytes(), "scan_www80_directory.app-json", true);
 			return new HTTPResponse(jsonString.getBytes().length, jsonString.getBytes(), "scan_www80_directory.app-json");

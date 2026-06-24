@@ -1,0 +1,26 @@
+serverName=MyServer
+db_path=mashine_time.db
+
+[port_0 - port_255]
+
+[port_0]
+port_0=true
+port_0_port=18081
+port_0_workers=14
+
+[port_1]
+#port_1=true
+#port_1_port=18082
+#port_1_workers=3
+
+[get18ChanalsMashineTimeWorks]
+myRandKey1=111111
+myRandKey2=222222
+myRandKey3=333333
+myRandKey4=444444
+myStaticKeyResponce=your_response_key_here
+myStaticKeyRequest=your_request_key_here
+
+[agents]
+save_db_agent=false
+save_db_agent_period=30

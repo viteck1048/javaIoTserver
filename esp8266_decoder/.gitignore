@@ -1,0 +1,6 @@
+source/sqlite3.c
+source/sqlite3.h
+source/sqlite3.md5
+source/lib/
+source/date/
+conf.ini

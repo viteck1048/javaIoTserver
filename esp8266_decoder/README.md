@@ -119,6 +119,11 @@ The config format is plain `key=value`, one per line. Section headers (`[...]`) 
 
 Dependencies: C++17 standard library, SQLite3 (amalgamation in `source/`, not tracked by git).
 
+The `.c` compilation block in the build scripts is intentionally commented out —
+SQLite (`sqlite3.c`) is the only `.c` file in the project and only needs to be
+compiled once. Uncomment that block on first build or after updating the SQLite
+amalgamation, then comment it back out.
+
 ---
 
 ## Web frontend

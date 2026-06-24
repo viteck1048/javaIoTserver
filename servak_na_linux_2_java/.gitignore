@@ -62,3 +62,6 @@ phpMemFile.xml
 .xdp-*
 site_radm/*
 www80/BlockOut*
+
+www80/OpenSpeedTest.html
+www80/assets/

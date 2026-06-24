@@ -62,6 +62,11 @@ public final class ReverseProxy {
 						return AiChatHandler.aiChatResend(httpRequest);
 					}
 					break;
+				case MACHINE_TIME:
+					if (Configs.getBoolean("mach_time_rev")) {
+						return MachineTimeProxyHandler.machineTimeResend(httpRequest);
+					}
+					break;
 				case UNI_PRXY:
 					return UniProxyHendler.uniPrxyResend(httpRequest);
 					//break;

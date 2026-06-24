@@ -1,4 +1,4 @@
-import java.net.InetAddress;                // Для роботи з IP-адресами
+﻿import java.net.InetAddress;                // Для роботи з IP-адресами
 import java.net.URLDecoder;                 // Для декодування URL-даних
 import java.net.UnknownHostException;       // Для обробки винятків, пов'язаних з IP-адресами
 import java.util.ArrayList;                 // Для роботи з динамічними списками
@@ -39,7 +39,8 @@ public class HTTPRequest {
 		PHP_FPM, // PHP-FPM, localhost:8082, PHP, Linux, SQLite DB
 		BANRESPONSE,
 		AI_CHAT, // AI assistant via OpenAI-compatible API
-		UNI_PRXY
+		UNI_PRXY,
+		MACHINE_TIME
 	}
 	public enum arrType {
 		QUERY,
@@ -515,6 +516,9 @@ public class HTTPRequest {
 			}
 			if(revers == ReversType.NO_REVERSE && Configs.getBoolean("ai_assist") && path.equals(Configs.getParam("ai_assist_api_chat"))) {
 				revers = ReversType.AI_CHAT;
+			}
+			if(revers == ReversType.NO_REVERSE && Configs.getBoolean("mach_time_rev") && Configs.getDefine("mach_time_path") && path.startsWith(Configs.getParam("mach_time_path"))) {
+				revers = ReversType.MACHINE_TIME;
 			}
 			while (!(line = readLineFromInputStream(inputStream)).isBlank()) {
 				requestBuilder.append(line).append("\r\n");

@@ -1,4 +1,4 @@
-﻿import java.net.InetAddress;                // Для роботи з IP-адресами
+import java.net.InetAddress;                // Для роботи з IP-адресами
 import java.net.URLDecoder;                 // Для декодування URL-даних
 import java.net.UnknownHostException;       // Для обробки винятків, пов'язаних з IP-адресами
 import java.util.ArrayList;                 // Для роботи з динамічними списками

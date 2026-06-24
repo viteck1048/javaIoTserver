@@ -1,29 +1,27 @@
-# esp8266_decoder — MachineTime HTTP-сервер
+# esp8266_decoder — MachineTime HTTP Server
 
-C++ HTTP-сервер для накопичення та зберігання статистики напрацювання промислових пристроїв (ESP8266 або сумісних імітаторів). Підтримує до 18 каналів на пристрій, зберігає побудинову хронологію подій і аґреґовані секунди напрацювання у SQLite.
-
----
-
-## Архітектура
-
-```
-server.cpp          — точка входу: конфіг, ініціалізація, запуск потоків
-├── WorkerPool      — пул потоків на кожен порт (worker_pool.cpp/h)
-├── router.cpp      — диспетчер HTTP-методів (GET/POST/PUT/DELETE)
-├── MachineTime.cpp — основна бізнес-логіка (облік часу, події, SQLite)
-├── http_parser.cpp — парсер HTTP-запиту
-├── http_utils.cpp  — роздача статичних файлів із www/
-├── setup.cpp       — парсер INI-конфігу з підтримкою override з командного рядка
-└── my_time.cpp     — утиліти часу, часові зони
-```
-
-`esp8266_decoder.cpp` — окрема standalone-утиліта (порт 12354) для відлагодження: приймає бінарний пакет ESP8266 у власному base64, декодує та повертає JSON з розібраними полями.
+C++ HTTP server for tracking and persisting runtime statistics of industrial devices (ESP8266 or compatible software emulators). Supports up to 18 channels per device, stores per-day event history and aggregated runtime seconds in SQLite.
 
 ---
 
-## Багатопортовість
+## Architecture
 
-Сервер підтримує до 256 незалежних TCP-портів, кожен зі своїм пулом воркерів. Порти описуються в `conf.ini`:
+```
+server.cpp          — entry point: config, initialization, port threads
+├── WorkerPool      — per-port thread pool (worker_pool.cpp/h)
+├── router.cpp      — HTTP method dispatcher (GET/POST/PUT/DELETE)
+├── MachineTime.cpp — core business logic (time tracking, events, SQLite)
+├── http_parser.cpp — HTTP request parser
+├── http_utils.cpp  — static file serving from www/
+├── setup.cpp       — INI config parser with command-line override support
+└── my_time.cpp     — time utilities, timezone handling
+```
+
+---
+
+## Multi-port support
+
+The server supports up to 256 independent TCP ports, each with its own worker pool. Ports are configured in `conf.ini`:
 
 ```ini
 [port_0]
@@ -32,65 +30,65 @@ port_0_port=18081
 port_0_workers=14
 ```
 
-Для кожного активного порту запускається окремий потік-listener, який приймає з'єднання і передає їх у `WorkerPool`. Пули незалежні — перевантаження одного порту не блокує інші.
+Each active port gets a dedicated listener thread that accepts connections and dispatches them to a `WorkerPool`. Pools are independent — an overloaded port does not affect others.
 
 ---
 
-## Модуль MachineTime
+## MachineTime module
 
-Один екземпляр `MachineTime` = один пристрій (ідентифікується параметром `?id=` у запиті).
+One `MachineTime` instance = one device, identified by the `?id=` query parameter.
 
-**Протокол:** PUT-запит з зашифрованим бінарним тілом — масив з 20 int32:
-- слоти 0–10, 12–19 — накопичені секунди каналів 0–18
-- слот 11 — прапор нової сесії (скидання baseline)
+**Protocol:** PUT request with an encrypted binary body — an array of 20 int32 values:
+- slots 0–10, 12–19 — accumulated seconds for channels 0–18
+- slot 11 — new session flag (baseline reset)
 
-**Облік часу:**
+**Time accounting:**
 
-Дані зберігаються у двох шарах:
-- `this_session` — поточна незакрита сесія (з останнього скидання)
-- `month` / `old_month` — два місяці в пам'яті (поточний і попередній)
+Data is stored in two layers:
+- `this_session` — current open session (since the last reset)
+- `month` / `old_month` — two months kept in memory (current and previous)
 
-При скиданні сесії (`flag_new_session`) накопичений час зливається у поточний день. При зміні доби — день зберігається у SQLite. При зміні місяця — старий місяць вивантажується з пам'яті (але залишається у БД).
+On a session reset (`flag_new_session`), accumulated time is merged into the current day. On a day boundary, the day is persisted to SQLite. On a month boundary, the old month is evicted from memory (but remains in the DB).
 
-**Виявлення подій старт/стоп:**
+**Start/stop event detection:**
 
-Канал вважається запущеним, якщо значення часу між двома пакетами зростає. Зупиненим — якщо не змінюється. Для захисту від одиничних хибних пакетів застосовується гістерезис: перемикання стану відбувається лише після **3 підряд** підтверджень.
+A channel is considered running when its time value increases between two packets, and stopped when it stays the same. A hysteresis of **3 consecutive confirmations** is required before the state flips, to suppress single spurious packets.
 
-**Збереження стану між перезапусками:**
+**State persistence across restarts:**
 
-При зупинці поточна сесія зберігається у таблицю `channel_session`. При старті — відновлюється і, якщо належить іншій добі, закривається у власний день (не в поточний).
+On shutdown, the current session is saved to the `channel_session` table. On startup it is restored and, if it belongs to a different day, closed into its own day rather than the current one.
 
 ---
 
-## SQLite-схема
+## SQLite schema
 
-| Таблиця | Зміст |
+| Table | Contents |
 |---|---|
-| `channel_history` | Аґреґовані секунди по каналах за добу |
-| `channel_events` | Часові мітки подій старт/стоп (зберігається 2 місяці) |
-| `channel_session` | Поточна незакрита сесія для відновлення після перезапуску |
-| `channel_names` | Людські назви каналів 1–18 |
+| `channel_history` | Aggregated seconds per channel per day |
+| `channel_events` | Start/stop event timestamps (2-month rolling window) |
+| `channel_session` | Current open session, for recovery after restart |
+| `channel_names` | Human-readable names for channels 1–18 |
 
 ---
 
 ## HTTP API
 
-Всі запити на `/MachineTime18Channels/?id=<device_id>`.
+All requests go to `/MachineTime18Channels/?id=<device_id>`.
 
-| Метод | Параметри | Дія |
+| Method | Parameters | Action |
 |---|---|---|
-| POST | — | Хендшейк (встановлення з'єднання, передача timezone) |
-| PUT | — | Прийом пакету з даними |
-| GET | — | Список доступних дат |
-| GET | `?day=<epoch>` | Дані за добу |
-| GET | `?day=<epoch>&channel=<n>` | Події (старт/стоп) каналу за добу |
-| GET | `?ids` | Список зареєстрованих device_id |
-| PUT | `?name&channel=<n>&name=<str>` | Встановити назву каналу |
-| DELETE | `?channel=<n>` | Видалити назву каналу |
+| POST | — | Handshake (connection setup, timezone negotiation) |
+| PUT | — | Receive data packet |
+| GET | — | List available day epochs |
+| GET | `?day=<epoch>` | Channel data for a given day |
+| GET | `?day=<epoch>&channel=<n>` | Start/stop events for a channel on a given day |
+| GET | `?ids` | List registered device IDs |
+| PUT | `?name&channel=<n>&name=<str>` | Set channel name |
+| DELETE | `?channel=<n>` | Clear channel name |
 
 ---
 
-## Конфігурація
+## Configuration
 
 ```ini
 serverName=MyServer
@@ -110,21 +108,21 @@ myStaticKeyResponce=your_response_key_here
 myStaticKeyRequest=your_request_key_here
 
 [agents]
-save_db_agent=false        # увімкнути фоновий агент збереження
-save_db_agent_period=30    # інтервал збереження у хвилинах
+save_db_agent=false        # enable background periodic save agent
+save_db_agent_period=30    # save interval in minutes
 ```
 
-Повний приклад: `conf.ini.example`. Реальний конфіг з ключами: `conf.ini` (в `.gitignore`).
+Full template: `conf.ini.example`. Real config with keys: `conf.ini` (in `.gitignore`).
 
-**Аргументи командного рядка:**
+**Command-line arguments:**
 ```
--c <file>        альтернативний конфіг (за замовчуванням conf.ini)
--p key=value     перевизначення параметра конфігу (можна кілька)
+-c <file>        alternative config file (default: conf.ini)
+-p key=value     override a config parameter (repeatable)
 ```
 
 ---
 
-## Збірка
+## Build
 
 ```bash
 # Linux
@@ -134,10 +132,10 @@ save_db_agent_period=30    # інтервал збереження у хвили
 ./compilAndRunDbg.sh
 ```
 
-Залежності: стандартна бібліотека C++17, SQLite3 (amalgamation у `source/`, не трекується git).
+Dependencies: C++17 standard library, SQLite3 (amalgamation in `source/`, not tracked by git).
 
 ---
 
-## Веб-інтерфейс
+## Web frontend
 
-`www/MachineTime18Channels/` — SPA для перегляду статистики каналів: графіки напрацювання по добах, події старт/стоп, перемикання мови (translations.js).
+`www/MachineTime18Channels/` — single-page app for viewing channel statistics: per-day runtime charts, start/stop event timeline, multi-language support (`translations.js`).

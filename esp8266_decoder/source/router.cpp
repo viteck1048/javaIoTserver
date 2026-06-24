@@ -28,7 +28,7 @@ Response* obrobka_get(Request* rq) {
 	if (false)
 		return new Response(400);
 
-	else if (rq->path == "/MachineTime18Channels/" && rq->query.size() > 0)
+	else if (rq->path == "/MachineTime18Channels/" && rq->query.size() > 1)
 		return getMachineTime18Channels(rq);
 
 	else if (rq->path == "/MachineTime18Channels/") {

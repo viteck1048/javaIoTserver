@@ -1,73 +1,99 @@
-# MashineTimeWorks Service
+# esp8266_decoder — MachineTime HTTP-сервер
 
-> **Note on the folder name:** this directory is still called `esp8266_decoder/` for
-> historical reasons — it started life as a small C++ microservice that decoded ESP8266
-> POST payloads. It has since been rewritten into **MashineTimeWorks**, a multi-port
-> C++ service that stores and serves machine-time data for 18 channels backed by SQLite.
-> The build output binary is `server_8266_decoder.out`.
+C++ HTTP-сервер для накопичення та зберігання статистики напрацювання промислових пристроїв (ESP8266 або сумісних імітаторів). Підтримує до 18 каналів на пристрій, зберігає побудинову хронологію подій і аґреґовані секунди напрацювання у SQLite.
 
-## What it does
+---
 
-- Serves an HTTP API for machine-time data over 18 channels (`/MachineTime18Channels/`).
-- Persists data in a local SQLite database (`mashine_time.db`).
-- Serves static files from the `www/` directory (falls back to `index.html`).
-- Designed to sit behind the main Java gateway's reverse proxy (`uniproxy`).
+## Архітектура
 
-## Architecture
+```
+server.cpp          — точка входу: конфіг, ініціалізація, запуск потоків
+├── WorkerPool      — пул потоків на кожен порт (worker_pool.cpp/h)
+├── router.cpp      — диспетчер HTTP-методів (GET/POST/PUT/DELETE)
+├── MachineTime.cpp — основна бізнес-логіка (облік часу, події, SQLite)
+├── http_parser.cpp — парсер HTTP-запиту
+├── http_utils.cpp  — роздача статичних файлів із www/
+├── setup.cpp       — парсер INI-конфігу з підтримкою override з командного рядка
+└── my_time.cpp     — утиліти часу, часові зони
+```
 
-- **Multi-port listeners** — `port_0` … `port_255` can each be enabled independently in
-  `conf.ini`, every active port gets its own listener thread.
-- **Per-port worker pools** — each listener owns a `WorkerPool` (size set by
-  `port_N_workers`) that handles accepted connections.
-- **Router** (`router.cpp`) dispatches by method + path to the `MachineTime` handlers.
-- **Platform abstraction** (`platform.h`) — builds on both Linux and Windows.
-- Crypto helpers (`MyCrypter.h`) and shared-key auth via the `conf.ini` keys.
+`esp8266_decoder.cpp` — окрема standalone-утиліта (порт 12354) для відлагодження: приймає бінарний пакет ESP8266 у власному base64, декодує та повертає JSON з розібраними полями.
+
+---
+
+## Багатопортовість
+
+Сервер підтримує до 256 незалежних TCP-портів, кожен зі своїм пулом воркерів. Порти описуються в `conf.ini`:
+
+```ini
+[port_0]
+port_0=true
+port_0_port=18081
+port_0_workers=14
+```
+
+Для кожного активного порту запускається окремий потік-listener, який приймає з'єднання і передає їх у `WorkerPool`. Пули незалежні — перевантаження одного порту не блокує інші.
+
+---
+
+## Модуль MachineTime
+
+Один екземпляр `MachineTime` = один пристрій (ідентифікується параметром `?id=` у запиті).
+
+**Протокол:** PUT-запит з зашифрованим бінарним тілом — масив з 20 int32:
+- слоти 0–10, 12–19 — накопичені секунди каналів 0–18
+- слот 11 — прапор нової сесії (скидання baseline)
+
+**Облік часу:**
+
+Дані зберігаються у двох шарах:
+- `this_session` — поточна незакрита сесія (з останнього скидання)
+- `month` / `old_month` — два місяці в пам'яті (поточний і попередній)
+
+При скиданні сесії (`flag_new_session`) накопичений час зливається у поточний день. При зміні доби — день зберігається у SQLite. При зміні місяця — старий місяць вивантажується з пам'яті (але залишається у БД).
+
+**Виявлення подій старт/стоп:**
+
+Канал вважається запущеним, якщо значення часу між двома пакетами зростає. Зупиненим — якщо не змінюється. Для захисту від одиничних хибних пакетів застосовується гістерезис: перемикання стану відбувається лише після **3 підряд** підтверджень.
+
+**Збереження стану між перезапусками:**
+
+При зупинці поточна сесія зберігається у таблицю `channel_session`. При старті — відновлюється і, якщо належить іншій добі, закривається у власний день (не в поточний).
+
+---
+
+## SQLite-схема
+
+| Таблиця | Зміст |
+|---|---|
+| `channel_history` | Аґреґовані секунди по каналах за добу |
+| `channel_events` | Часові мітки подій старт/стоп (зберігається 2 місяці) |
+| `channel_session` | Поточна незакрита сесія для відновлення після перезапуску |
+| `channel_names` | Людські назви каналів 1–18 |
+
+---
 
 ## HTTP API
 
-Base endpoint: `/MachineTime18Channels/`
+Всі запити на `/MachineTime18Channels/?id=<device_id>`.
 
-| Method | Path                        | Purpose                                |
-|--------|-----------------------------|----------------------------------------|
-| GET    | `/MachineTime18Channels/?…` | Read channel data (requires query)     |
-| GET    | `/MachineTime18Channels/`   | Serve `index.html` (no query)          |
-| POST   | `/MachineTime18Channels/?…` | Create channel record                  |
-| PUT    | `/MachineTime18Channels/?…` | Update channel record                  |
-| DELETE | `/MachineTime18Channels/?…` | Delete channel record                  |
-| GET    | any other path              | Serve matching static file from `www/` |
+| Метод | Параметри | Дія |
+|---|---|---|
+| POST | — | Хендшейк (встановлення з'єднання, передача timezone) |
+| PUT | — | Прийом пакету з даними |
+| GET | — | Список доступних дат |
+| GET | `?day=<epoch>` | Дані за добу |
+| GET | `?day=<epoch>&channel=<n>` | Події (старт/стоп) каналу за добу |
+| GET | `?ids` | Список зареєстрованих device_id |
+| PUT | `?name&channel=<n>&name=<str>` | Встановити назву каналу |
+| DELETE | `?channel=<n>` | Видалити назву каналу |
 
-The mutating methods (POST/PUT/DELETE) require a non-empty query string.
+---
 
-## Build
-
-```bash
-cd servers/esp8266_decoder
-make
-# or use the helper scripts:
-./compilAndRun.sh       # build + run
-./compilAndRunDbg.sh    # build + run with debug flags
-```
-
-## Run
-
-```bash
-./server_8266_decoder.out                       # uses ./conf.ini by default
-./server_8266_decoder.out -c other.ini          # custom config
-./server_8266_decoder.out -p port_0_port=19000  # override a single param
-```
-
-CLI options:
-- `-c, --config <file>` — config file (default `conf.ini`)
-- `-p, --param <id>=<val>` — override a config value (repeatable)
-- `-h, --help` — usage
-
-## Configuration (`conf.ini`)
-
-> ⚠️ `conf.ini` contains secret keys and is **excluded from Git** (`*.ini` in `.gitignore`).
-> Create it manually on each deployment. Example skeleton:
+## Конфігурація
 
 ```ini
-serverName=MashineTimeWorks
+serverName=MyServer
 db_path=mashine_time.db
 
 [port_0]
@@ -76,26 +102,42 @@ port_0_port=18081
 port_0_workers=14
 
 [get18ChanalsMashineTimeWorks]
-myRandKey1=...
-myRandKey2=...
-myRandKey3=...
-myRandKey4=...
-myStaticKeyResponce=...
-myStaticKeyRequest=...
+myRandKey1=111111
+myRandKey2=222222
+myRandKey3=333333
+myRandKey4=444444
+myStaticKeyResponce=your_response_key_here
+myStaticKeyRequest=your_request_key_here
 
 [agents]
-save_db_agent=false
-save_db_agent_period=3
+save_db_agent=false        # увімкнути фоновий агент збереження
+save_db_agent_period=30    # інтервал збереження у хвилинах
 ```
 
-- `serverName` — service identifier.
-- `db_path` — path to the SQLite database file.
-- `[port_N]` — enable a listener: `port_N=true`, `port_N_port`, `port_N_workers`.
-- `[get18ChanalsMashineTimeWorks]` — shared keys for request/response authentication.
-- `[agents]` — background DB-flush agent (`save_db_agent`, period in `save_db_agent_period`).
+Повний приклад: `conf.ini.example`. Реальний конфіг з ключами: `conf.ini` (в `.gitignore`).
 
-## Test
+**Аргументи командного рядка:**
+```
+-c <file>        альтернативний конфіг (за замовчуванням conf.ini)
+-p key=value     перевизначення параметра конфігу (можна кілька)
+```
+
+---
+
+## Збірка
 
 ```bash
-curl "http://127.0.0.1:18081/MachineTime18Channels/?<your-query>"
+# Linux
+./compilAndRun.sh
+
+# Linux (debug)
+./compilAndRunDbg.sh
 ```
+
+Залежності: стандартна бібліотека C++17, SQLite3 (amalgamation у `source/`, не трекується git).
+
+---
+
+## Веб-інтерфейс
+
+`www/MachineTime18Channels/` — SPA для перегляду статистики каналів: графіки напрацювання по добах, події старт/стоп, перемикання мови (translations.js).

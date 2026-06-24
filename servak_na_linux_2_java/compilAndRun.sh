@@ -8,4 +8,4 @@ if [ $? -ne 0 ]; then
 fi
 
 echo "Running Servak..."
-sudo java -cp ".:obj:lib/*" Servak -c confMijServak.ini
+exec java -cp ".:obj:lib/*" Servak -c confMijServak.ini

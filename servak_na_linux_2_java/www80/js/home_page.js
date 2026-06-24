@@ -559,6 +559,7 @@ function addExternalLinkItem(name, url) {
 	const linkElement = document.createElement('a');
 	
 	linkElement.className = 'link-item external-link';
+	// без external-link - відкривається в iframe
 	linkElement.textContent = name;
 	linkElement.href = url;
 	//linkElement.target = '_blank'; // Відкриваємо в новій вкладці

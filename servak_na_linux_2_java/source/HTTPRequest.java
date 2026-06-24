@@ -37,7 +37,9 @@ public class HTTPRequest {
 		OLD_SERVAK, // LiraCalc Configs Editor, localhost:8080, C++, WSL, FireBird DB
 		RELAYS_SERVER, // ESP32 relays cloud server, localhost:8081, C++, WinAPI, SQLite DB
 		PHP_FPM, // PHP-FPM, localhost:8082, PHP, Linux, SQLite DB
-		BANRESPONSE
+		BANRESPONSE,
+		AI_CHAT, // AI assistant via OpenAI-compatible API
+		UNI_PRXY
 	}
 	public enum arrType {
 		QUERY,
@@ -47,6 +49,7 @@ public class HTTPRequest {
 	}
 	public boolean old_servak_flag;
 	public boolean close_connect_flag;
+	public BufferedOutputStream outStream;
 	//public boolean php_redirect_directory_flag;
 	//public record SnInfo(long sn_mega, int g_id) {}
 	ArrayList<KeyManager.SnInfo> sn_megaList;
@@ -105,16 +108,17 @@ public class HTTPRequest {
 	}
 	
 	private boolean checkHost(String host) {
-		if(host.compareTo(Configs.getParam("host")) == 0)
+		String host_ = host.split(":", 2)[0];
+		if(host_.compareTo(Configs.getParam("host")) == 0)
 			return true;
-		if(host.compareTo("localhost") == 0)
+		if(host_.compareTo("localhost") == 0)
 			return true;
-		if(host.compareTo("127.0.0.1") == 0)
+		if(host_.compareTo("127.0.0.1") == 0)
 			return true;
-		if(host.compareTo("::1") == 0)
+		if(host_.compareTo("::1") == 0)
 			return true;
 		if(Configs.getBoolean("lanSettings")) {
-			if(Configs.getParam("localIP").compareTo(host) == 0)
+			if(Configs.getParam("localIP").compareTo(host_) == 0)
 				return true;
 		}
 		return false;
@@ -221,6 +225,18 @@ public class HTTPRequest {
 			else
 				return bodyData.toByteArray();
 		}
+		else if (path.compareTo("/upload") == 0) {
+			byte[] bodyData = new byte[1024];
+			int bytesRead = 0;
+			while (bytesRead < contentLength) {
+				int result = in.read(bodyData, 0, ((contentLength - bytesRead) > 1024) ? 1024 : (contentLength - bytesRead));
+				if (result == -1) {
+					break;
+				}
+				bytesRead += result;
+			}
+			return bodyData;
+		}
 		else {
 			byte[] bodyData = new byte[contentLength];
 			int bytesRead = 0;
@@ -321,9 +337,10 @@ public class HTTPRequest {
 	}
 	
 	
-	public HTTPRequest(InputStream inputStream, int port, InetAddress clientAddress) {
+	public HTTPRequest(InputStream inputStream, int port, InetAddress clientAddress, BufferedOutputStream outStream) {
 		quickBan = false;
 		this.clientAddress = clientAddress;
+		this.outStream = outStream;
 		if(!isInSubnet()) {
 			if(FirewallIP.checkBlackList(clientAddress)) {
 				quickBan = true;
@@ -403,11 +420,12 @@ public class HTTPRequest {
 		/*	if(Configs.getBoolean("php_fpm") && Configs.getDefine("php_prefix") && path.startsWith(Configs.getParam("php_prefix"))) {
 				php_redirect_directory_flag = true;
 			}*/
-			if(!(method.compareTo("GET") == 0 || method.compareTo("HEAD") == 0) && tmp.contains("?") == true) {
+		/*	if(!(method.compareTo("GET") == 0 || method.compareTo("HEAD") == 0) && tmp.contains("?") == true) {
 				ban = true;
 				return;
 			}
-			else if(tmp.contains("?") == true) {
+			else	*/ 
+			if(tmp.contains("?") == true) {
 				XwwwFormUrlEncodedString = tmp.split("\\?", 2)[1];
 				for(String tmp2 : XwwwFormUrlEncodedString.split("&")) {
 					if(tmp2.split("=").length == 2) {
@@ -495,15 +513,22 @@ public class HTTPRequest {
 					}
 				}
 			}
+			if(revers == ReversType.NO_REVERSE && Configs.getBoolean("ai_assist") && path.equals(Configs.getParam("ai_assist_api_chat"))) {
+				revers = ReversType.AI_CHAT;
+			}
 			while (!(line = readLineFromInputStream(inputStream)).isBlank()) {
 				requestBuilder.append(line).append("\r\n");
+				/*if(clientAddress.toString().compareTo("/212.72.212.39") == 0) {
+					System.out.println("!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!***************************");
+					System.out.println(line);
+				}*/
 				if(requestBuilder.toString().length() > 1024 * 1024) {
 					ban = true;
 					return;
 				}
 				int idx = line.indexOf(": ");
 				if(idx >= 0 && idx < line.length() - 2) {
-					headerArr.add(new Query(line.substring(0, idx), line.substring(idx + 2)));
+					headerArr.add(new Query(line.substring(0, idx)/*.toLowerCase()*/, line.substring(idx + 2)));
 				}
 					
 				if(revers == ReversType.PHP_FPM) {
@@ -513,13 +538,21 @@ public class HTTPRequest {
 			
 			
 			host = getZnach("Host", arrType.HEADER);
-			if(protocol.compareTo("HTTP/1.1") == 0) {
+			/*if(clientAddress.toString().compareTo("/212.72.212.39") == 0) {
+				System.out.println("***************************");
+				//header
+				//header = header.replace("\r\n\r\n", "\r\nX-Content-Type-Options: nosniff\r\n\r\n");
+				prnt();
+
+				System.out.println("*************" + host + "**************");
+			}
+			else */if(protocol.compareTo("HTTP/1.1") == 0) {
 				if(host.length() == 0) {
 					ban = true;
 					return;
 				}
 				if(!checkHost(host)) {
-					ban = true;
+					ban = true;//System.out.println("qwertyuiop 529");
 					return;
 				}
 			}
@@ -527,7 +560,7 @@ public class HTTPRequest {
 				ban = true;
 				return;
 			}
-				
+
 			if(getZnach("X-Forwarded-For", arrType.HEADER).length() > 0) {
 				clientAddress = InetAddress.getByName(getZnach("X-Forwarded-For", arrType.HEADER));
 			}
@@ -535,7 +568,7 @@ public class HTTPRequest {
 				try {
 					contentLength = Integer.parseInt(getZnach("Content-Length", arrType.HEADER));
 					// Захист від DoS: ліміт на розмір body (наприклад, 10MB)
-					if (contentLength > 10 * 1024 * 1024 || contentLength < 0) {
+					if (contentLength > 50 * 1024 * 1024 || contentLength < 0) {
 						ban = true;
 						return;
 					}
@@ -590,10 +623,18 @@ public class HTTPRequest {
 			}
 			header += requestBuilder.toString();
 
+			/*if(clientAddress.toString().compareTo("/212.72.212.39") == 0) {
+				System.out.println("***************************");
+				//header
+				//header = header.replace("\r\n\r\n", "\r\nX-Content-Type-Options: nosniff\r\n\r\n");
+				prnt();
 
+				System.out.println("*************" + host + "**************");
+			}*/
 			if((method.compareTo("PUT") == 0 || method.compareTo("POST") == 0 || method.compareTo("DELETE") == 0) && (contentLength != 0 || chunked_flag)) {
 				
 				bodyData = readBody(inputStream, contentLength, chunked_flag, gzip_flag);
+			
 				if(bodyData.length == 0) {
 					ban = true;
 					return;
@@ -623,6 +664,7 @@ public class HTTPRequest {
 						String value = convertString(tmp2.split("=").length == 2 ? tmp2.split("=")[1] : "");
 						queryArr.add(new Query(param, value));
 					}
+					//bodyData = body.getBytes();
 				}
 				else if(Content_Type.compareTo("application/octet-stream") == 0 && revers == ReversType.NO_REVERSE && path.startsWith(Configs.getParam("avr_path")) && user_agent.startsWith(Configs.getParam("avr_user_agent"))) {
 					contentLength = bodyData.length;
@@ -671,7 +713,11 @@ public class HTTPRequest {
 			}
 		}
 
-		if(revers == ReversType.PHP_FPM){
+		if (userID == 0 && revers == ReversType.AI_CHAT) {
+			revers = ReversType.BANRESPONSE;
+		}
+
+		if (revers == ReversType.PHP_FPM){
 			List<String> param = new ArrayList<>();
 			for(Query query : queryArr) {
 				//System.out.println("query.getParam() = " + query.getParam());
@@ -681,8 +727,12 @@ public class HTTPRequest {
 				ban = true;
 			}
 		}
-		
-		//prnt();
+
+		if (port != 80 && port != 443 && port != Configs.getInt("avr_port")) {
+			revers = ReversType.UNI_PRXY;
+		}
+//		if (path.compareTo("/upload") == 0)
+//			prnt();
 		//System.out.println("\n***\n***\n" + body);
 
 	}
@@ -796,7 +846,7 @@ public class HTTPRequest {
 				return null;
 			case HEADER:
 				for(Query query : headerArr) {
-					if(query.getParam().compareTo(par) == 0)
+					if(query.getParam().toLowerCase().compareTo(par.toLowerCase()) == 0)
 						return query.getZnach();
 				}
 				return "";

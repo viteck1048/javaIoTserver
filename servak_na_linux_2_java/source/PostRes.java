@@ -1,9 +1,5 @@
 
 import java.nio.charset.StandardCharsets;
-import java.sql.Connection;
-import java.sql.ResultSet;
-import java.sql.SQLException;
-import java.sql.PreparedStatement;
 
 
 public final class PostRes {
@@ -32,7 +28,10 @@ public final class PostRes {
 		
 		if(httpRequest.path.startsWith("/reset_") == true && httpRequest.chkParam("pin"))
 			return sendReset(httpRequest, KeyManager.getGadget(httpRequest.X_Session_ID, httpRequest.clientAddress));
-
+		
+//		if(httpRequest.path.compareTo("/upload") == 0)
+//			return new HTTPResponse(200);
+		
 		if(Configs.getBoolean("photo_upload")) {
 			if(httpRequest.path.startsWith(Configs.getParam("photo_post_message_path")))
 				return photoUpload(httpRequest);
@@ -60,6 +59,8 @@ public final class PostRes {
 			java.io.File directory = new java.io.File(pathDir);
 			if(!directory.exists()) {
 				directory.mkdirs();
+				// Встановлюємо права власності 1000:1000 для директорії
+				setOwnership(directory.getAbsolutePath(), 1000, 1000);
 			}
 			
 			// Формуємо повний шлях до файлу
@@ -71,6 +72,9 @@ public final class PostRes {
 				fos.flush();
 			}
 			
+			// Встановлюємо права власності 1000:1000 для файлу
+			setOwnership(outputFile.getAbsolutePath(), 1000, 1000);
+			
 			System.out.println("Photo saved: " + outputFile.getAbsolutePath());
 			return new HTTPResponse(200);
 			
@@ -78,6 +82,20 @@ public final class PostRes {
 			System.err.println("Error saving photo: " + e.getMessage());
 			e.printStackTrace();
 			return new HTTPResponse(500);
+		}
+	}
+	
+	// Метод для встановлення прав власності файлу/директорії
+	private static void setOwnership(String filePath, int uid, int gid) {
+		try {
+			ProcessBuilder pb = new ProcessBuilder("chown", uid + ":" + gid, filePath);
+			Process process = pb.start();
+			int exitCode = process.waitFor();
+			if (exitCode != 0) {
+				System.err.println("Failed to set ownership for " + filePath + ", exit code: " + exitCode);
+			}
+		} catch (Exception e) {
+			System.err.println("Error setting ownership for " + filePath + ": " + e.getMessage());
 		}
 	}
 

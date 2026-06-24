@@ -167,6 +167,9 @@ public final class GetRes {
 			jsonBuilder.append(",{\"url\": \"relay_servak/knopky.html\", \"title\": \"ESP Remote Control\"}");
 		if(Configs.getBoolean("avr"))
 			jsonBuilder.append(",{\"url\": \"avr_relays_control.html\", \"title\": \"AVR Remote Control\"}");
+		
+		jsonBuilder.append(",{\"url\": \"https://mijservak.pp.ua:18080/MachineTime18Channels/\", \"title\": \"MachineTime\"}");
+		
 		jsonBuilder.append("]");
 		jsonBuilder.append("}");
 		String jsonString = jsonBuilder.toString();

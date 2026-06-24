@@ -20,7 +20,7 @@ public class SimpleHTTPSServer implements Runnable {
 		}
 	}
 
-	private static final int PORT = 443;
+	//private static final int PORT = 443;
 	private static final String KEYSTORE_FILE = Configs.getParam("keyStoreFile");
 	private static final String KEYSTORE_PASSWORD = Configs.getParam("keyStorePassword");
 
@@ -38,8 +38,8 @@ public class SimpleHTTPSServer implements Runnable {
 			
 			// Налаштування SSL-серверного сокету
 			SSLServerSocketFactory ssf = context.getServerSocketFactory();
-			SSLServerSocket serverSocket = (SSLServerSocket) ssf.createServerSocket(PORT);
-			System.out.println("HTTPS Server is running on port " + PORT);
+			SSLServerSocket serverSocket = (SSLServerSocket) ssf.createServerSocket(port);
+			System.out.println("HTTPS Server is running on port " + port);
 			
 			while (true) {
 				SSLSocket socket = (SSLSocket) serverSocket.accept();

@@ -1,11 +1,15 @@
 import java.util.HashMap;
 import java.util.Map;
+import java.util.ArrayList;
+import java.util.List;
 import java.io.BufferedReader;
 import java.io.FileReader;
 import java.io.IOException;
 
 public class Configs {
 	private static final Map<String, String> params = new HashMap<>();
+	private static final Map<String, List<String>> lists = new HashMap<>();
+	private static final Map<Integer, String> uniPrxyPorts = new HashMap<>();
 
 	public static void init(String configFilePath) {
 		try (BufferedReader br = new BufferedReader(new FileReader(configFilePath))) {
@@ -18,9 +22,45 @@ public class Configs {
 					params.put(parts[0].trim(), parts[1].trim());
 				}
 			}
+			for (int i = 1; i <= 256; i++) {
+				String prxy = "prxy_" + i;
+				String prxyPort = prxy + "_listen_port";
+				if (getInt(prxyPort) != 0) {
+					uniPrxyPorts.put(getInt(prxyPort), prxy);
+				}
+			}
 		} catch (IOException e) {
 			e.printStackTrace();
 		}
+	}
+
+	public static void loadList(String name) {
+		String listFile = getParam(name);
+		if (listFile == null || listFile.trim().isEmpty()) {
+			System.err.println("Configs: missing param for list \"" + name + "\"");
+			return;
+		}
+		List<String> list = new ArrayList<>();
+		try (BufferedReader br = new BufferedReader(new FileReader(listFile))) {
+			String line;
+			while ((line = br.readLine()) != null) {
+				String trimmed = line.replace("\r", "").trim();
+				if (!trimmed.isEmpty() && !trimmed.startsWith("#")) {
+					list.add(trimmed);
+				}
+			}
+			lists.put(name, list);
+		} catch (IOException e) {
+			System.err.println("Configs: error loading list \"" + name + "\" (" + listFile + ") - " + e.getMessage());
+		}
+	}
+
+	public static List<String> getList(String name) {
+		List<String> list = lists.get(name);
+		if (list == null) {
+			return new ArrayList<>();
+		}
+		return list;
 	}
 
 	public static void priorityParam(String key, String value) {
@@ -33,7 +73,6 @@ public class Configs {
 			return false;
 		}
 		else {
-			//System.out.println(key + ": " + params.get(key));
 			return true;
 		}
 	}
@@ -51,7 +90,8 @@ public class Configs {
 			};
 
 			for (String key : requiredKeys) {
-				if (!checkParam(key)) return false;
+				if (!checkParam(key)) 
+					return false;
 			}
 		}
 		if(getBoolean("avr")) {
@@ -59,22 +99,26 @@ public class Configs {
 				System.out.println("Missing param: avr_port");
 				return false;
 			}
-			if (!checkParam("avr_path")) return false;
-			if (!checkParam("avr_user_agent")) return false;
+			if (!checkParam("avr_path")) 
+				return false;
+			if (!checkParam("avr_user_agent")) 
+				return false;
 		}
 		if(getBoolean("liraCalc")) {
 			if(getInt("port_liraCalc_server") == 0) {
 				System.out.println("Missing param: port_liraCalc_server");
 				return false;
 			}
-			if (!checkParam("ip_liraCalc_server")) return false;
+			if (!checkParam("ip_liraCalc_server")) 
+				return false;
 		}
 		if(getBoolean("esp")) {
 			if(getInt("port_relay_server") == 0) {
 				System.out.println("Missing param: port_relay_server");
 				return false;
 			}
-			if (!checkParam("ip_relay_server")) return false;
+			if (!checkParam("ip_relay_server"))
+				return false;
 		}
 
 		String[] requiredKeys = {
@@ -91,7 +135,8 @@ public class Configs {
 		};
 
 		for (String key : requiredKeys) {
-			if (!checkParam(key)) return false;
+			if (!checkParam(key)) 
+				return false;
 		}
 
 		return true;
@@ -103,7 +148,8 @@ public class Configs {
 
 	public static int getInt(String key) {
 		String value = params.get(key);
-		if (value == null || value.trim().isEmpty()) return 0;
+		if (value == null || value.trim().isEmpty()) 
+			return 0;
 		try {
 			return Integer.parseInt(value.trim());
 		} catch (NumberFormatException e) {
@@ -113,7 +159,8 @@ public class Configs {
 
 	public static double getDouble(String key) {
 		String value = params.get(key);
-		if (value == null || value.trim().isEmpty()) return 0.0;
+		if (value == null || value.trim().isEmpty()) 
+			return 0.0;
 		try {
 			return Double.parseDouble(value.trim());
 		} catch (NumberFormatException e) {
@@ -123,7 +170,8 @@ public class Configs {
 
 	public static long getLong(String key) {
 		String value = params.get(key);
-		if (value == null || value.trim().isEmpty()) return 0L;
+		if (value == null || value.trim().isEmpty()) 
+			return 0L;
 		try {
 			return Long.parseLong(value.trim());
 		} catch (NumberFormatException e) {
@@ -139,6 +187,14 @@ public class Configs {
 	}
 
 	public static boolean getDefine(String key) {
-		return params.containsKey(key);
+		String value = params.get(key);
+		if (value == null || value.trim().isEmpty()) 
+			return false;
+		else
+			return true;
+	}
+
+	public static String getKeyForUniPrxyPort(int port) {
+		return uniPrxyPorts.get(port);
 	}
 }

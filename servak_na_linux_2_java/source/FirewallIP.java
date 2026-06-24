@@ -23,10 +23,6 @@ public class FirewallIP {
 	private static final Map<InetAddress, Instant> blackList = new ConcurrentHashMap<>();
 	private static final Map<InetAddress, AtomicInteger> attackStatistics = new ConcurrentHashMap<>();
 
-	// Path lists for request filtering
-	private static final List<String> whitePathList = new ArrayList<>();
-	private static final List<String> blackPathList = new ArrayList<>();
-
 	// Country blocking data
 	private static final List<String> bannedCountries = new ArrayList<>();
 	// Arrays of lists for fast lookup by first byte
@@ -47,43 +43,18 @@ public class FirewallIP {
 			ipv6CountryRanges[i] = new ArrayList<>();
 		}
 
-		loadPathLists();
+		//loadPathLists(); 
+		if(Configs.getDefine("whitePathList")) {
+			Configs.loadList("whitePathList");
+			System.out.println(" White list loaded, elements: " + Configs.getList("whitePathList").size());
+		}
+		if(Configs.getDefine("blackPathList")) {
+			Configs.loadList("blackPathList");
+			System.out.println(" Black list loaded, elements: " + Configs.getList("blackPathList").size());
+		}
 		loadBannedCountries();
 
 		System.out.println("FIREWALL IP: Initialization completed");
-	}
-
-	/**
-	 * Loads white and black path lists from files
-	 */
-	private static void loadPathLists() {
-		// Load white list
-		if(Configs.getDefine("whitePathList")) {
-			String whiteFilePath = Configs.getParam("whitePathList");
-			if (whiteFilePath != null && !whiteFilePath.trim().isEmpty()) {
-				System.out.print("FIREWALL IP: Loading white list from file: " + whiteFilePath + "...");
-				loadPathsFromFile(whiteFilePath, whitePathList);
-				System.out.println(" White list loaded, elements: " + whitePathList.size());
-			} else {
-				System.out.println("FIREWALL IP: White list not configured");
-			}
-		} else {
-			System.out.println("FIREWALL IP: White list disabled");
-		}
-
-		// Load black list
-		if(Configs.getDefine("blackPathList")) {
-			String blackFilePath = Configs.getParam("blackPathList");
-			if (blackFilePath != null && !blackFilePath.trim().isEmpty()) {
-				System.out.print("FIREWALL IP: Loading black list from file: " + blackFilePath + "...");
-				loadPathsFromFile(blackFilePath, blackPathList);
-				System.out.println(" Black list loaded, elements: " + blackPathList.size());
-			} else {
-				System.out.println("FIREWALL IP: Black list not configured");
-			}
-		} else {
-			System.out.println("FIREWALL IP: Black list disabled");
-		}
 	}
 
 	/**
@@ -556,32 +527,12 @@ public class FirewallIP {
 	}
 
 	/**
-	 * Loads paths from file line by line
-	 * @param filePath path to file
-	 * @param pathList list to populate
-	 */
-	private static void loadPathsFromFile(String filePath, List<String> pathList) {
-		try (BufferedReader reader = new BufferedReader(new FileReader(filePath))) {
-			String line;
-			while ((line = reader.readLine()) != null) {
-				// Clean from \r characters (if any) and spaces
-				String cleanPath = line.replace("\r", "").trim();
-				if (!cleanPath.isEmpty()) {
-					pathList.add(cleanPath);
-				}
-			}
-		} catch (IOException e) {
-			System.err.println("Error reading path list file: " + filePath + " - " + e.getMessage());
-		}
-	}
-
-	/**
 	 * Checks if path is in white list (exact match)
 	 * @param path path to check
 	 * @return true if path in white list
 	 */
 	private static boolean isInWhiteList(String path) {
-		return whitePathList.contains(path);
+		return Configs.getList("whitePathList").contains(path);
 	}
 
 	/**
@@ -590,7 +541,7 @@ public class FirewallIP {
 	 * @return true if path contained in black list
 	 */
 	private static boolean isInBlackList(String path) {
-		return blackPathList.stream().anyMatch(path::contains);
+		return Configs.getList("blackPathList").stream().anyMatch(path::contains);
 	}
 
 	/**

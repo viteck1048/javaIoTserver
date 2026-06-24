@@ -70,6 +70,11 @@ public class Servak {
 		if(Configs.getDefine("logToConsole"))
 			MyOutClass.setPrintToConsole(Configs.getBoolean("logToConsole"));
 		
+		if(Configs.getDefine("ai_assist_path_list")) {
+			Configs.loadList("ai_assist_path_list");
+			System.out.println(" AI Path list loaded, elements: " + Configs.getList("ai_assist_path_list").size());
+		}
+
 		new Thread(new ServerTask(80)).start();
 		
 		try{
@@ -111,8 +116,12 @@ public class Servak {
 				long hoursPassed = duration.toHours();
 
 				System.out.println("Пройшло годин з моменту видачі: " + hoursPassed);
-
-				if (hoursPassed > 200 && Configs.getBoolean("acme")) {
+				
+				int renewalThresholdHours = 200;
+				if(Configs.getDefine("acme_renewal_threshold_hours"))
+					renewalThresholdHours = Configs.getInt("acme_renewal_threshold_hours");
+				
+				if (hoursPassed > renewalThresholdHours && Configs.getBoolean("acme")) {
 					System.out.println("Сертифікат застарілий. Отримання нового...");
 					// Викликаємо метод для оновлення сертифіката
 					certificateManager = new CertificateManager();
@@ -133,6 +142,69 @@ public class Servak {
 			new Thread(new SimpleHTTPSServer(443)).start();
 		if(Configs.getBoolean("avr") && (Configs.getInt("avr_port") != 80 || Configs.getInt("avr_port") != 443))
 			new Thread(new ServerTask(Configs.getInt("avr_port"))).start();
+
+		for(int i = 1; i <= 256; i++) {
+			String prxy = "prxy_" + i;
+			if(Configs.getBoolean(prxy)) {
+				int port = Configs.getInt(prxy + "_listen_port");
+				boolean portValid = port > 2000 && port != 80 && port != 443;
+				
+				// Perevirka na spivpadinnya z avr_port
+				if(Configs.getBoolean("avr") && port == Configs.getInt("avr_port"))
+					portValid = false;
+				
+				// Perevirka na spivpadinnya z inshymy prxy portamy
+				for(int j = 1; j < i; j++) {
+					String prevPrxy = "prxy_" + j;
+					if(Configs.getBoolean(prevPrxy) && port == Configs.getInt(prevPrxy + "_listen_port")) {
+						portValid = false;
+						break;
+					}
+				}
+				
+				if(portValid) {
+					// Perevirka na nayavnist danyh dlya portu
+					
+					if(Configs.getDefine(prxy + "_dial_host") && Configs.getInt(prxy + "_dial_port") != 0) {
+						if(Configs.getBoolean(prxy + "_listen_ssl")) {
+							new Thread(new SimpleHTTPSServer(port)).start();
+						}
+						
+						else{
+							new Thread(new ServerTask(port)).start();
+						}
+					}
+				} else {
+					System.err.println(prxy + " port " + port + " nevalydnyy chi dublyuetsya");
+				}
+			}
+		}
+
+		// Форвардери MachineTime: окремий потік на кожен увімкнений блок mt_fwd_<i> (аналогічно prxy_)
+		String[] mtfRequired = {
+			"_dial_host", "_dial_port", "_dial_path", "_user_agent", "_modulID", "_timezone",
+			"_private_key_1", "_private_key_2", "_private_key_3", "_private_key_4",
+			"_myStaticKeyRequest", "_myStaticKeyResponce"
+		};
+		for(int i = 1; i <= 256; i++) {
+			String mtf = "mt_fwd_" + i;
+			if(!Configs.getBoolean(mtf))
+				continue;
+
+			boolean valid = true;
+			for(String key : mtfRequired) {
+				if(!Configs.getDefine(mtf + key)) {
+					System.err.println(mtf + " propuscheno: brakuje " + mtf + key);
+					valid = false;
+					break;
+				}
+			}
+			if(!valid)
+				continue;
+
+			System.out.println("Starting MachineTimeForwarder: " + mtf);
+			new Thread(new MachineTimeForwarder(mtf)).start();
+		}
 
 		// Запускаємо агент очистки кешу
 		CacheAgent cacheAgentInstance = new CacheAgent();

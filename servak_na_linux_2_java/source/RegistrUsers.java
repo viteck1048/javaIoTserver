@@ -113,6 +113,6 @@ public final class RegistrUsers {
 				}
 			}
 		}
-		return new HTTPResponse(500);
+		return new HTTPResponse(401);
 	}
 }

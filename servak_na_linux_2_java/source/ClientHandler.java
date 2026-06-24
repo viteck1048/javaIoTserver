@@ -39,7 +39,7 @@ public class ClientHandler extends Thread {
 				}
 				
 				InputStream inputStream = socket.getInputStream();
-				HTTPRequest httpRequest = new HTTPRequest(inputStream, port, socket.getInetAddress());
+				HTTPRequest httpRequest = new HTTPRequest(inputStream, port, socket.getInetAddress(), out);
 				if(httpRequest.quickBan) {
 					if (out != null) {
 						out.write("HTTP/1.1 500 Internal Server quickBan\r\n\r\n".getBytes());
@@ -84,14 +84,21 @@ public class ClientHandler extends Thread {
 				}
 				else if(httpRequest.clientAddress.toString().compareTo("/185.177.72.7") == 0) {
 					httpResponse = new HTTPResponse("HTTP/1.1 400 ujmis, djatel\r\n\r\n", null);
-				}*/
-				else if(httpRequest.ban == false) {
+				}
+				else */
+				
+				if (httpRequest.path.compareTo("/upload") == 0 && httpRequest.method.compareTo("POST") == 0)
+					httpResponse = new HTTPResponse(200);
+				else
+				
+				if(httpRequest.ban == false) {
 					port = httpRequest.port;
 					if(!Configs.getBoolean("https_run") && Configs.getBoolean("test_all_services") && port == 80) {
 						port = 443;
 						httpRequest.port = 443;
 						httpRequest.userID = 4;
 					}
+					
 					try {
 						if (httpRequest.path.startsWith("/www80_scripts") && (httpRequest.method.compareTo("GET") == 0 || httpRequest.method.compareTo("HEAD") == 0)) {
 							httpResponse = handleWWW80Scripts(httpRequest);
@@ -99,6 +106,9 @@ public class ClientHandler extends Thread {
 						else if (httpRequest.path.startsWith("/www_scripts") && (httpRequest.method.compareTo("GET") == 0 || httpRequest.method.compareTo("HEAD") == 0)) {
 							httpResponse = handleWWWScripts(httpRequest);
 						}
+						/*else if (httpRequest.revers == HTTPRequest.ReversType.UNI_PRXY) {
+							httpResponse = handlePort443(httpRequest);
+						}*/
 						// Розділення обробки запитів за портами та статусом автентифікації
 						else {
 							switch (port) {
@@ -147,7 +157,8 @@ public class ClientHandler extends Thread {
 									}
 									break;
 								default:
-									httpResponse = new HTTPResponse("HTTP/1.1 400 ERROR\r\n\r\n", null);
+									httpResponse = handlePort443(httpRequest);
+									//httpResponse = new HTTPResponse("HTTP/1.1 400 ERROR\r\n\r\n", null);
 									break;
 							}
 						}

@@ -11,6 +11,7 @@ import java.security.cert.CertificateException;
 import java.security.cert.CertificateEncodingException;
 import java.util.Base64;
 import java.util.Optional;
+import java.util.List;
 import java.net.URL;
 
 public class CertificateManager {
@@ -163,15 +164,32 @@ public class CertificateManager {
 */
 		// Отримуємо сертифікат
 		org.shredzone.acme4j.Certificate acmeCert = order.getCertificate();
+		
+	/*	
 		X509Certificate cert = acmeCert.getCertificate();
-
+		
 		// Зберігаємо сертифікат
 		try (FileWriter writer = new FileWriter(CERTIFICATE_FILE)) {
 			writer.write("-----BEGIN CERTIFICATE-----\n");
 			writer.write(Base64.getEncoder().encodeToString(cert.getEncoded()));
 			writer.write("\n-----END CERTIFICATE-----\n");
 		}
+		
+	*/	
+		
+		// Отримуємо весь ланцюжок
+		List<X509Certificate> chain = acmeCert.getCertificateChain();
 
+		// Зберігаємо повний ланцюжок у PEM файл
+		try (FileWriter writer = new FileWriter(CERTIFICATE_FILE)) {
+			for (X509Certificate c : chain) {
+				writer.write("-----BEGIN CERTIFICATE-----\n");
+				// Використовуємо MIME-encoder для правильного форматування (з переносами рядків)
+				writer.write(Base64.getMimeEncoder(64, new byte[]{'\n'}).encodeToString(c.getEncoded()));
+				writer.write("\n-----END CERTIFICATE-----\n");
+			}
+		}		
+		
 		// Створюємо PKCS12 keystore
 		KeyStore ks = KeyStore.getInstance("PKCS12");
 		try {
@@ -180,9 +198,13 @@ public class CertificateManager {
 			e.printStackTrace();
 		}
 
-		ks.setKeyEntry("alias", domainKey.getPrivate(), KEYSTORE_PASSWORD.toCharArray(),
-				new java.security.cert.Certificate[]{cert});
+	//	ks.setKeyEntry("alias", domainKey.getPrivate(), KEYSTORE_PASSWORD.toCharArray(), new java.security.cert.Certificate[]{cert});
+		
+		// Перетворюємо List у масив для KeyStore
+		java.security.cert.Certificate[] chainArray = chain.toArray(new java.security.cert.Certificate[0]);
 
+		ks.setKeyEntry("alias", domainKey.getPrivate(), KEYSTORE_PASSWORD.toCharArray(), chainArray);
+		
 		try (FileOutputStream fos = new FileOutputStream(KEYSTORE_FILE)) {
 			ks.store(fos, KEYSTORE_PASSWORD.toCharArray());
 		} catch (IOException | NoSuchAlgorithmException | CertificateException e) {

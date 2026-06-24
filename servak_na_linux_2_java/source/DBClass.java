@@ -44,6 +44,23 @@ public class DBClass {
 	
 	private DBClass() {
 		this.avrReleList = new ArrayList<>();
+		// Штатний "деструктор" при зупинці сервісу: systemctl stop/restart шле SIGTERM,
+		// Ctrl+C — SIGINT, обидва тригерять shutdown hook. НЕ спрацює на kill -9 (SIGKILL).
+		Runtime.getRuntime().addShutdownHook(new Thread(() -> {
+			System.out.println("Shutdown hook: saving all AvrRele to DB...");
+			saveAll();
+		}));
+	}
+
+	/** Зберігає всі екземпляри в БД (виклик при зупинці сервера). */
+	public void saveAll() {
+		ArrayList<AvrRele> snapshot;
+		synchronized (this) {
+			snapshot = new ArrayList<>(avrReleList);
+		}
+		for (AvrRele avrRele : snapshot) {
+			avrRele.saveRele();
+		}
 	}
 	public static DBClass getInstance() {
 		if (instance == null) {

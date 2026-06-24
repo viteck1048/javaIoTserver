@@ -126,6 +126,19 @@ class AvrRele {
 			   (((int)bytes[offset + 1] & 0xFF) << 8);
 	}
 	
+	public long readRuntimeAbsolute() {
+		lock.lock();
+		try {
+			// obscht_r ВЖЕ містить поточну сесію (update(): obscht_r = obscht_r2 + tmpint),
+			// і саме він пишеться/читається з БД. Додавати tek_r не можна — це дало б
+			// подвійний tek онлайн і розбіжність із baseline, знятим у стані "щойно з БД"
+			// (tek_r=0), через що forwarder ловив elapsed == tek.
+			return obscht_r;
+		} finally {
+			lock.unlock();
+		}
+	}
+
 	public String update(byte requbufByte[]) {
 		lock.lock();
 		try {	

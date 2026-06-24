@@ -43,85 +43,100 @@ public class HTTPResponse {
 	
 	public HTTPResponse(int length, byte[] body, String nameFile, boolean head) {
 		String[] tmp = nameFile.split("\\.");
-		String typeFile = tmp[tmp.length - 1].toLowerCase();
-		
-		if(typeFile.compareTo("txt") == 0) {
-			typeFile = "text/plain; charset=UTF-8";
-		}
-		else if(typeFile.compareTo("html") == 0) {
-			typeFile = "text/html; charset=UTF-8";
-		}
-		else if(typeFile.compareTo("css") == 0) {
-			typeFile = "text/css; charset=UTF-8";
-		}
-		else if(typeFile.compareTo("js") == 0) {
-			typeFile = "application/javascript";
-		}
-		else if(typeFile.compareTo("csv") == 0) {
-			typeFile = "text/csv; charset=UTF-8";
-		}
-		else if(typeFile.compareTo("xml") == 0) {
-			typeFile = "text/xml; charset=UTF-8";
-		}
-		else if(typeFile.compareTo("app-json") == 0) {
-			typeFile = "application/json";
-		}
-		else if(typeFile.compareTo("app-xml") == 0) {
-			typeFile = "application/xml";
-		}
-		else if(typeFile.compareTo("app-urlencoded") == 0) {
-			typeFile = "application/x-www-form-urlencoded";
-		}
-		else if(typeFile.compareTo("app-hexstream") == 0) {
+		String typeFile;
+		if(tmp.length >= 2) {
+			typeFile = tmp[tmp.length - 1].toLowerCase();
+			
+			if(typeFile.compareTo("txt") == 0) {
+				typeFile = "text/plain; charset=UTF-8";
+			}
+			else if(typeFile.compareTo("html") == 0) {
+				typeFile = "text/html; charset=UTF-8";
+			}
+			else if(typeFile.compareTo("css") == 0) {
+				typeFile = "text/css; charset=UTF-8";
+			}
+			else if(typeFile.compareTo("js") == 0) {
+				typeFile = "application/javascript";
+			}
+			else if(typeFile.compareTo("csv") == 0) {
+				typeFile = "text/csv; charset=UTF-8";
+			}
+			else if(typeFile.compareTo("xml") == 0) {
+				typeFile = "text/xml; charset=UTF-8";
+			}
+			else if(typeFile.compareTo("app-json") == 0) {
+				typeFile = "application/json";
+			}
+			else if(typeFile.compareTo("app-xml") == 0) {
+				typeFile = "application/xml";
+			}
+			else if(typeFile.compareTo("app-urlencoded") == 0) {
+				typeFile = "application/x-www-form-urlencoded";
+			}
+			else if(typeFile.compareTo("app-hexstream") == 0) {
+				typeFile = "application/octet-stream";
+			}
+			else if(typeFile.compareTo("pdf") == 0) {
+				typeFile = "application/pdf";
+			}
+			else if(typeFile.compareTo("zip") == 0) {
+				typeFile = "application/zip";
+			}
+			else if(typeFile.compareTo("gz") == 0) {
+				typeFile = "application/gzip";
+			}
+			else if(typeFile.compareTo("jpg") == 0 || typeFile.compareTo("jpeg") == 0) {
+				typeFile = "image/jpeg";
+			}
+			else if(typeFile.compareTo("png") == 0) {
+				typeFile = "image/png";
+			}
+			else if(typeFile.compareTo("gif") == 0) {
+				typeFile = "image/gif";
+			}
+			else if(typeFile.compareTo("webp") == 0) {
+				typeFile = "image/webp";
+			}
+			else if(typeFile.compareTo("svg") == 0) {
+				typeFile = "image/svg+xml";
+			}
+			else if(typeFile.compareTo("mp3") == 0) {
+				typeFile = "audio/mpeg";
+			}
+			else if(typeFile.compareTo("ico") == 0) {
+				typeFile = "image/x-icon";
+			}
+			else if(typeFile.compareTo("ttf") == 0) {
+				typeFile = "font/ttf";
+			}
+			else if(typeFile.compareTo("woff") == 0) {
+				typeFile = "font/woff";
+			}
+			else if(typeFile.compareTo("woff2") == 0) {
+				typeFile = "font/woff2";
+			}
+			else if(nameFile.contains(Configs.getParam("acme_challenge_path"))) {
+				typeFile = "text/plain";
+			}
+			else if(typeFile.compareTo("apk") == 0) {
+				typeFile = "application/vnd.android.package-archive";
+			}
+		/*	else if(typeFile.compareTo("") == 0) {
+				typeFile = "";
+			} */
+			else {
+				this.headers = "HTTP/1.1 415 Unsupported Type\r\nServer: MijServak\r\nConnection: Closed\r\n\r\n";
+				this.body = null;
+				this.msg = "Response Err.415";
+				close_connect_flag = true;
+				return;
+			}
+	 	}
+		else {
 			typeFile = "application/octet-stream";
 		}
-		else if(typeFile.compareTo("pdf") == 0) {
-			typeFile = "application/pdf";
-		}
-		else if(typeFile.compareTo("zip") == 0) {
-			typeFile = "application/zip";
-		}
-		else if(typeFile.compareTo("gz") == 0) {
-			typeFile = "application/gzip";
-		}
-		else if(typeFile.compareTo("jpg") == 0 || typeFile.compareTo("jpeg") == 0) {
-			typeFile = "image/jpeg";
-		}
-		else if(typeFile.compareTo("png") == 0) {
-			typeFile = "image/png";
-		}
-		else if(typeFile.compareTo("gif") == 0) {
-			typeFile = "image/gif";
-		}
-		else if(typeFile.compareTo("webp") == 0) {
-			typeFile = "image/webp";
-		}
-		else if(typeFile.compareTo("svg") == 0) {
-			typeFile = "image/svg+xml";
-		}
-		else if(typeFile.compareTo("mp3") == 0) {
-			typeFile = "audio/mpeg";
-		}
-	 	else if(typeFile.compareTo("ico") == 0) {
-			typeFile = "image/x-icon";
-		}
-		else if(nameFile.contains(Configs.getParam("acme_challenge_path"))) {
-			typeFile = "text/plain";
-		}
-		else if(typeFile.compareTo("apk") == 0) {
-			typeFile = "application/vnd.android.package-archive";
-		}
-	/*	else if(typeFile.compareTo("") == 0) {
-			typeFile = "";
-		} */
-	 	else {
-			this.headers = "HTTP/1.1 415 Unsupported Type\r\nServer: MijServak\r\nConnection: Closed\r\n\r\n";
-			this.body = null;
-			this.msg = "Response Err.415";
-			close_connect_flag = true;
-			return;
-		}
-	 	
+		
 		fl_err_prnt_hdr = false;
 		this.headers = "HTTP/1.1 200 OK\r\nServer: MijServak\r\nContent-Length: " + length + "\r\nContent-Type: " + typeFile + "\r\nConnection: Closed\r\n\r\n";
 		if(head == false)
@@ -137,7 +152,7 @@ public class HTTPResponse {
 	}
 	
 	public HTTPResponse(int codeErr, HTTPRequest httpRequest) {
-		if(codeErr == 200) {
+		if(codeErr == 200 || codeErr == 0) {
 			fl_err_prnt_hdr = false;
 		}
 		else {
@@ -146,12 +161,26 @@ public class HTTPResponse {
 		this.body = null;
 		close_connect_flag = true;
 		switch(codeErr) {
+			case 0:
+				this.headers = null;
+				this.body = null;
+				this.msg = "Chunked response end";
+				this.close_connect_flag = httpRequest.close_connect_flag;
+				break;
 			case 200:
 				this.headers = "HTTP/1.1 " + codeErr + " OK\r\nServer: MijServak\r\nConnection: Closed\r\n\r\n";
 				this.msg = "Response OK." + codeErr;
 				break;
 			case 400:
 				this.headers = "HTTP/1.1 " + codeErr + " Bad Request\r\nServer: MijServak\r\nConnection: Closed\r\n\r\n";
+				this.msg = "Response Err." + codeErr;
+				break;
+			case 401:
+				this.headers = "HTTP/1.1 " + codeErr + " Unauthorized\r\nServer: MijServak\r\nConnection: Closed\r\n\r\n";
+				this.msg = "Response Err." + codeErr;
+				break;
+			case 403:
+				this.headers = "HTTP/1.1 " + codeErr + " Forbidden\r\nServer: MijServak\r\nConnection: Closed\r\n\r\n";
 				this.msg = "Response Err." + codeErr;
 				break;
 			case 404:
@@ -287,7 +316,7 @@ public class HTTPResponse {
 		else
 			System.out.println("\r" + formattedDate + "\t\tNew client " + httpRequest.clientAddress + " on port " + String.format("%5d;", httpRequest.port) + (userID == -1 ? "\t\t\t\t\t" : ("\tuserID: " + userID + "\t\t")) + msg);
 		
-		if(fl_err_prnt_hdr == true)
+		if((fl_err_prnt_hdr == true && Configs.getBoolean("log_err_prnt_header")) || (Configs.getBoolean("log_banresp_prnt_header") && httpRequest.revers == HTTPRequest.ReversType.BANRESPONSE))
 			httpRequest.prnt();
 	}
 
@@ -369,10 +398,37 @@ public class HTTPResponse {
 				body = gzipDecompress(body);
 				headers = headers.replace("Content-Encoding: gzip\r\n", "");
 			}
+		
 			if (httpRequest.revers == HTTPRequest.ReversType.BANRESPONSE && body != null) {
 				String oldPort = Configs.getParam("port_ban_response_server").trim();
 				String newPort = String.valueOf(httpRequest.portTrue).trim();
 				body = new String(body).replace(oldPort, newPort).getBytes();
+			}
+			
+	
+			if(Configs.getBoolean("ai_assist") && httpRequest.userID != 0 && body != null) {
+				if(headers.contains("Content-Type: text/html")) {
+					boolean pathMatch = false;
+					for(String p : Configs.getList("ai_assist_path_list")) {
+						if(httpRequest.path.equals(p)) {
+							pathMatch = true;
+							break;
+						}
+					}
+					
+					if(pathMatch) {
+						byte[] widget = FileCacheManager.getFile("res/chat_widget.html");
+						if(widget != null) {
+							String bodyStr = new String(body);
+							int bodyTagIndex = bodyStr.indexOf("<body>");
+							if(bodyTagIndex != -1) {
+								String widgetStr = new String(widget);
+								bodyStr = bodyStr.substring(0, bodyTagIndex + 6) + widgetStr + bodyStr.substring(bodyTagIndex + 6);
+								body = bodyStr.getBytes();
+							}
+						}
+					}
+				}
 			}
 			
 			if(headers.contains("Content-Type: ")) {
@@ -392,11 +448,13 @@ public class HTTPResponse {
 			String contentLengthPattern = "Content-Length: \\d+\r\n";
 			Pattern pattern = Pattern.compile(contentLengthPattern);
 			Matcher matcher = pattern.matcher(headers);
+			Pattern chankPattern = Pattern.compile("chunked");
+			Matcher chunkMatcher = chankPattern.matcher(headers);
 			if(matcher.find()) {
 				String newContentLength = "Content-Length: " + contentLength + "\r\n";
 				headers = matcher.replaceFirst(newContentLength);
 			}
-			else {
+			else if(!(chunkMatcher.find())){
 				headers = headers.replace("\r\n\r\n", "\r\nContent-Length: " + contentLength + "\r\n\r\n");
 			}
 			

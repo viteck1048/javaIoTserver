@@ -6,39 +6,42 @@ C++ HTTP server for tracking and persisting runtime statistics of industrial dev
 
 ## Architecture
 
+The server is split into a generic HTTP layer and application-specific code:
+
 ```
 server.cpp          — entry point: config, initialization, port threads
 ├── WorkerPool      — per-port thread pool (worker_pool.cpp/h)
-├── router.cpp      — HTTP method dispatcher (GET/POST/PUT/DELETE)
-├── MachineTime.cpp — core business logic (time tracking, events, SQLite)
-├── http_parser.cpp — HTTP request parser
-├── http_utils.cpp  — static file serving from www/
-├── setup.cpp       — INI config parser with command-line override support
-└── my_time.cpp     — time utilities, timezone handling
+├── http_parser.cpp — HTTP request parser              ┐
+├── http_utils.cpp  — static file server (www/)        │ generic HTTP layer
+├── router.cpp      — method dispatcher                ┘
+├── setup.cpp       — INI config parser with CLI override support
+├── my_time.cpp     — time utilities, timezone handling
+└── MachineTime.cpp — MachineTime business logic (time tracking, events, SQLite)
 ```
+
+`router.cpp` is the seam between the two layers: generic requests fall through to `http_utils` (static files), while `/MachineTime18Channels/` routes are dispatched to `MachineTime.cpp`.
 
 ---
 
 ## Multi-port support
 
-The server supports up to 256 independent TCP ports, each with its own worker pool. Ports are configured in `conf.ini`:
-
-```ini
-[port_0]
-port_0=true
-port_0_port=18081
-port_0_workers=14
-```
+The server supports up to 256 independent TCP ports, each with its own worker pool. Ports are configured in `conf.ini` (see `conf.ini.example`).
 
 Each active port gets a dedicated listener thread that accepts connections and dispatches them to a `WorkerPool`. Pools are independent — an overloaded port does not affect others.
 
 ---
 
+## Static file serving
+
+`http_utils.cpp` is a self-contained generic static file server. It resolves the request path relative to `www/` and serves the file with an appropriate `Content-Type`. Any frontend placed under `www/` is served automatically with no additional configuration.
+
+---
+
 ## MachineTime module
 
-One `MachineTime` instance = one device, identified by the `?id=` query parameter.
+One `MachineTime` instance = one device, identified by the `id` parameter.
 
-**Protocol:** PUT request with an encrypted binary body — an array of 20 int32 values:
+**Protocol:** the device sends PUT requests with an encrypted binary body — an array of 20 int32 values:
 - slots 0–10, 12–19 — accumulated seconds for channels 0–18
 - slot 11 — new session flag (baseline reset)
 
@@ -48,7 +51,7 @@ Data is stored in two layers:
 - `this_session` — current open session (since the last reset)
 - `month` / `old_month` — two months kept in memory (current and previous)
 
-On a session reset (`flag_new_session`), accumulated time is merged into the current day. On a day boundary, the day is persisted to SQLite. On a month boundary, the old month is evicted from memory (but remains in the DB).
+On a session reset, accumulated time is merged into the current day. On a day boundary, the day is persisted to SQLite. On a month boundary, the old month is evicted from memory (but remains in the DB).
 
 **Start/stop event detection:**
 
@@ -73,46 +76,28 @@ On shutdown, the current session is saved to the `channel_session` table. On sta
 
 ## HTTP API
 
-All requests go to `/MachineTime18Channels/?id=<device_id>`.
+All MachineTime endpoints are under `/MachineTime18Channels/` and require the `id` parameter identifying the device. GET requests pass additional parameters in the query string; non-GET requests from browser clients pass them in the request body.
 
 | Method | Parameters | Action |
 |---|---|---|
-| POST | — | Handshake (connection setup, timezone negotiation) |
-| PUT | — | Receive data packet |
-| GET | — | List available day epochs |
-| GET | `?day=<epoch>` | Channel data for a given day |
-| GET | `?day=<epoch>&channel=<n>` | Start/stop events for a channel on a given day |
-| GET | `?ids` | List registered device IDs |
-| PUT | `?name&channel=<n>&name=<str>` | Set channel name |
-| DELETE | `?channel=<n>` | Clear channel name |
+| POST | `id` | Handshake (connection setup, timezone negotiation) |
+| PUT | `id` | Receive encrypted data packet from device |
+| GET | `id` | List available day epochs |
+| GET | `id`, `day` | Channel data for a given day |
+| GET | `id`, `day`, `channel` | Start/stop events for a channel on a given day |
+| GET | `ids` | List all registered device IDs |
+| PUT | `id`, `name`, `channel` | Set channel name |
+| DELETE | `id`, `channel` | Clear channel name |
+
+Any other path is handled by the generic static file server.
 
 ---
 
 ## Configuration
 
-```ini
-serverName=MyServer
-db_path=mashine_time.db
+See `conf.ini.example` for a full annotated template. Copy it to `conf.ini` and fill in real values.
 
-[port_0]
-port_0=true
-port_0_port=18081
-port_0_workers=14
-
-[get18ChanalsMashineTimeWorks]
-myRandKey1=111111
-myRandKey2=222222
-myRandKey3=333333
-myRandKey4=444444
-myStaticKeyResponce=your_response_key_here
-myStaticKeyRequest=your_request_key_here
-
-[agents]
-save_db_agent=false        # enable background periodic save agent
-save_db_agent_period=30    # save interval in minutes
-```
-
-Full template: `conf.ini.example`. Real config with keys: `conf.ini` (in `.gitignore`).
+The config format is plain `key=value`, one per line. Section headers (`[...]`) and lines starting with `#` are ignored. Everything after `=` to end of line is the value — inline comments are not supported.
 
 **Command-line arguments:**
 ```
@@ -138,4 +123,4 @@ Dependencies: C++17 standard library, SQLite3 (amalgamation in `source/`, not tr
 
 ## Web frontend
 
-`www/MachineTime18Channels/` — single-page app for viewing channel statistics: per-day runtime charts, start/stop event timeline, multi-language support (`translations.js`).
+The generic file server automatically serves everything under `www/`. The MachineTime frontend lives at `www/MachineTime18Channels/` and is one application running on top of the generic layer — it provides per-day runtime charts, start/stop event timeline, and multi-language support.

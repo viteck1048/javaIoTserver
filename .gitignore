@@ -73,3 +73,5 @@ nppBackup/
 
 # Misc local helpers
 ai_assist_path_list.txt
+
+.gitattributes

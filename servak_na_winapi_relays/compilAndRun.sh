@@ -28,4 +28,4 @@ if [ $? -ne 0 ]; then
 fi
 
 echo "Running relays server..."
-./server_relays.out
+exec ./server_relays.out

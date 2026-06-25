@@ -8,4 +8,4 @@ if [ $? -ne 0 ]; then
 fi
 
 echo "Running server..."
-sudo ./server.out
+exec ./server.out

@@ -34,6 +34,42 @@ Thumbs.db
 *.db
 *.fdb
 *.pdb
+*.db-shm
+*.db-wal
+*.sqlite3
 
 #cript&pers_data
 */def_rand.h
+
+# C/C++ build artifacts
+*.o
+*.obj
+*.out
+*.exe
+*.so
+*.a
+obj/
+lin_obj/
+win_obj/
+
+# Notepad++ / editor backups
+nppBackup/
+*.bak
+*~
+
+# Uploaded / downloaded user content & test blobs (not source)
+**/www/download
+**/www/download/
+**/www80/download
+**/www80/download/
+**/www80/downloading
+**/www80/upload
+
+# Third-party throwaway test pages (capability tests, not ours, not a feature)
+**/BlockOut.html
+**/BlockOut_files/
+# NOTE: OpenSpeedTest is vendored third-party code but it IS a working feature
+# served by the Java gateway, so its html + www80/assets/ stay tracked on purpose.
+
+# Misc local helpers
+ai_assist_path_list.txt

@@ -1,0 +1,13 @@
+[Unit]
+Description=LiraCalc Server
+After=network.target
+
+[Service]
+User=root
+WorkingDirectory=/home/debuser/servers/servak_na_linux/server
+ExecStart=/bin/bash ./compilAndRun.sh
+Restart=on-failure
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target

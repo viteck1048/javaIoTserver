@@ -14,6 +14,9 @@ tmux new-session -d -s $SESSION -n btop 'btop; bash'
 # Додати вкладку bash
 /usr/bin/tmux new-window -t $SESSION:2 -n bash '/home/debuser/privit_banner.sh; bash'
 
+# Додати вкладку machineTimeSrvr
+/usr/bin/tmux new-window -t $SESSION:6 -n machineTimeSrvr 'cd /home/debuser/servers/esp8266_decoder && ./compilAndRun.sh; bash'
+
 # Додати вкладку relaysSrvr
 /usr/bin/tmux new-window -t $SESSION:7 -n relaysSrvr 'cd /home/debuser/servers/servak_na_winapi_relays && ./compilAndRun.sh; bash'
 

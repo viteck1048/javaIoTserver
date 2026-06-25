@@ -1,0 +1,13 @@
+[Unit]
+Description=Relays Server
+After=network.target
+
+[Service]
+User=debuser
+WorkingDirectory=/home/debuser/servers/servak_na_winapi_relays
+ExecStart=/bin/bash ./compilAndRun.sh
+Restart=on-failure
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target

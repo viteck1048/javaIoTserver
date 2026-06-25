@@ -1,0 +1,14 @@
+[Unit]
+Description=Java Server
+After=network.target
+
+[Service]
+User=root
+WorkingDirectory=/home/debuser/servers/servak_na_linux_2_java
+ExecStartPre=/bin/bash -c 'until /bin/ss -tln | grep -q ":8080 "; do sleep 1; done; until /bin/ss -tln | grep -q ":8081 "; do sleep 1; done'
+ExecStart=/bin/bash ./compilAndRun.sh
+Restart=on-failure
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target

@@ -168,7 +168,9 @@ public final class GetRes {
 		if(Configs.getBoolean("avr"))
 			jsonBuilder.append(",{\"url\": \"avr_relays_control.html\", \"title\": \"AVR Remote Control\"}");
 		
-		jsonBuilder.append(",{\"url\": \"https://mijservak.pp.ua:18080/MachineTime18Channels/\", \"title\": \"MachineTime\"}");
+		//jsonBuilder.append(",{\"url\": \"https://mijservak.pp.ua:18080/MachineTime18Channels/\", \"title\": \"MachineTime\"}");
+		if(Configs.getBoolean("mach_time_rev"))
+			jsonBuilder.append(",{\"url\": \"/MachineTime18Channels/\", \"title\": \"MachineTime\"}");
 		
 		jsonBuilder.append("]");
 		jsonBuilder.append("}");

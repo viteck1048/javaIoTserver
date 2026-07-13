@@ -9,7 +9,7 @@ let selectedDayData = null;
 let activeDeviceEl = null;
 let activeDayEl = null;
 let deviceTodayEpoch = null;  // "today" according to the device's gadget_time
-
+let channelEventCsvCache = ``;  // CSV of the currently rendered channel's start/stop day, built during render
 // ---- Helpers ----
 
 function formatSeconds(sec) {
@@ -148,7 +148,8 @@ function buildCalendarHTML(year, month) {
 	const te = currentEpoch();
 
 	let h = `<div class="cal-widget">`;
-	h += `<div class="cal-header">${t('month_names')[month - 1]} ${year}<span class="cal-download" data-year="${year}" data-month="${month}" title="${t('download_csv')}">⬇</span></div>`;
+	h += `<div class="cal-header">${t('month_names')[month - 1]} ${year}`;
+	h += `<span class="cal-download download" data-year="${year}" data-month="${month}" title="${t('download_csv')}">⬇</span></div>`;
 	h += `<div class="cal-grid">`;
 
 	for (const d of t('day_abbr'))
@@ -293,12 +294,22 @@ function renderEventsList(epoch, channel, name, data) {
 	for (const s of (data.stops  || [])) events.push({ time: s, type: 'stop'  });
 	events.sort((a, b) => a.time - b.time);
 
+	let workTime = 0, unworkTime = 0;
 	let h = `<button class="back-btn" id="back-to-day">${t('back')}</button>`;
-	h += `<p class="events-title">${t('channel_label')} ${channel}: ${name} — ${epochToDateStr(epoch)}</p>`;
+	h += `<p class="events-title">${t('channel_label')} ${channel}: ${name} — ${epochToDateStr(epoch)}`;
+	h += `<span class="event-download download" data-epoch="${epoch}" data-channel="${channel}" data-name="${escapeAttr(name)}" title="${t('download_csv')}">⬇</span>`;
+	h += `</p>`;
+
+	channelEventCsvCache = `${epochToDateStr(epoch)};${name}\r\n`;
+	channelEventCsvCache += `по отчет;;машинни;почивки;;\r\n`;
+	channelEventCsvCache += `по чекиране;;;;обедна;отсъств.\r\n`;
+	channelEventCsvCache += `чек. вход;;;чек. изход;;\r\n`;
+	channelEventCsvCache += `преди стартиране;;;;;\r\n`;
 
 	if (events.length === 0) {
 		h += `<div class="events-empty">${t('no_events')}</div>`;
 	} else {
+		var tmpSeconds = 0;
 		h += '<div class="events-list">';
 		for (const ev of events) {
 			const icon = ev.type === 'start' ? '▶' : '■';
@@ -306,12 +317,38 @@ function renderEventsList(epoch, channel, name, data) {
 				<span class="event-icon">${icon}</span>
 				<span>${formatSeconds(ev.time)}</span>
 			</div>`;
+			let diff = 0;
+			if (tmpSeconds > 0) {
+				diff = ev.time - tmpSeconds;
+				if (diff < 0) diff = 0;
+			}
+			if (ev.type === 'start') {
+				channelEventCsvCache += `начало;${formatSeconds(ev.time)};`;
+				if (diff > 0) {
+					unworkTime += diff;
+					channelEventCsvCache += `;${formatSeconds(diff)};;\r\n`;
+				} else {
+					channelEventCsvCache += `;;;\r\n`;
+				}
+			} else {
+				channelEventCsvCache += `край;${formatSeconds(ev.time)};${formatSeconds(diff)};;;\r\n`;
+			}
+			tmpSeconds = ev.time;
 		}
 		h += '</div>';
 	}
 
+	// Реальний машинний час каналу за день (з пристрою), а не сума diff подій —
+	// коректний і на межі доби (канал, що працював через північ).
+	workTime = selectedDayData.channels[channel].time_seconds;
+	channelEventCsvCache += `след изключване;;;;;\r\n`;
+	channelEventCsvCache += `чекиране;;${formatSeconds(workTime)};${formatSeconds(unworkTime)};;\r\n`;
+
 	detailEl.innerHTML = h;
 	document.getElementById('back-to-day').addEventListener('click', () => renderChannelList(epoch));
+
+	const dlBtn = detailEl.querySelector('.event-download');
+	if (dlBtn) dlBtn.addEventListener('click', () => downloadChannelCsv(dlBtn));
 }
 
 // ---- CSV download ----
@@ -376,6 +413,26 @@ async function downloadMonthCsv(year, month, btn) {
 		btn.textContent = '⬇';
 		btn.classList.remove('loading');
 	}
+}
+
+// Downloads a single channel's start/stop CSV for one day.
+// The content was already assembled into channelEventCsvCache during
+// renderEventsList, so no extra server request is made.
+function downloadChannelCsv(btn) {
+	if (!channelEventCsvCache) return;
+	const epoch = parseInt(btn.dataset.epoch);
+	const channel = parseInt(btn.dataset.channel);
+	const name = (btn.dataset.name || '').replace(/[\\/:*?"<>|]+/g, '_');
+
+	const csv = '﻿' + channelEventCsvCache;
+	const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+	const url = URL.createObjectURL(blob);
+	const a = document.createElement('a');
+	a.href = url;
+	const dateStr = epochToDateStr(epoch).replace(/\./g, '-');
+	a.download = `machinetime_${currentDeviceId}_${dateStr}_ch${channel}_${name}.csv`;
+	a.click();
+	URL.revokeObjectURL(url);
 }
 
 // ---- Edit channel names ----

@@ -51,7 +51,7 @@
 	align-items: center;
 }
 
-.cal-download {
+.download {
 	margin-left: auto;
 	cursor: pointer;
 	color: #2980b9;
@@ -61,8 +61,8 @@
 	user-select: none;
 }
 
-.cal-download:hover { color: #3498db; }
-.cal-download.loading { color: #aaa; cursor: default; }
+.download:hover { color: #3498db; }
+.download.loading { color: #aaa; cursor: default; }
 
 .cal-grid {
 	display: grid;
@@ -183,6 +183,8 @@
 }
 
 .events-title {
+	display: flex;
+	align-items: center;
 	font-size: 1rem;
 	font-weight: 600;
 	color: #2c3e50;

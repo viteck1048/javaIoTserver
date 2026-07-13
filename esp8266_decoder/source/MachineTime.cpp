@@ -244,6 +244,17 @@ class MachineTime {
 		}
 
 		void new_month() {
+			// Зберігаємо останній день місяця, що архівується, ДО std::move(month).
+			// Інакше new_day() нижче побачить порожній month (guard !month.empty())
+			// і пропустить збереження — так губився останній день місяця
+			// (channel_history + channel_events).
+			if (!month.empty() && g_db && g_db->db) {
+				g_db->exec("BEGIN;");
+				db_save_history_day(month.back());
+				db_save_events_day(month.back());
+				g_db->exec("COMMIT;");
+			}
+
 			// Видаляємо з channel_events всі записи позаминулого місяця (який виходить з вікна)
 			if (!old_month.empty() && g_db && g_db->db) {
 				int threshold = old_month.front()._time;

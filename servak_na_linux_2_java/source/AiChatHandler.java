@@ -12,7 +12,7 @@ public final class AiChatHandler {
 	}
 
 	public static HTTPResponse aiChatResend(HTTPRequest httpRequest) {
-		if (!Configs.getBoolean("ai_assist_paralel_requests")) {
+		if (!Configs.getBoolean("ai_assist_parallel_requests")) {
 			if (!aiChatBusy.compareAndSet(false, true)) {
 				return new HTTPResponse(503);
 			}
@@ -75,7 +75,7 @@ public final class AiChatHandler {
 			return new HTTPResponse(500);
 		} finally {
 			if (nc != null) nc.close();
-			if (!Configs.getBoolean("ai_assist_paralel_requests")) {
+			if (!Configs.getBoolean("ai_assist_parallel_requests")) {
 				aiChatBusy.set(false);
 			}
 		}

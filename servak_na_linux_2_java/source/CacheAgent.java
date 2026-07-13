@@ -1,6 +1,9 @@
 /**
- * Агент для автоматичної очистки кешу файлів та директорій
- * Очищає кеш кожні N хвилин та застарілі сесії користувачів
+ * Агент періодичного прибирання: витісняє з кешу давно не запитувані файли,
+ * застарілі сесії та протухлі записи бан-списку.
+ *
+ * Актуальністю кешу агент НЕ займається: змінений на диску файл виявляє і
+ * перечитує сам FileCacheManager у момент віддачі. Тут — лише повернення пам'яті.
  */
 public class CacheAgent implements Runnable {
     private volatile boolean running = true;
@@ -37,20 +40,24 @@ public class CacheAgent implements Runnable {
         while (running) {
             try {
                 Thread.sleep(cacheTimeoutMs);
-
-                // Очищаємо кеш файлів
-                FileCacheManager.cleanupCache();
-
-                // Очищаємо застарілі ключі в KeyManager
-                KeyManager.cleanUpExpiredKeys();
-
-                // Очищаємо firewall blacklist
-        		FirewallIP.cleanupBlackList();
-
             } catch (InterruptedException e) {
                 running = false;
                 Thread.currentThread().interrupt();
+                break;
             }
+
+            // Кожну задачу ізолюємо: збій в одній не має валити агента цілком
+            runQuietly("FileCacheManager.evictStale", FileCacheManager::evictStale);
+            runQuietly("KeyManager.cleanUpExpiredKeys", KeyManager::cleanUpExpiredKeys);
+            runQuietly("FirewallIP.cleanupBlackList", FirewallIP::cleanupBlackList);
+        }
+    }
+
+    private static void runQuietly(String name, Runnable task) {
+        try {
+            task.run();
+        } catch (Exception e) {
+            System.err.println("CacheAgent: " + name + " failed - " + e);
         }
     }
 

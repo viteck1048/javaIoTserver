@@ -75,3 +75,6 @@ nppBackup/
 ai_assist_path_list.txt
 
 .gitattributes
+
+# Graphify: службовий кеш і граф проєкту (генерується, не версіонується)
+graphify-out/

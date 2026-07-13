@@ -632,6 +632,18 @@ public class FirewallIP {
 	}
 
 	/**
+	 * Fully clears the blacklist and attack statistics, regardless of expiration time.
+	 * Manual call from /www_scripts/clear_banlist
+	 * @return number of IPs that were in the blacklist before clearing
+	 */
+	public static int clearBlackList() {
+		int removed = blackList.size();
+		blackList.clear();
+		attackStatistics.clear();
+		return removed;
+	}
+
+	/**
 	 * @return number of blocked IPs
 	 */
 	public static int getBlockedIpsCount() {

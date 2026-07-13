@@ -148,6 +148,9 @@ public class ClientHandler extends Thread {
 									} else if (httpRequest.chkParam("reestr")) {
 										// Запити до RegistrUsers
 										httpResponse = RegistrUsers.reestr(httpRequest);
+									} else if (httpRequest.userID == 0 && httpRequest.revers == HTTPRequest.ReversType.MACHINE_TIME && (httpRequest.method.compareTo("GET") == 0 || httpRequest.method.compareTo("HEAD") == 0)) {
+										// Читання MachineTime дозволене без автентифікації
+										httpResponse = handlePort443(httpRequest);
 									} else if (httpRequest.userID == 0) {
 										// Неавтентифіковані запити на порт 443
 										httpResponse = handlePort80(httpRequest);
@@ -371,8 +374,8 @@ public class ClientHandler extends Thread {
 	}
 	
 	private HTTPResponse handleWWW80Scripts(HTTPRequest httpRequest) {
-		if(httpRequest.path.compareTo("/www80_scripts/scan_directory") == 0) {
-			return GetRes80.scanDirectory(httpRequest); 
+		if(httpRequest.path.compareTo("/www80_scripts/get_links") == 0) {
+			return GetRes80.getLinks(httpRequest);
 		}
 		if(Configs.getBoolean("ban_response")) {
 			httpRequest.revers = HTTPRequest.ReversType.BANRESPONSE;
@@ -383,10 +386,7 @@ public class ClientHandler extends Thread {
 	
 	private HTTPResponse handleWWWScripts(HTTPRequest httpRequest) {
 		if(httpRequest.userID != 0) {
-			if(httpRequest.path.compareTo("/www_scripts/get_links") == 0) {
-				return GetRes.getLinks(httpRequest);
-			}
-			else if(httpRequest.path.compareTo("/www_scripts/scan_dwnld_directory") == 0 && Configs.getBoolean("download")) {
+			if(httpRequest.path.compareTo("/www_scripts/scan_dwnld_directory") == 0 && Configs.getBoolean("download")) {
 				return GetRes.scanDwnldDirectory(httpRequest);
 			}
 			else if(httpRequest.path.compareTo("/www_scripts/logout") == 0) {
@@ -394,6 +394,25 @@ public class ClientHandler extends Thread {
 				HTTPResponse httpResponse = new HTTPResponse(200);
 				httpResponse.set_fl_err_prnt_hdr(false);
 				httpResponse.setMsg("Client " + httpRequest.clientAddress + ". Logout passed for user ID: " + httpRequest.userID);
+				return httpResponse;
+			}
+			else if(httpRequest.path.compareTo("/www_scripts/clear_cache") == 0) {
+				long bytes = FileCacheManager.getCacheBytes();
+				int files = FileCacheManager.getFileCacheSize();
+				int dirs = FileCacheManager.getDirectoryCacheSize();
+				FileCacheManager.clearCache();
+				HTTPResponse httpResponse = new HTTPResponse(200);
+				httpResponse.set_fl_err_prnt_hdr(false);
+				httpResponse.setMsg("Client " + httpRequest.clientAddress + ". Cache cleared by user ID: " + httpRequest.userID
+					+ " (files: " + files + ", dirs: " + dirs + ", bytes: " + bytes + ")");
+				return httpResponse;
+			}
+			else if(httpRequest.path.compareTo("/www_scripts/clear_banlist") == 0) {
+				int removed = FirewallIP.clearBlackList();
+				HTTPResponse httpResponse = new HTTPResponse(200);
+				httpResponse.set_fl_err_prnt_hdr(false);
+				httpResponse.setMsg("Client " + httpRequest.clientAddress + ". Ban list cleared by user ID: " + httpRequest.userID
+					+ " (IPs: " + removed + ")");
 				return httpResponse;
 			}
 		}

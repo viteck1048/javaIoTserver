@@ -24,7 +24,9 @@ public final class ReverseProxy {
 			return new HTTPResponse(500);
 		}
 
-		if (httpRequest.userID == 0 && (httpRequest.revers != HTTPRequest.ReversType.BANRESPONSE && httpRequest.revers != HTTPRequest.ReversType.UNI_PRXY)) {
+		boolean machineTimeRead = httpRequest.revers == HTTPRequest.ReversType.MACHINE_TIME && (httpRequest.method.compareTo("GET") == 0 || httpRequest.method.compareTo("HEAD") == 0);
+
+		if (httpRequest.userID == 0 && (httpRequest.revers != HTTPRequest.ReversType.BANRESPONSE && httpRequest.revers != HTTPRequest.ReversType.UNI_PRXY && !machineTimeRead)) {
 			System.err.println("ReversProxy. err: userID == 0; !banresponse");
 			for (StackTraceElement ste : Thread.currentThread().getStackTrace()) {
 				System.err.println(ste);

@@ -1,60 +1,107 @@
 # Reverse-Proxy Handlers (Java gateway)
 
-Довідник по хендлерах у `source/*Handler.java` — кожен обробляє свій тип реверсу,
-на який головний шлюз (`ClientHandler`/`ReverseProxy`) маршрутизує запит. Усі вони —
-utility-класи (приватний конструктор) зі статичними методами, що форвардять на бекенд,
-адреса якого береться з `config.ini`.
+Reference for the handlers in `source/*Handler.java`. Each one serves a single reverse type,
+which the main gateway (`ClientHandler` / `ReverseProxy`) routes the request to. All of them
+are utility classes (private constructor) with static methods that forward to a backend whose
+address comes from the config file.
 
-> Згенеровано в співпраці: чорнову прохідку зробила локальна LLM (qwen2.5-coder),
-> звірено й доповнено вручну по факту коду 2026-06-18.
+Config keys referenced below are documented in [CONFIG.md](CONFIG.md).
+
+> Drafted with a local LLM (qwen2.5-coder), then checked and completed by hand against the
+> code on 2026-06-18. Updated 2026-07-13.
 
 ---
 
 ## AiChatHandler — `AI_CHAT`
-Проксі до зовнішнього **OpenAI-сумісного** LLM-сервісу (`/v1/chat/completions`, через SSL).
-- **Бекенд:** `ai_assist_url` (host:port), опц. `ai_assist_token`/`ai_assist_autorization_header`, модель `ai_assist_model`.
-- **Single-flight guard:** якщо `ai_assist_paralel_requests=false`, тримає `AtomicBoolean aiChatBusy` — другий одночасний запит одразу отримує `503`.
-- Збирає system-prompt (дефолтний або `ai_assist_prompt`) + врахування `Accept-Language` та імені користувача; user-content пакує в теги `<page>/<chat_history>/<user_message>`.
-- Таймаут 5 хв (`setSoTimeout(300000)`). Відповідь LLM парситься вручну (`extractJsonContent`), повертається як `text/html`.
+Proxy to an external **OpenAI-compatible** LLM service (`/v1/chat/completions`, over SSL).
+- **Backend:** `ai_assist_url` (host:port), optionally `ai_assist_token` /
+  `ai_assist_authorization_header`, model from `ai_assist_model`.
+- **Single-flight guard:** when `ai_assist_parallel_requests=false`, holds an
+  `AtomicBoolean aiChatBusy` — a second concurrent request immediately gets `503`.
+- Builds the system prompt (default or `ai_assist_prompt` / `ai_assist_prompt_file`), taking
+  `Accept-Language` and the user's name into account; wraps user content in
+  `<page>` / `<chat_history>` / `<user_message>` tags.
+- Timeout 5 min (`setSoTimeout(300000)`). The LLM reply is parsed by hand
+  (`extractJsonContent`) and returned as `text/html`.
 - **Public:** `aiChatResend(HTTPRequest)` → `HTTPResponse`.
 
 ## PhpFpmHandler — `PHP_FPM`
-Повноцінний **клієнт бінарного протоколу FastCGI** до php-fpm (не просто форвард!).
-- **Бекенд:** `ip_php_fpm_server` / `port_php_fpm_server`.
-- Сам формує FastCGI-записи: `FCGI_BEGIN_REQUEST` → `FCGI_PARAMS` (з коректним кодуванням довжин ≥128 у 4 байти + padding до 8) → `FCGI_STDIN` (тіло ріжеться на чанки по 65535) .
-- Читає відповідь по 8-байтових заголовках, збирає `FCGI_STDOUT`, логує `FCGI_STDERR`, завершує на `FCGI_END_REQUEST`.
-- **Public:** `phpFpmResend(HTTPRequest)` → `HTTPResponse`. (приват. `sendPHPFPMRequest(...)` — збірка/відправка одного FastCGI-запису).
+A full **binary FastCGI protocol client** for php-fpm — not a plain forward.
+- **Backend:** `ip_php_fpm_server` / `port_php_fpm_server`.
+- Builds FastCGI records itself: `FCGI_BEGIN_REQUEST` → `FCGI_PARAMS` (correctly encoding
+  lengths ≥ 128 as 4 bytes, padded to 8) → `FCGI_STDIN` (body split into 65535-byte chunks).
+- Reads the reply through 8-byte record headers, assembles `FCGI_STDOUT`, logs `FCGI_STDERR`,
+  finishes on `FCGI_END_REQUEST`.
+- **Public:** `phpFpmResend(HTTPRequest)` → `HTTPResponse`.
+  (private `sendPHPFPMRequest(...)` — builds and sends a single FastCGI record).
 
-## UniProxyHendler — `UNI_PRXY`  *(найскладніший)*
-Універсальний реверс-проксі з пер-портовою конфігурацією та підтримкою стрімінгу LLM.
-- **Конфіг за портом:** `Configs.getKeyForUniPrxyPort(port)` → `prxyKey`, далі `<prxyKey>_dial_host/_dial_port/_dial_ssl`.
-- **Авторизація:** опційна перевірка `<prxyKey>_authorization_header` (інакше `401`); опційна авторизація за `userID` (`_authorization_userID`) з ендпоінтом `authorization=check` та маршрутом `reestr` → `RegistrUsers.reestr`.
-- **Дебаг:** гнучкі прапорці `<prxyKey>_dbg_options` (`request_headers`, `request_body`, `response_headers`, `response_body`, `response_llm_thinking`, `response_llm_finally`).
-- **Стрімінг:** при `Transfer-Encoding: chunked` проксіює чанки клієнту на льоту, паралельно парсячи LLM-поля `thinking`/`reasoning`/`content` (підтримує і OpenAI, і Ollama формати). Інакше — читає за `Content-Length`.
-- **Public:** `uniPrxyResend(HTTPRequest)` → `HTTPResponse`. (приват. `formatJson`, `getContent`, `addIndent`).
+## UniProxyHendler — `UNI_PRXY`  *(the most complex one)*
+Generic reverse proxy with per-port configuration and LLM streaming support.
+- **Per-port config:** `Configs.getKeyForUniPrxyPort(port)` → `prxyKey`, then
+  `<prxyKey>_dial_host` / `_dial_port` / `_dial_ssl`.
+- **Authorization:** optional check of `<prxyKey>_authorization_header` (otherwise `401`);
+  optional `userID` authorization (`<prxyKey>_authorization_userID`) with an
+  `authorization=check` endpoint and a `reestr` route → `RegistrUsers.reestr`.
+- **Debug:** flexible flags in `<prxyKey>_dbg_options` (`request_headers`, `request_body`,
+  `response_headers`, `response_body`, `response_llm_thinking`, `response_llm_finally`).
+- **Streaming:** on `Transfer-Encoding: chunked`, relays chunks to the client on the fly while
+  parsing LLM fields `thinking` / `reasoning` / `content` (handles both OpenAI and Ollama
+  shapes). Otherwise reads by `Content-Length`.
+- **Public:** `uniPrxyResend(HTTPRequest)` → `HTTPResponse`.
+  (private `formatJson`, `getContent`, `addIndent`).
 
 ## RelaysServerHandler — `RELAYS_SERVER`
-Форвард на сервер реле з ін'єкцією `userID`.
-- **Бекенд:** `ip_relay_server` / `port_relay_server`.
-- GET на `/relay_servak/` — додає `userID` у query першого рядка заголовка; POST/PUT/DELETE з `application/x-www-form-urlencoded` — вставляє `userID` у тіло й перераховує `Content-Length`.
+Forwards to the relay server, injecting `userID`.
+- **Backend:** `ip_relay_server` / `port_relay_server`.
+- `GET` on `/relay_servak/` — appends `userID` to the query string of the request line.
+  `POST` / `PUT` / `DELETE` with `application/x-www-form-urlencoded` — injects `userID` into
+  the body and recomputes `Content-Length`.
 - **Public:** `relaysServerResend(HTTPRequest)` → `HTTPResponse`.
-- ⚠️ Дрібниця: повідомлення відповіді — `"revers to old server"` (копіпаст-залишок, варто поправити на relay).
+- ⚠️ Nit: the response message still reads `"revers to old server"` — a copy-paste leftover,
+  worth changing to `relay`.
+
+## MachineTimeProxyHandler — `MACHINE_TIME`
+Forwards to the ESP8266 decoder that serves MachineTime. Plain forward, **no SSL**
+(`new NetworkClient(host, port, false)`).
+- **Backend:** `mach_time_ip` / `mach_time_port`.
+- The path is **not stripped** — the target server handles `/MachineTime18Channels/` itself.
+- **Injects `userID`**, by the same pattern as `RelaysServerHandler`:
+  - `GET` — appends `userID=<n>` to the query string of the request line, choosing `?` or `&`
+    depending on whether a query is already present;
+  - `POST` / `PUT` / `DELETE` with `application/x-www-form-urlencoded` — injects
+    `&userID=<n>` into the body, recomputes `contentLength` and patches the `Content-Length`
+    header.
+- **Reads do not require authentication.** `ReverseProxy` exempts `GET` and `HEAD` on this
+  reverse type from the `userID != 0` check. Consequence: an anonymous visitor still reaches
+  the handler, and the injected value is **`userID=0`** — the backend must treat 0 as
+  "anonymous". Every other method still requires a session.
+- **Public:** `machineTimeResend(HTTPRequest)` → `HTTPResponse`.
 
 ## OldServakHandler — `OLD_SERVAK`
-Простий форвард (header+body, без SSL) на **перший повноцінний C++ сервер** проєкту —
-той, що лежить у `servak_na_linux/` (C++ з Firebird, етап 2 еволюції). Цей сервер
-**і є LiraCalc-сервер**, тому конфіг-ключі названі коректно.
-- **Бекенд:** `ip_liraCalc_server` / `port_liraCalc_server` (= старий C++ сервер `servak_na_linux/`, він же LiraCalc).
+Plain forward (header + body, no SSL) to the project's **first full C++ server** — the one in
+`servak_na_linux/` (C++ with Firebird, stage 2 of the evolution). That server **is** the
+LiraCalc server, so the config key names are accurate.
+- **Backend:** `ip_liraCalc_server` / `port_liraCalc_server` (= the old C++ server in
+  `servak_na_linux/`, a.k.a. LiraCalc).
 - **Public:** `oldServakResend(HTTPRequest)` → `HTTPResponse`.
 
 ## BanResponseHandler — `BANRESPONSE`
-Форвард **тільки заголовків** (тіло обнуляється, `Content-Length: 0`) на бан-сервер.
-- **Бекенд:** `ip_ban_response_server` / `port_ban_response_server`.
+Forwards **headers only** (body zeroed, `Content-Length: 0`) to the ban server.
+- **Backend:** `ip_ban_response_server` / `port_ban_response_server`.
 - **Public:** `banResponse(HTTPRequest)` → `HTTPResponse`.
 
 ---
 
-### Спільні патерни
-- Усі повертають `503`, якщо не вдалось підключитись до бекенду (`NetworkClient` кидає `IOException`).
-- Усі використовують `NetworkClient` для send/recv (chunked + Content-Length вміє він сам).
-- Бекенди й ключі авторизації — виключно з `config.ini` (тримається поза git).
+### Shared patterns
+- All return `503` when the backend cannot be reached (`NetworkClient` throws `IOException`).
+- All use `NetworkClient` for send/receive (it handles chunked and `Content-Length` itself).
+- Backends and authorization keys come exclusively from the config file, which is kept out of
+  git. See [CONFIG.md](CONFIG.md).
+
+### Who requires an authenticated session
+`ReverseProxy` rejects a request with `userID == 0` **unless** it is one of:
+- `BANRESPONSE` — by design;
+- `UNI_PRXY` — authorization is handled per-proxy inside `UniProxyHendler`;
+- `MACHINE_TIME` with method `GET` or `HEAD` — public reads.
+
+Everything else needs a session.

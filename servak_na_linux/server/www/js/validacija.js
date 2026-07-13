@@ -262,6 +262,7 @@ function analiz_umovy(_this) {
 function analiz_form(_this, flag) {
 	var li = -1;
 	var bb = [];
+	var zm_cnt = {};
 	if(_this.is('#form-lir-0'))
 		li = 0;
 	else if(_this.is('#form-lir-1'))
@@ -322,7 +323,7 @@ function analiz_form(_this, flag) {
 			}
 			else if(/[e-hj-z]/.test(ff[i])) {
 				zm++;
-				bb.push(ff[i]);
+				zm_cnt[ff[i]] = (zm_cnt[ff[i]] || 0) + 1;
 			}
 			else if(ff[i] === 'A' || ff[i] === 'B' || ff[i] === 'C' || ff[i] === 'D' || ff[i] === 'E' || ff[i] === 'F' || ff[i] === '!' || ff[i] === '*' || ff[i] === '/' || ff[i] === '&' || ff[i] === '+' || ff[i] === '-' || ff[i] === '^' || ff[i] === '|') {
 				di++;
@@ -347,6 +348,36 @@ function analiz_form(_this, flag) {
 			push_my_console_err("jakas dyvna pomylka)skladovi;).");
 			return false;
 		}
+		// Змінна, що трапляється у формулі більш ніж раз, оберненню не піддається:
+		// gen_zv_form() припускає, що ціль є рівно в ОДНОМУ з двох операндів, а для
+		// повтору мовчки видала б самопосилання (i=x*x  ->  x=i/x).
+		//
+		// Але зі списку в bb далі живе МЕНЕДЖМЕНТ ЗМІННИХ: obrobka_zmin_v_formuli()
+		// читає текст опцій #selectbb-<li> і за ним видаляє (delete-zm), створює
+		// (add-zminna) та будує форми. Тому дубльована змінна мусить у списку бути —
+		// просто недоступною для вибору. Виключиш її звідти — і її зітруть із бази.
+		//
+		// bb дедуплікується: раніше сюди йшло КОЖНЕ входження, тож для i=x*x у селектор
+		// потрапляли два пункти 'x', і add-zminna викликався двічі, створюючи змінну в
+		// базі двічі.
+		var zm_odyn = 0;
+		for(var v in zm_cnt) {
+			bb.push(v);
+			if(zm_cnt[v] === 1) {
+				zm_odyn++;
+			}
+			else {
+				push_my_console_warn(lng === "uk" ? ("змінна «" + v + "» входить у формулу " + zm_cnt[v] + " рази — зворотну формулу по ній побудувати неможливо")
+					: (lng === "bg" ? ("променливата «" + v + "» се среща " + zm_cnt[v] + " пъти — обратна формула по нея е невъзможна")
+					: ("variable «" + v + "» occurs " + zm_cnt[v] + " times — no inverse formula can be built for it")));
+			}
+		}
+		if(zm_odyn === 0) {
+			push_my_console_err(lng === "uk" ? "жодна змінна не входить у формулу рівно один раз — зворотну формулу побудувати неможливо"
+				: (lng === "bg" ? "няма променлива, която да се среща точно веднъж — обратна формула е невъзможна"
+				: "no variable occurs exactly once — an inverse formula cannot be built"));
+			return false;
+		}
 	}
 	if(ff.length !== 1) {
 		ff = ff.slice(1, ff.length - 1);
@@ -354,7 +385,7 @@ function analiz_form(_this, flag) {
 	var res = "#mem-prom-f-" + li;
 	$(res).val(ff);
 	
-	combobpox_dlja_f(bb, li);
+	combobpox_dlja_f(bb, zm_cnt, li);
 	
 	return true; 
 }
@@ -763,16 +794,32 @@ function analiz_konst(pole, _post, this_mem) {
 }
 
 
-function combobpox_dlja_f(bb, li) {
+function combobpox_dlja_f(bb, zm_cnt, li) {
 	var html = '';
+	var persha = '';
 	html +=
 		"<p><label for='selectbb-" + li + "'>Найважната променлива</label>" +
 		"<select class='input_non_enter fc_bl_lira_form_zv' id='selectbb-" + li + "' >";
 		for(var i = 0; i < bb.length; i++) {
-			html += "<option value='" + bb[i] + "'>" + bb[i] + "</option>";
+			// Дубльована змінна лишається в списку (за ним іде менеджмент змінних),
+			// але вибрати її ціллю обернення не можна.
+			// ТЕКСТ опції чіпати НЕ МОЖНА: obrobka_zmin_v_formuli() читає текст усього
+			// <select> одним рядком і перебирає його ПОСИМВОЛЬНО, створюючи змінну на
+			// кожен символ. Будь-яка приписка стала б окремими змінними. Тому позначка
+			// живе в title.
+			var dubl = zm_cnt[bb[i]] > 1;
+			var pidkazka = lng === "uk" ? "входжень у формулу: " + zm_cnt[bb[i]] + " — обернення неможливе"
+				: (lng === "bg" ? "срещания във формулата: " + zm_cnt[bb[i]] + " — обръщане невъзможно"
+				: "occurrences in formula: " + zm_cnt[bb[i]] + " — inversion impossible");
+			html += "<option value='" + bb[i] + "'" +
+				(dubl ? " disabled title=\"" + pidkazka + "\"" : "") +
+				">" + bb[i] + "</option>";
+			if(dubl === false && persha === '') {
+				persha = bb[i];
+			}
 		}
 	html += "</select>";
-	html += "<script>document.getElementById('selectbb-" + li + "').value = '" + bb[0] + "';</script>";
+	html += "<script>document.getElementById('selectbb-" + li + "').value = '" + persha + "';</script>";
 	html += "<button class='zadijaty-zminy-liry' id='zadijaty-zminy-liry-" + li + "'>Задействай промени</button>";
 	var res = "#knop-zadijaty-zminy-" + li;
 	$(res).html(html);

@@ -66,7 +66,8 @@ java ... Servak -c confMijServak.ini -p https_run=false avr=false
 
 **Потрібні завжди:**
 `invite`, `host`, `www_directory`, `www80_directory`, `dbg_post_message_path`,
-`db_file`, `db_user`, `db_password`, `keyStoreFile`, `keyStorePassword`.
+`db_file`, `db_user`, `db_password`, `keyStoreFile`, `keyStorePassword`,
+`key_expiration_time` (додатково перевіряється на `> 0`).
 
 **Умовно потрібні** — лише якщо відповідний сервіс увімкнено:
 
@@ -286,15 +287,15 @@ java ... Servak -c confMijServak.ini -p https_run=false avr=false
 | `ai_assist_model` | String | Ім'я моделі. |
 | `ai_assist_prompt` | String | Системний промпт текстом. |
 | `ai_assist_prompt_file` | String | Або файл із промптом (`res/AI_SUPPORT.md`). Має пріоритет. |
-| `ai_assist_autorization_header` | String | *(необов'язковий)* **Секрет.** Повний рядок заголовка авторизації, що дописується до запиту (напр. `Authorization: Bearer …`). Альтернатива до `ai_assist_token`. `AiChatHandler.java:46` |
+| `ai_assist_authorization_header` | String | *(необов'язковий)* **Секрет.** Повний рядок заголовка авторизації, що дописується до запиту (напр. `Authorization: Bearer …`). Альтернатива до `ai_assist_token`. `AiChatHandler.java:46` |
 
-> **Дві пастки в написанні ключів цієї секції.**
+> **Історична довідка — обидві одруки виправлені, писати треба правильно.**
 >
-> 1. `ai_assist_autorization_header` — саме так, через **`autorization`**, без `h`.
->    Одрук у самому коді; писати «правильно» = ключ не спрацює.
-> 2. `ai_assist_parallel_requests` — а тут навпаки, дві `l`. Раніше код читав
->    `paralel` з однією, і ключ ніколи не збігався з файлом, тобто налаштування просто
->    не діяло. Виправлено, тепер обидві сторони пишуть `parallel`.
+> 1. `ai_assist_authorization_header` — код колись читав `autorization`, без `h`.
+> 2. `ai_assist_parallel_requests` — код колись читав `paralel`, з однією `l`.
+>
+> В обох випадках ключ ніколи не збігався з тим, що стояло у файлі, і налаштування
+> просто не діяло. Тепер код і конфіг пишуть однаково й правильно.
 
 ## `[UniversProxys 1-256]` — універсальні проксі
 
@@ -363,14 +364,11 @@ java ... Servak -c confMijServak.ini -p https_run=false avr=false
 |---|---|
 | **Мертві** — є у файлі, код не читає ніде | `banresp_log_headers`, `php_redirect`, `php_test` |
 | **Недокументовані** — код читає, у файлі немає | `socket_read_timeout`, `socket_last_request_timeout` |
-| **Одруки в назвах** — писати саме так, як у коді | `ai_assist_autorization_header` (без `h`), `ai_assist_parallel_requests` (дві `l`) |
 
-### `key_expiration_time` — тиха діра
+Одруки в назвах ключів (`autorization` без `h`, `paralel` з однією `l`) **виправлені** —
+код і конфіг тепер пишуть однаково.
 
-Читається як `Configs.getInt("key_expiration_time")` (`KeyManager.java:79`) **без** захисту
-`getDefine`. І `validate()` його **не перевіряє**. Тобто якщо ключ зникне з конфігу, сервер
-спокійно стартує — а час життя сесійних ключів мовчки стане нулем або впаде вже в рантаймі.
-
-Це єдиний числовий ключ у всьому конфізі, який не прикритий ані `getDefine` з дефолтом, ані
-`validate()`. Варто або додати його до списку обов'язкових у `Configs.validate()`, або дати
-йому дефолт.
+`key_expiration_time` раніше був тихою дірою: `KeyManager.java:79` читає його в `static final`
+полі без `getDefine` і без дефолту, а `validate()` його не перевіряв — тобто без цього ключа
+сервер спокійно стартував із нульовим часом життя сесійних ключів. **Тепер він у списку
+обов'язкових і додатково перевіряється на `> 0`.**

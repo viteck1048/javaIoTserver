@@ -43,8 +43,8 @@ public final class AiChatHandler {
 
 			String request = "POST /v1/chat/completions HTTP/1.1\r\n"
 				+ "Host: " + host + "\r\n";
-			if (Configs.getDefine("ai_assist_autorization_header")) {
-				request += Configs.getParam("ai_assist_autorization_header") + "\r\n";
+			if (Configs.getDefine("ai_assist_authorization_header")) {
+				request += Configs.getParam("ai_assist_authorization_header") + "\r\n";
 			} else if (Configs.getDefine("ai_assist_token")) {
 				request += "Authorization: Bearer " + Configs.getParam("ai_assist_token") + "\r\n";
 			}

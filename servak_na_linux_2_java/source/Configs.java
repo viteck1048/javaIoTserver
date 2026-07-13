@@ -131,12 +131,21 @@ public class Configs {
 			"host",
 			"db_user",
 			"db_password",
-			"dbg_post_message_path"
+			"dbg_post_message_path",
+			"key_expiration_time"
 		};
 
 		for (String key : requiredKeys) {
-			if (!checkParam(key)) 
+			if (!checkParam(key))
 				return false;
+		}
+
+		// KeyManager читає key_expiration_time у static final полі, без getDefine і без
+		// дефолту. Тобто без цієї перевірки відсутній або нульовий ключ не зупиняв би
+		// старт — сервер піднімався б із нульовим часом життя сесійних ключів.
+		if(getInt("key_expiration_time") <= 0) {
+			System.out.println("Invalid param: key_expiration_time must be > 0 (minutes)");
+			return false;
 		}
 
 		return true;

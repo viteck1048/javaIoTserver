@@ -45,27 +45,27 @@ function html_lira(i, m_id, l_id, name, magaz, br_kol_lir, form_, form_zv, fl_ad
 			"<zminni id='zminni-" + i + "'>";
 			var jj = 0;
 			var fl_zm = 0;
-			html += "<table class='layout'>";
+			html += "<div class='stack'>";
 			if(fl_add === 0) {
 				$.each(json_data.liry_zm_arr[i], function(j, zm) {
-					html += "<tr id='zm-det-show" + i + "-" + j + "'><td class='panel_zm spoy-batja'><ui class='spoy-kn spoy-mini' style='display: none; margin-left: 45px;'>" + (zm.BUKVA == 'u' ? 'β' : zm.BUKVA) + "</ui><a class='spoy-kn'>spoyler</a><div class='spoy-panel' id='zm-det-" + i + "-" + j + "'>";
+					html += "<div class='row' id='zm-det-show" + i + "-" + j + "'><div class='panel_zm spoy-batja'><ui class='spoy-kn spoy-mini' style='display: none; margin-left: 45px;'>" + (zm.BUKVA == 'u' ? 'β' : zm.BUKVA) + "</ui><a class='spoy-kn'>spoyler</a><div class='spoy-panel' id='zm-det-" + i + "-" + j + "'>";
 					
 					html += html_zm(m_id, l_id, zm.Z_ID, zm.BUKVA, i, j, zm.NAME, zm.ZNACHENNJA, zm.NPP_S);	
 							
-					html += "</div></td><tr>";
+					html += "</div></div></div>";
 					jj = j;
 					fl_zm = 1;
 				});
 			}
 			if(fl_zm == 0) {
-				html += "<tr style='display: none;' id='zm-det-show" + i + "-" + jj + "'><td class='panel_zm spoy-batja'><ui class='spoy-kn spoy-mini' style='display: none; margin-left: 45px;'></ui><a class='spoy-kn'>spoyler</a><div class='spoy-panel' id='zm-det-" + i + "-" + jj + "'></div></td><tr>";
+				html += "<div class='row' style='display: none;' id='zm-det-show" + i + "-" + jj + "'><div class='panel_zm spoy-batja'><ui class='spoy-kn spoy-mini' style='display: none; margin-left: 45px;'></ui><a class='spoy-kn'>spoyler</a><div class='spoy-panel' id='zm-det-" + i + "-" + jj + "'></div></div></div>";
 			}
 			while(jj < 9) {
 				jj++;
-				html += "<tr style='display: none;' id='zm-det-show" + i + "-" + jj + "'><td class='panel_zm spoy-batja'><ui class='spoy-kn spoy-mini' style='display: none; margin-left: 45px;'></ui><a class='spoy-kn'>spoyler</a><div class='spoy-panel' id='zm-det-" + i + "-" + jj + "'></div></td><tr>";
+				html += "<div class='row' style='display: none;' id='zm-det-show" + i + "-" + jj + "'><div class='panel_zm spoy-batja'><ui class='spoy-kn spoy-mini' style='display: none; margin-left: 45px;'></ui><a class='spoy-kn'>spoyler</a><div class='spoy-panel' id='zm-det-" + i + "-" + jj + "'></div></div></div>";
 			}
 			html += 
-				"</table></zminni>" + 
+				"</div></zminni>" + 
 			"<p><a href='?l_id=" + l_id + "&json=umovy' id='umovy_" + l_id + "' class=umovy-edit-details style='display: none;'>Условия за зацепване</a></p>" +
 			"<div id='usl-det_" + l_id + "'></div>" + 
 			"<script>document.getElementById('umovy_" + l_id + "').click();</script>" +
@@ -79,7 +79,7 @@ function edit_mash(href) {
 		m_id_mem = json_data.mash.M_ID;
 		var html = '';
 		html += 
-			"<mash-edit><table class='layout'><tr><td class='panel_mash spoy-batja'>" +
+			"<mash-edit><div class='stack'><div class='row'><div class='panel_mash spoy-batja'>" +
 			"<ui class='spoy-kn spoy-mini spoy-mini-m' style='display: none;'>" + (json_data.mash.NAME || '') + "</ui>" +
 			"<a class='spoy-kn' tabindex='-1'>spoyler</a><div class='spoy-panel'>" +
 			"<h2>mashyna</h2>";
@@ -97,34 +97,34 @@ function edit_mash(href) {
 			"<p><label>magaz_1</label><textarea class='txt dovhe input_non_enter fc_bl_mash_m1'>" + (json_data.mash.M1 || '') + "</textarea></p>" +
 			"<p><label>magaz_2</label><textarea class='txt dovhe input_non_enter fc_bl_mash_m2'>" + (json_data.mash.M2 || '') + "</textarea></p>";
 		
-		html += "<table class='layout'>";
+		html += "<div class='stack'>";
 		var ii = 0;
 		var fl_li = 0;
 		ii = 0;
 		br_lir = 0;
 		$.each(json_data.liry, function(i, lira) {
-			html += "<tr><td class='panel_lira spoy-batja' id='lir-det-" + i + "'>";
+			html += "<div class='row'><div class='panel_lira spoy-batja' id='lir-det-" + i + "'>";
 			html += html_lira(i, json_data.mash.M_ID, lira.L_ID, lira.NAME, lira.MAGAZ, lira.BR_KOL_LIR, lira.FORM, lira.FORM_ZV, 0, json_data);
-			html += "</td></tr>";
+			html += "</div></div>";
 			ii = i;
 			fl_li = 1;
 		});
 		br_lir = ii;
 		if(fl_li == 0) {
-			html += "<tr style='display: none;' id='lir-det-shou" + ii + "'><td class='panel_lira spoy-batja' id='lir-det-" + ii + "'></td></tr>";
+			html += "<div class='row' style='display: none;' id='lir-det-shou" + ii + "'><div class='panel_lira spoy-batja' id='lir-det-" + ii + "'></div></div>";
 			br_lir = -1;
 		}
 		while(ii < 2) {
 			ii++;
-			html += "<tr style='display: none;' id='lir-det-shou" + ii + "'><td class='panel_lira spoy-batja' id='lir-det-" + ii + "'></td></tr>";
+			html += "<div class='row' style='display: none;' id='lir-det-shou" + ii + "'><div class='panel_lira spoy-batja' id='lir-det-" + ii + "'></div></div>";
 		}
 		
-		html += "<tr><td><div id=add-lira><a href='add-lira' data-m_id='" + (json_data.mash.M_ID || 0) + "' class='icon add_icon add-lira' ";
+		html += "<div class='row'><div class='cell'><div id='add-lira'><a href='add-lira' data-m_id='" + (json_data.mash.M_ID || 0) + "' class='icon add_icon add-lira' ";
 		if(br_lir >= 2)
 			html += "style='display: none;' ";
-		html += " tabindex='-1'>Add Lira</a></div></tr>";
+		html += " tabindex='-1'>Add Lira</a></div></div></div>";
 		
-		html += "</div></td></tr></td></table></mash-edit>";
+		html += "</div></div></div></div></div></mash-edit>";
 		html += "<p><input type='button' id='save-all' value='Save All' style='display: none;'></p>";
 		$('#mashyn-details').html(html);
 	});
@@ -137,7 +137,7 @@ function edit_umovy(href) {
 		var html = '';
 		
 		html += 
-			"<usl_det><table class='layout'><tr><td class='panel_um spoy-batja'><ui class='spoy-kn spoy-mini' style='display: none;'>Условия за зацепване</ui><a class='spoy-kn'>spoyler</a><div class='spoy-panel'><h2>Условия за зацепване</h2>" +
+			"<usl_det><div class='stack'><div class='row'><div class='panel_um spoy-batja'><ui class='spoy-kn spoy-mini' style='display: none;'>Условия за зацепване</ui><a class='spoy-kn'>spoyler</a><div class='spoy-panel'><h2>Условия за зацепване</h2>" +
 			"<div id='usl-lenta-" + json_data.l_id + "'>";
 			
 		$.each(json_data.umovy, function(i, umovy) {
@@ -145,8 +145,8 @@ function edit_umovy(href) {
 		});
 		
 		html += "</div>";
-		html += "<p><a href='add-umova' data-l_id='" + json_data.l_id + "' class='icon add_icon add-um' tabindex='-1' value='" + json_data.l_id + "' style='margin-left: 50px;'>Add umova</a></p>"
-		html += "</div></td></tr></table></usl_det>";
+		html += "<p><a href='add-umova' data-l_id='" + json_data.l_id + "' class='icon add_icon add-um' tabindex='-1' value='" + json_data.l_id + "'>Add umova</a></p>"
+		html += "</div></div></div></div></usl_det>";
 		$(res).html(html);
 	});
 }
@@ -172,8 +172,8 @@ function html_um(u_id, l_id, umova) {
 				"<input type='submit' class='save-usl' value='Save' style='display: none;'>" +
 			"</form>" +
 			"<p>" +
-				"<input class='txt medium input_non_enter fc_bl_umovy_umova' value='" + (umova || '') + "' style='margin-left: 50px;'/>" +
-				"<a href='delete-um' data-u_id='" + (u_id || 0) + "' class='icon delete_icon delete-um' tabindex='-1' style='margin-left: 10px;'>del umova</a>" +
+				"<input class='txt medium input_non_enter fc_bl_umovy_umova' value='" + (umova || '') + "'/>" +
+				"<a href='delete-um' data-u_id='" + (u_id || 0) + "' class='icon delete_icon delete-um' tabindex='-1'>del umova</a>" +
 			"</p>" +
 		"</div>";
 	return html;
@@ -239,17 +239,17 @@ function edit_zm_npp(href) {
 			"<div class='npp-add-del-" + json_data.z_id + "' style='display: none;' id='npp-none-" + json_data.z_id + "-" + json_data.l_id + "'>" +
 				"<p style='float: right'>" +
 					"<a href='add-zm-npp' data-z_id='" + json_data.z_id + "' class='icon add_icon add-npp' value='" + json_data.z_id + "' tabindex='-1'>add</a>" +
-					"<a href='delete-zm-npp' style='margin-left: 15px' class='icon delete_icon delete-npp' value='" + json_data.z_id + "' tabindex='-1'>del</a>" +
+					"<a href='delete-zm-npp' class='icon delete_icon delete-npp' value='" + json_data.z_id + "' tabindex='-1'>del</a>" +
 				"</p>" +
 			"</div>" +
-			"<table class='layout npp-det-list-" + json_data.z_id + "'>";
+			"<div class='stack npp-det-list-" + json_data.z_id + "'>";
 		$.each(json_data.zm_npp, function(i, zm_npp) {
 			html += html_zm_npp(zm_npp.N_ID, zm_npp.Z_ID, zm_npp.ZNACHENNJA, zm_npp.UMOVA, zm_npp.COMENT, json_data.npp_s);
 		});
 		if(json_data.npp_s != 0) {
 			html += "<script>document.getElementById('npp-none-" + json_data.z_id + "-" + json_data.l_id + "').style.display = '';</script>";
 		}
-		html += "</table></npp_det>";
+		html += "</div></npp_det>";
 		$(res).html(html);
 	});
 }
@@ -258,8 +258,8 @@ function edit_zm_npp(href) {
 function html_zm_npp(n_id, z_id, znach, umova, coment, npp_s) {
 	var html = '';
 	html += 
-		"<tr class='npp-kont'>" +
-			"<td class='panel_zm_npp spoy-batja'><ui class='spoy-kn spoy-mini spoy-mini-n' style='display: none;'>" + (coment || '') + "</ui>" +
+		"<div class='row npp-kont'>" +
+			"<div class='panel_zm_npp spoy-batja'><ui class='spoy-kn spoy-mini spoy-mini-n' style='display: none;'>" + (coment || '') + "</ui>" +
 				"<a class='spoy-kn'>spoyler</a>" +
 				"<div class='spoy-panel'>" +
 					"<form class='edit-npp-form' action='save-npp' enctype='multipart/form-data' method='put'>" +
@@ -278,10 +278,10 @@ function html_zm_npp(n_id, z_id, znach, umova, coment, npp_s) {
 					html += "<p style='margin-left: 0px; display: none;' class='um-show'><label>умова</label><input class='txt input_non_enter fc_bl_npp_umova' value='" + (umova || '') + "'/>";
 				}
 				html += 
-					"<p style='margin-left: 0px;'><label>коментар</label><input class='txt input_non_enter fc_bl_npp_coment' value='" + (coment || '') + "'/>";
+					"<p style='margin-left: 0px;'><label>коментар</label><input class='txt input_non_enter fc_bl_npp_coment' value='" + (coment || '') + "'/>" +
 				"</div>" +
-			"</td>" +
-		"</tr>";
+			"</div>" +
+		"</div>";
 	return html;
 }
 

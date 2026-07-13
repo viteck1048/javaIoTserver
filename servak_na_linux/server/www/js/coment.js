@@ -63,24 +63,31 @@ function prnt_instr(_this) {
 }
 
 
+// #instr_zvity живе у плаваючому вікні консолі (#lc-console), яке відкривається
+// кнопкою у футері. Вміст і далі пише себе в localStorage — це пам'ять звітів.
+// Плюс дублюємо вивід простим текстом у консоль браузера, з відповідним рівнем.
+
 function push_my_console_err (data) {
 	var currentTime = new Date();
 	var time = currentTime.toLocaleTimeString('uk-UA', { timeZone: 'Europe/Kyiv' });
-	push_my_console("<p class='icon error_icon'><lable class='msg_err'>" + data + "</lable><lable style='color: #AAAAAA;'>" + time + "</lable></p>");
+	console.error('[LiraCalc ' + time + '] ' + data);
+	push_my_console("<p class='icon error_icon'><lable class='msg_err'>" + data + "</lable><lable class='msg_time'>" + time + "</lable></p>");
 }
 
 
 function push_my_console_warn(data) {
 	var currentTime = new Date();
 	var time = currentTime.toLocaleTimeString('uk-UA', { timeZone: 'Europe/Kyiv' });
-	push_my_console("<p class='icon info_icon'><lable class='msg_warn'>" + data + "</lable><lable style='color: #AAAAAA;'>" + time + "</lable></p>");
+	console.warn('[LiraCalc ' + time + '] ' + data);
+	push_my_console("<p class='icon info_icon'><lable class='msg_warn'>" + data + "</lable><lable class='msg_time'>" + time + "</lable></p>");
 }
 
 
 function push_my_console_ok (data) {
 	var currentTime = new Date();
 	var time = currentTime.toLocaleTimeString('uk-UA', { timeZone: 'Europe/Kyiv' });
-	push_my_console("<p class='icon ok_icon'><lable class='msg_ok'>" + data + "</lable><lable style='color: #AAAAAA;'>" + time + "</lable></p>");
+	console.log('[LiraCalc ' + time + '] ' + data);
+	push_my_console("<p class='icon ok_icon'><lable class='msg_ok'>" + data + "</lable><lable class='msg_time'>" + time + "</lable></p>");
 }
 
 
@@ -89,6 +96,8 @@ function push_my_console(data) {
 		$('#instr_zvity').append(data);
 		$('#instr_zvity').scrollTop($('#instr_zvity').prop('scrollHeight'));
 		localStorage.setItem('instr_zvity', $('#instr_zvity').html());
+		// Позначка біля кнопки у футері дублює іконку останнього запису
+		if(typeof lcUpdateConsoleMark === 'function') lcUpdateConsoleMark();
 	}else {
 		$('#mashyn-details').append(data);
 		$('#mashyn-details').scrollTop($('#instr_zvity').prop('scrollHeight'));
@@ -102,14 +111,13 @@ function sub_edit_mash(action, formData, method) {
 		type: method,
 		data: formData,
 		success: function(data) {
+			// Обидві гілки женемо через push_my_console: він і дописує, і скролить,
+			// і зберігає в localStorage, і оновлює позначку біля кнопки консолі.
+			// Раніше тут усе це дублювалось руками — і позначка не оновлювалась.
 			if(data.startsWith("<p class='icon")) {
-				$('#instr_zvity').append(data);
-				$('#instr_zvity').scrollTop($('#instr_zvity').prop('scrollHeight'));
-				localStorage.setItem('instr_zvity', $('#instr_zvity').html());
+				push_my_console(data);
 			}else if((data + 0) > 0) {
-				$('#instr_zvity').append("<p class='icon ok_icon msg_ok'>Машинка успішно додана.</p>");
-				$('#instr_zvity').scrollTop($('#instr_zvity').prop('scrollHeight'));
-				localStorage.setItem('instr_zvity', $('#instr_zvity').html());
+				push_my_console("<p class='icon ok_icon msg_ok'>Машинка успішно додана.</p>");
 				var newUrl = "?m_id=" + data;
 				// Перезавантажуємо сторінку з новим URL
 				window.location.href = newUrl;

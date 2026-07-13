@@ -4,6 +4,58 @@ var xhttp = new XMLHttpRequest();
 var lng = navigator.language.slice(0, 2);
 
 
+// Підсвітка активного пункту бокового меню. Стиль .links-list a.active приходить
+// із home_page.css — той самий, що на решті сайту.
+// Кожна машина має ДВА посилання: видиме "show" і приховане "edit" (index.cpp
+// клікає його програмно). Вони різняться лише префіксом id, тож підсвічуємо
+// завжди видиме — інакше активним лишався б невидимий пункт.
+function markActiveMashyn(href) {
+	var m = /[?&]m_id=(\d+)/.exec(href || '');
+	$('#links-list a').removeClass('active');
+	if (m) {
+		$('#menu-mashyn-show-details-id' + m[1]).addClass('active');
+	}
+}
+
+
+/* ============================================================================
+   Консоль звітів — плаваюче вікно (#lc-console), у якому живе сам #instr_zvity.
+   Кнопка виклику статична, у футері. Поведінка за зразком ші-чата.
+   ============================================================================ */
+
+function lcConsoleIsOpen() {
+	var w = document.getElementById('lc-console');
+	return !!w && w.classList.contains('open');
+}
+
+function lcConsoleOpen() {
+	var w = document.getElementById('lc-console');
+	if(!w) return;
+	w.classList.add('open');
+	var body = document.getElementById('instr_zvity');
+	if(body) body.scrollTop = body.scrollHeight;
+}
+
+function lcConsoleClose() {
+	var w = document.getElementById('lc-console');
+	if(w) w.classList.remove('open');
+}
+
+// Позначка біля кнопки у футері дублює іконку ОСТАННЬОГО повідомлення.
+// Поки повідомлень немає — місце зарезервоване, але порожнє.
+function lcUpdateConsoleMark() {
+	var mark = document.getElementById('lc-console-mark');
+	if(!mark) return;
+	mark.className = 'console-mark';
+	var rows = document.querySelectorAll('#instr_zvity > p');
+	if(!rows.length) return;
+	var last = rows[rows.length - 1];
+	if(last.classList.contains('ok_icon'))         mark.classList.add('mark_ok');
+	else if(last.classList.contains('info_icon'))  mark.classList.add('mark_warn');
+	else if(last.classList.contains('error_icon')) mark.classList.add('mark_err');
+}
+
+
 // (lng === "uk" ? "nazva verstatu" : (lng === "bg" ? "imeto na mashina" : "Mashine"))
 $(document).ready(function() {
 	
@@ -143,14 +195,45 @@ $(document).ready(function() {
 	
 	
 	$(document).on('click', 'a.mashyn-show-details, a.mashyn-show-refresh', function(e) {
+		markActiveMashyn($(this).attr('href'));
 		show_mash($(this).attr('href'));
 		return false;
 	});
-	
-		
+
+
 	$(document).on('click', 'a.mashyn-edit-details', function(e) {
+		markActiveMashyn($(this).attr('href'));
 		edit_mash($(this).attr('href'));
 		return false;
+	});
+
+
+	$(document).on('click', 'a.add-mash', function(e) {
+		$('#links-list a').removeClass('active');
+		$(this).addClass('active');
+	});
+
+
+	// Меню дій у заголовку перегляду (Редактор / Download .cnf / Preview .cnf).
+	// Делеговане, бо заголовок вставляється динамічно з view.js.
+	$(document).on('click', '.view-menu-btn', function(e) {
+		e.stopPropagation();
+		var menu = $(this).closest('.view-header').find('.view-menu');
+		var wasOpen = menu.hasClass('open');
+		$('.view-menu.open').removeClass('open');
+		if(!wasOpen) {
+			menu.addClass('open');
+		}
+	});
+
+	// Закриття по кліку будь-де поза меню (в т.ч. по самому пункту)
+	$(document).on('click', function(e) {
+		if(!$(e.target).closest('.view-menu').length) {
+			$('.view-menu.open').removeClass('open');
+		}
+	});
+	$(document).on('click', '.view-menu a', function(e) {
+		$('.view-menu.open').removeClass('open');
 	});
 	
 	/* 
@@ -542,52 +625,34 @@ document.addEventListener('DOMContentLoaded', function() {
 });
 
 
-document.getElementById('menuToggle').addEventListener('click', function() {
-    const nav = document.querySelector('nav');
-    if (nav.style.transform === 'translateX(0%)') {
-        nav.style.transform = 'translateX(-100%)';
-    } else {
-        nav.style.transform = 'translateX(0%)';
-    }
-});
-
-// --- Свайп і тап меню для <nav> ---
+// --- Бокове меню: свайп і тап ---
+// Каркас тепер спільний із рештою сайту: <nav> — це ВЕРХНЯ панель, а бокове
+// меню — #sidebar (як на MachineTime і релейках). На мобілці воно керується
+// виключно свайпом; #menuToggle схований у CSS і лишається лише як частина
+// спільної розмітки, обробника не має.
 document.addEventListener('DOMContentLoaded', function() {
-    const menuToggle = document.getElementById('menuToggle');
-    const nav = document.querySelector('nav');
+    const sidebar = document.getElementById('sidebar');
     const mainContent = document.getElementById('mashyn-details');
 
     // Якщо #mashyn-details порожній — меню відкрите
-    if (nav && mainContent && mainContent.innerHTML.trim() === '') {
-        nav.classList.add('active');
-        if (menuToggle) menuToggle.classList.add('active');
-    }
-
-    // Відкриття/закриття меню по кнопці
-    if (menuToggle && nav) {
-        menuToggle.addEventListener('click', function(e) {
-            e.stopPropagation();
-            nav.classList.toggle('active');
-            menuToggle.classList.toggle('active');
-        });
+    if (sidebar && mainContent && mainContent.innerHTML.trim() === '') {
+        sidebar.classList.add('active');
     }
 
     // Закриття меню по кліку на основний контент
-    if (mainContent && nav) {
+    if (mainContent && sidebar) {
         mainContent.addEventListener('click', function(event) {
-            if (nav.classList.contains('active') && !event.target.closest('nav') && !event.target.closest('#menuToggle')) {
-                nav.classList.remove('active');
-                menuToggle.classList.remove('active');
+            if (sidebar.classList.contains('active') && !event.target.closest('#sidebar')) {
+                sidebar.classList.remove('active');
             }
         });
     }
 
     // Закриття меню по кліку на посилання
     document.body.addEventListener('click', function(event) {
-        if (nav && nav.classList.contains('active')) {
+        if (sidebar && sidebar.classList.contains('active')) {
             if (event.target.tagName === 'A' || event.target.closest('a')) {
-                nav.classList.remove('active');
-                menuToggle.classList.remove('active');
+                sidebar.classList.remove('active');
             }
         }
     });
@@ -607,18 +672,114 @@ document.addEventListener('DOMContentLoaded', function() {
     }, false);
 
     function handleGesture() {
-        if (!nav) return;
+        if (!sidebar) return;
+        if (lcConsoleIsOpen()) return;   // поки консоль відкрита, свайпи їй, не сайдбару
         if (touchEndX < touchStartX && Math.abs(touchStartX - touchEndX) > 50 && Math.abs(touchStartX - touchEndX) > Math.abs(touchStartY - touchEndY)) {
-            nav.classList.remove('active'); // свайп вліво
-            if (menuToggle) menuToggle.classList.remove('active');
+            sidebar.classList.remove('active'); // свайп вліво
         }
         if (touchEndX > touchStartX && Math.abs(touchStartX - touchEndX) > 50 && touchStartX < 200 && Math.abs(touchStartX - touchEndX) > Math.abs(touchStartY - touchEndY)) {
-            nav.classList.add('active'); // свайп вправо
-            if (menuToggle) menuToggle.classList.add('active');
+            sidebar.classList.add('active'); // свайп вправо
         }
     }
 });
 // --- Кінець блоку свайп/тап ---
+
+
+// --- Консоль: відкриття, закриття, перетяг ---
+(function() {
+	'use strict';
+
+	// Далі цього порогу жест уже не тап, а прокрутка чи перетяг — і закривати
+	// вікно не можна. Саме це відрізняє «подивився і зачинив» від гортання логу.
+	var TAP_SLOP = 8;
+
+	var downX = 0, downY = 0, moved = false;
+	var drag = null;
+
+	function markMoved(x, y) {
+		if(Math.abs(x - downX) > TAP_SLOP || Math.abs(y - downY) > TAP_SLOP) {
+			moved = true;
+		}
+	}
+
+	// ---- відкриття/закриття -------------------------------------------------
+	$(document).on('click', '#lc-console-btn', function(e) {
+		e.preventDefault();
+		e.stopPropagation();
+		if(lcConsoleIsOpen()) {
+			lcConsoleClose();
+		} else {
+			lcConsoleOpen();
+		}
+	});
+
+	// Закриває клік/тап БУДЬ-ДЕ, включно з тілом вікна — але тільки якщо це був
+	// саме тап, а не прокрутка. Слухаємо на фазі захоплення, щоб спрацювати
+	// раніше за інші обробники.
+	function onUp(e) {
+		if(!lcConsoleIsOpen()) return;
+		if(moved) return;                                       // прокрутка або перетяг
+		if($(e.target).closest('#lc-console-btn').length) return;  // кнопкою керує її ж обробник
+		lcConsoleClose();
+	}
+
+	document.addEventListener('mousedown', function(e) {
+		downX = e.clientX; downY = e.clientY; moved = false;
+	}, true);
+	document.addEventListener('mousemove', function(e) {
+		markMoved(e.clientX, e.clientY);
+	}, true);
+	document.addEventListener('mouseup', onUp, true);
+
+	document.addEventListener('touchstart', function(e) {
+		if(e.touches.length !== 1) return;
+		downX = e.touches[0].clientX; downY = e.touches[0].clientY; moved = false;
+	}, { passive: true, capture: true });
+	document.addEventListener('touchmove', function(e) {
+		if(e.touches.length !== 1) return;
+		markMoved(e.touches[0].clientX, e.touches[0].clientY);
+	}, { passive: true, capture: true });
+	document.addEventListener('touchend', onUp, true);
+
+	// ---- перетяг за смугу (як у чаті) ---------------------------------------
+	function dragStart(x, y) {
+		var win = document.getElementById('lc-console');
+		if(!win || window.innerWidth <= 768) return;   // на мобілці вікно прибите до країв
+		var r = win.getBoundingClientRect();
+		drag = { ox: x - r.left, oy: y - r.top };
+		win.style.right = 'auto';
+		win.style.bottom = 'auto';
+		win.style.left = r.left + 'px';
+		win.style.top = r.top + 'px';
+	}
+	function dragMove(x, y) {
+		if(!drag) return;
+		var win = document.getElementById('lc-console');
+		win.style.left = (x - drag.ox) + 'px';
+		win.style.top  = (y - drag.oy) + 'px';
+	}
+
+	$(document).on('mousedown', '#lc-console-bar', function(e) {
+		e.preventDefault();
+		dragStart(e.clientX, e.clientY);
+	});
+	$(document).on('touchstart', '#lc-console-bar', function(e) {
+		var t = e.originalEvent.touches;
+		if(t.length !== 1) return;
+		dragStart(t[0].clientX, t[0].clientY);
+	});
+
+	document.addEventListener('mousemove', function(e) {
+		if(drag) { e.preventDefault(); dragMove(e.clientX, e.clientY); }
+	});
+	document.addEventListener('touchmove', function(e) {
+		if(drag && e.touches.length === 1) { e.preventDefault(); dragMove(e.touches[0].clientX, e.touches[0].clientY); }
+	}, { passive: false });
+
+	document.addEventListener('mouseup',  function() { drag = null; });
+	document.addEventListener('touchend', function() { drag = null; });
+})();
+// --- Кінець блоку консолі ---
 
 function prnt_instr(element) {
     // Створюємо спливаюче вікно, якщо його ще немає

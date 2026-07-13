@@ -11,22 +11,38 @@ std::string index_cpp_get(int method, int m_id, const char* name)
 		buff << "<title>Lira Calc Config Editor</title>";
 		buff << "<meta http-equiv='Content-Type' content='text/html; charset=UTF-8' />";
 		buff << "<meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\">";
+		// Спільний каркас сайту + власні стилі LiraCalc — як на MachineTime і релейках
+	 	buff << "<link rel=\"stylesheet\" type=\"text/css\" href=\"css/home_page.css\">";
 	 	buff << "<link rel=\"stylesheet\" type=\"text/css\" href=\"css/default.css\">";
 		buff << "<link rel=\"icon\" href=\"css/famfam/gear.png\" type=\"image/png\">";
-	
+
 	buff << "</head>";
 	buff << "<body>";
-		buff << "<!-- Бокове меню навігації -->";
-		
+	buff << "<div class=\"main-container\">";
+
+		// Верхня панель — за зразком дочірніх сторінок: лише логотип, без логіну/виходу
 		buff << "<nav>";
-			buff << "<ul>";
-				buff << "<h1><a href='./' class='icon refresh_icon'>Машини</a></h1>";
-				buff << "<form action=\"\" method=\"POST\">";
-					buff << "<input type=\"text\" name=\"search_m\" id=\"search_m\" placeholder=\"Poshuk za nazvoyu\">";
-					buff << "<input type=\"submit\" value=\"Тьрсене\">";
-				buff << "</form>";
-	
-	
+			buff << "<div class=\"container\">";
+				buff << "<ul class=\"nav-links\">";
+					buff << "<li><a href=\"https://mijservak.pp.ua/\" id=\"nav-home\" class=\"logo\">MijServak</a></li>";
+				buff << "</ul>";
+			buff << "</div>";
+		buff << "</nav>";
+
+		// Меню на мобілці керується виключно свайпом. Кнопка схована в CSS і
+		// обробника не має — лишається лише як частина спільної розмітки, так
+		// само як на MachineTime і релейках.
+		buff << "<button id=\"menuToggle\">&#9776;</button>";
+
+		buff << "<div class=\"content\">";
+
+		buff << "<div class=\"sidebar\" id=\"sidebar\">";
+
+	// Пункти меню збираємо окремо: заголовок треба віддати вже ПІСЛЯ запиту,
+	// бо іконка «показати всі» з'являється лише тоді, коли список відфільтрований
+	// пошуком, а це відомо тільки за результатом запиту.
+	std::stringstream list_buff;
+
 	connect_db();
 	
 	int praporec_nicjoho_ne_znajdeno = 1;
@@ -61,10 +77,8 @@ std::string index_cpp_get(int method, int m_id, const char* name)
 				while(isc_dsql_fetch(status_vector, &stmt_handle, 1, sqlda_output) == 0) {
 					praporec_nicjoho_ne_znajdeno = 2;
 					norm_str(buf_name);
-					buff << "<li><a href='?m_id=" << *(int*)buf_m_id << "&name=" << ((VARY*)buf_name)->vary_string;
-					buff << "&json=liry' class='icon view_icon mashyn-show-details' id='menu-mashyn-show-details-id" << *(int*)buf_m_id << "'>" << ((VARY*)buf_name)->vary_string << "</a><li>";
-					buff << "<li><a href='?m_id=" << *(int*)buf_m_id << "&name=" << ((VARY*)buf_name)->vary_string << "&json=liry' class='icon edit_icon mashyn-edit-details' id='menu-mashyn-edit-details-id";
-					buff << *(int*)buf_m_id << "' style='display: none;'>" << ((VARY*)buf_name)->vary_string << "</a><li>";
+					list_buff << "<li><a href='?m_id=" << *(int*)buf_m_id << "&name=" << ((VARY*)buf_name)->vary_string;
+					list_buff << "&json=liry' class='mashyn-show-details' id='menu-mashyn-show-details-id" << *(int*)buf_m_id << "'>" << ((VARY*)buf_name)->vary_string << "</a></li>";
 				}
 			}
 		}
@@ -81,10 +95,8 @@ std::string index_cpp_get(int method, int m_id, const char* name)
 				if (isc_dsql_execute(status_vector, &tr_handle, &stmt_handle, 1, NULL) == 0) {
 					while(isc_dsql_fetch(status_vector, &stmt_handle, 1, sqlda_output) == 0) {
 						norm_str(buf_name);
-						buff << "<li><a href='?m_id=" << *(int*)buf_m_id << "&name=" << ((VARY*)buf_name)->vary_string;
-						buff << "&json=liry' class='icon view_icon mashyn-show-details' id='menu-mashyn-show-details-id" << *(int*)buf_m_id << "'>" << ((VARY*)buf_name)->vary_string << "</a><li>";
-						buff << "<li><a href='?m_id=" << *(int*)buf_m_id << "&name=" << ((VARY*)buf_name)->vary_string << "&json=liry' class='icon edit_icon mashyn-edit-details' id='menu-mashyn-edit-details-id";
-						buff << *(int*)buf_m_id << "' style='display: none;'>" << ((VARY*)buf_name)->vary_string << "</a><li>";
+						list_buff << "<li><a href='?m_id=" << *(int*)buf_m_id << "&name=" << ((VARY*)buf_name)->vary_string;
+						list_buff << "&json=liry' class='mashyn-show-details' id='menu-mashyn-show-details-id" << *(int*)buf_m_id << "'>" << ((VARY*)buf_name)->vary_string << "</a></li>";
 					}
 				}
 			}
@@ -104,37 +116,66 @@ std::string index_cpp_get(int method, int m_id, const char* name)
 		return buff.str();
 	}
 	free(sqlda_output);
-	
+
 	disconect_db();
-	
-	
+
+
+			// praporec == 2 означає, що ПЕРШИЙ запит повернув рядки. Для POST це і
+			// є успішний пошук, тобто список відфільтрований і неповний — тільки
+			// тоді має сенс іконка «показати всі». Для GET той самий praporec == 2
+			// означає просто повний список, і скидати нічого.
+			bool pokazaty_vsi = (method == POST && praporec_nicjoho_ne_znajdeno == 2);
+
+			buff << "<h3 class=\"sidebar-title\">Машини";
+			if(pokazaty_vsi) {
+				buff << "<a href='./' class='refresh-link' title='Показати всі верстати' aria-label='Показати всі верстати'></a>";
+			}
+			buff << "</h3>";
+
+			buff << "<form class=\"sidebar-search\" action=\"\" method=\"POST\">";
+				buff << "<input type=\"text\" name=\"search_m\" id=\"search_m\" placeholder=\"Пошук за назвою\">";
+				buff << "<input type=\"submit\" value=\"Знайти\">";
+			buff << "</form>";
+
+			buff << "<ul class=\"links-list\" id=\"links-list\">";
+				buff << list_buff.str();
 				buff << "<li><a href='?index=add-mash' class='icon add_icon add-mash' tabindex='-1'>Add new mashin</a></li>";
 			buff << "</ul>";
-			buff << "<p><a href='FireBird' class='icon user_icon mysqlviev'>преглед на БД</a>";
-		buff << "</nav>";
-		buff << "<!-- Контент сторінки -->";
-		buff << "<main>";
-			buff << "<div class='pole_opysu' id='mashyn-details'>";
-			/*
-			if(praporec_nicjoho_ne_znajdeno != 0) {
-				buff <<  "<h2>Vyberit' verstat zi spysku zliva</h2>";
-				buff <<  "<h2>(abo natysnit' 'add')</h2>";
-				buff <<  "<h2>((abo skorystajtes' poshukom))</h2>";
-				buff <<  "<p>tut budut' vidobrazheni jiji detali</p>";
-			}
-			else {
-				buff << "<p>Nichogo ne znajdeno</p>";
-			}
-			*/
-			buff << "</div>";
-			buff << "<button id=\"menuToggle\">⋮</button>";
-			buff << "<!--h1>Заголовок сторінки</h1>";
-			buff << "<p>Тут розміщений вміст сторінки, який може бути оформлений за зразком вікіпедії.</p>";
-			buff << "<p>Також можна додати таблиці, списки, зображення тощо.</p-->";
+		buff << "</div>";	// #sidebar
+
+		buff << "<div class=\"main-content\">";
+			buff << "<div class='pole_opysu' id='mashyn-details'></div>";
+
+			// Пам'ять інструкцій. Схована (.pole_instr -> display:none), але не
+			// вирізана — у неї пише xhttp-відповідь у application.js.
 			buff << "<div class='pole_instr' id='instr_coment'></div>";
-			buff << "<div class='pole_instr' id='instr_zvity'>";
+		buff << "</div>";	// .main-content
+
+		buff << "</div>";	// .content
+
+		buff << "<footer class=\"thin-footer\">";
+			buff << "<a href='FireBird' class='footer-link icon user_icon mysqlviev'>преглед на БД</a>";
+			buff << "<p>&copy; 2025 MijServak. Всі права захищено.</p>";
+			// Кнопка консолі — праворуч, дзеркально до посилання на БД. Місце під
+			// іконку зарезервоване завжди; картинку в нього ставить JS, дублюючи
+			// іконку ОСТАННЬОГО повідомлення в консолі (див. lcUpdateConsoleMark).
+			buff << "<a href='#' class='footer-console' id='lc-console-btn'>";
+				buff << "<span class='console-mark' id='lc-console-mark'></span>консоль";
+			buff << "</a>";
+		buff << "</footer>";
+
+		// Плаваюче вікно консолі. Сам #instr_zvity переїхав сюди — тобто
+		// push_my_console() і далі дописує в нього, а localStorage працює як
+		// працював. Ніякого дзеркалення вмісту немає.
+		buff << "<div id='lc-console' role='dialog' aria-label='Консоль звітів'>";
+			buff << "<div id='lc-console-bar'>";
+				buff << "<span>Консоль</span>";
+				buff << "<span class='lc-hint'>тап — згорнути</span>";
 			buff << "</div>";
-		buff << "</main>";
+			buff << "<div id='instr_zvity'></div>";
+		buff << "</div>";
+
+	buff << "</div>";	// .main-container
 		buff << "<script type=\"text/javascript\" src=\"js/jquery-2.1.3.js\"></script>";
 		buff << "<script type=\"text/javascript\" src=\"js/application.js\"></script>";
 		buff << "<script type=\"text/javascript\" src=\"./js/edit.js\"></script>";
@@ -142,9 +183,15 @@ std::string index_cpp_get(int method, int m_id, const char* name)
 		buff << "<script type=\"text/javascript\" src=\"./js/coment.js\"></script>";
 		buff << "<script type=\"text/javascript\" src=\"./js/validacija.js\"></script>";
 		if(method == GET && m_id != -1) {
+			// Прихованих пунктів меню (mashyn-edit-details) більше немає — вони
+			// плодили порожній <li> на кожен верстат і роздували відступи.
+			// Href для редактора беремо просто з видимого пункту: він містить
+			// і m_id, і name. У C++ його не зібрати — KM_server.cpp:491 передає
+			// сюди name як NULL.
 			buff << "<script type='text/javascript'>";
 				buff << "$(document).ready(function() {";
-				buff << "$('#menu-mashyn-edit-details-id" << m_id << "').click();";
+				buff << "var a = document.getElementById('menu-mashyn-show-details-id" << m_id << "');";
+				buff << "if(a) { markActiveMashyn(a.getAttribute('href')); edit_mash(a.getAttribute('href')); }";
 				buff << "});";
 			buff << "</script>";
 		}
@@ -159,6 +206,9 @@ std::string index_cpp_get(int method, int m_id, const char* name)
 		
 			buff << "$('#instr_zvity').html(instr_zvity_mem || '');";
 			buff << "$('#instr_zvity').scrollTop($('#instr_zvity').prop('scrollHeight'));";
+			// Позначка біля кнопки консолі має відповідати останньому повідомленню
+			// вже при завантаженні, а не лише після нового запису.
+			buff << "lcUpdateConsoleMark();";
 		buff << "</script>";
 		buff << "</body>";
 	buff << "</html>";

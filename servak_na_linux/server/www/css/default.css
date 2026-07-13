@@ -1,717 +1,733 @@
-/* Стилі для бокового меню навігації */
-nav {
-	background-color: #f0f0f0;
-	padding: 20px;
-	position: fixed;
-	top: 0;
-	bottom: 20px;
-	left: 0;
-	width: 18%;
-	float: left;
-	overflow-y: auto;
+/* ============================================================================
+   LiraCalc Config Editor — власні стилі.
+
+   Каркас (body, nav, #sidebar, .content, .main-content, .thin-footer, мобільна
+   off-canvas поведінка) приходить із css/home_page.css — того самого файлу, що
+   на решті сайту. Тут тільки те, чого немає в спільному: панелі редактора,
+   форми, іконки.
+
+   Підключається ПІСЛЯ home_page.css, тож перебиває його там, де треба.
+   ============================================================================ */
+
+/* home_page.css фарбує h2 у #000DFF (це для форми логіну на головній).
+   У редакторі h2 — це заголовки «mashyna» / «lira N», їм потрібен тон сайту. */
+h2 {
+	margin: 0.3em 0 0.2em 0;
+	font-size: 1.1em;
+	margin-bottom: 0.2em;
+	color: #2c3e50;
 }
-nav ul {
-	list-style-type: none;
-	margin: 0;
-	padding: 0;
-	bottom: 20px;
+h1, h3 {
+	margin: 0.3em 0 0.2em 0;
+	font-size: 1.1em;
+	color: #2c3e50;
 }
-nav ul li {
-	margin-top: 8px;
-	margin-bottom: 5px;
-	font-size: 20px;
-	font-weight: bold;
+h1 small, h2 small, h3 small {
+	opacity: .4;
+	font-size: .8em;
 }
-nav ul li a {
-	color: #333;
+
+a:link, a:visited, a:active {
+	color: #2980b9;
 	text-decoration: none;
 }
-nav ul li a:hover {
+a:hover {
+	color: #3498db;
 	text-decoration: underline;
 }
-nav a.mysqlviev {
-	font-size: 16px;
-	font-weight: normal;
+
+p { margin: 0.5em 0 0.5em 0; }
+th { text-align: left; }
+img { border: none; }
+
+/* ------------------------------------------------------------------ сайдбар */
+/* Іконка «показати всі верстати» — ПІСЛЯ заголовка меню, і лише тоді, коли
+   список відфільтрований пошуком (умову тримає index.cpp).
+
+   Стара реалізація вішала картинку через .icon { padding-left: 16px } плюс
+   background у «top left»: вона липла до верхнього лівого кута рядка, мала
+   намертво зашиті 16px і жодного зв'язку з розміром шрифту — звідси й вигляд
+   надрядкового знака. Тут це інлайновий блок на 1em із background-size: contain,
+   тож розмір іде за шрифтом, а vertical-align садить іконку на базову лінію. */
+.sidebar-title .refresh-link {
+	display: inline-block;
+	width: 1em;
+	height: 1em;
+	margin-left: 0.45em;
+	vertical-align: -0.12em;
+	background: transparent url(famfam/arrow_rotate_anticlockwise.png) no-repeat center center;
+	background-size: contain;
+	opacity: 0.6;
+	transition: opacity 0.2s;
+}
+.sidebar-title .refresh-link:hover {
+	opacity: 1;
+}
+
+.sidebar-search {
+	display: flex;
+	gap: 6px;
+	margin-bottom: 1rem;
+}
+.sidebar-search input[type="text"] {
+	flex: 1;
+	min-width: 0;
+	width: auto;
+}
+
+/* Пункти меню несуть і .links-list a (з home_page.css), і .icon з фоновою
+   картинкою famfam. Селектор .links-list a має вищу специфічність за .icon,
+   тож padding-left доводиться повертати тут — інакше текст лягає на іконку. */
+.links-list a.icon {
+	padding-left: 26px;
+	background-position: 6px center;
+	background-repeat: no-repeat;
+}
+
+/* --------------------------------------------------------------------- футер
+   Посилання на друк БД — у лівому кутку дрібним шрифтом, © лишається по центру. */
+.thin-footer {
+	position: relative;
+}
+.footer-link,
+.footer-link:link,
+.footer-link:visited {
+	position: absolute;
+	left: 0.75rem;
+	top: 50%;
+	transform: translateY(-50%);
+	font-size: 0.75em;
+	color: #9fb3c8;
+}
+.footer-link:hover {
+	color: #3498db;
+	text-decoration: underline;
+}
+
+/* Пам'ять інструкцій — лишається схованою (у неї пише xhttp у application.js) */
+.pole_instr {
+	display: none !important;
+}
+
+/* --------------------------------------------------- кнопка консолі у футері
+   Дзеркальна до посилання на БД: правий кут, той самий дрібний шрифт і колір. */
+.footer-console,
+.footer-console:link,
+.footer-console:visited {
+	position: absolute;
+	right: 0.75rem;
+	top: 50%;
+	transform: translateY(-50%);
+	display: inline-flex;
+	align-items: center;
+	font-size: 0.75em;
+	color: #9fb3c8;
+	cursor: pointer;
+}
+.footer-console:hover {
+	color: #3498db;
+	text-decoration: underline;
+}
+
+/* Місце під іконку зарезервоване завжди — картинка з'являється лише коли в
+   консолі є записи, і дублює іконку ОСТАННЬОГО з них (див. lcUpdateConsoleMark
+   в application.js). Розмір у em, тож іде за шрифтом футера. */
+.console-mark {
+	display: inline-block;
+	flex-shrink: 0;
+	width: 1.3em;
+	height: 1.3em;
+	margin-right: 0.35em;
+	background-repeat: no-repeat;
+	background-position: center center;
+	background-size: contain;
+}
+.console-mark.mark_ok   { background-image: url(famfam/tick.png); }
+.console-mark.mark_warn { background-image: url(famfam/information.png); }
+.console-mark.mark_err  { background-image: url(famfam/exclamation.png); }
+
+/* ================================================== плаваюче вікно консолі
+   Рамка, анімація і поведінка — за зразком ші-чата (res/chat_widget.html).
+   Відмінність: кнопка не плаваюча, а статична у футері. */
+#lc-console {
 	position: fixed;
-	bottom: 0;
-	margin-left: 5%;
+	right: 24px;
+	bottom: 56px;
+	width: 400px;
+	height: 440px;
+	display: flex;
+	flex-direction: column;
+	background: #fff;
+	border-radius: 12px;
+	box-shadow: 0 8px 32px rgba(0, 0, 0, 0.25);
+	overflow: hidden;
+	/* На щабель вище за ші-чат (у нього 10000). Обидва висять знизу-справа, а
+	   віджет чата вставляється в кінець сторінки — тож за рівного z-index його
+	   кнопка проступала б крізь нижній правий кут відкритої консолі. */
+	z-index: 10001;
+	opacity: 0;
+	transform: scale(.8) translateY(20px);
+	pointer-events: none;
+	transition: opacity .25s, transform .25s;
 }
-@media (max-width: 768px) {
-    nav {
-        transform: translateX(-100%);
-        transition: transform 0.3s cubic-bezier(.4,0,.2,1);
-        width: 80vw;
-        z-index: 1000;
-    }
-    nav.active {
-        transform: translateX(0);
-    }
-    #menuToggle {
-        position: fixed;
-        top: 50%;
-        left: 0;
-        transform: translateY(-50%) translateX(0);
-        transition: transform 0.3s cubic-bezier(.4,0,.2,1), background 0.3s;
-        z-index: 1001;
-        background-color: #000DFF;
-        color: white;
-        border: none;
-        padding: 5px 3px;
-        font-size: 14px;
-        border-radius: 0 12px 12px 0;
-        cursor: pointer;
-		display: none;
-        width: 10px;
-        height: 150px;
-    }
-    nav.active + #menuToggle,
-    #menuToggle.active {
-        transform: translateY(-50%) translateX(80vw);
-    }
-    .pole_instr {
-        width: 100%;
-        position: relative;
-        padding: 10px;
-    }
-
-    #instr_coment {
-        position: relative;
-        width: 100%;
-        height: auto;
-        bottom: auto;
-    }
-
-    #instr_zvity {
-        position: relative;
-        width: 100%;
-        height: auto;
-        top: auto;
-        bottom: auto;
-    }
-
-    .pole_opysu {
-        width: 100%;
-        margin-left: 0;
-        padding: 10px;
-    }
-
-    main {
-        margin-left: 0;
-        width: 100%;
-    }
-
-    table.layout,
-    table.grid {
-        display: block;
-        overflow-x: auto;
-    }
-
-    input.text, 
-    input[type="text"], 
-    input[type="password"], 
-    .customfile {
-        width: 100%;
-        box-sizing: border-box;
-    }
-
-    .medium {
-        width: 100%;
-    }
-
-    .dovhe {
-        width: 100%;
-    }
-
-    /* Адаптуємо таблиці в mash-edit */
-    main > #mashyn-details > mash-edit > table {
-        width: 100%;
-        margin: 0;
-        padding: 0;
-    }
-
-    main > #mashyn-details > mash-edit > table > tbody {
-        width: 100%;
-        display: block;
-    }
-
-    main > #mashyn-details > mash-edit > table > tbody > tr {
-        width: 100%;
-        display: block;
-        margin-bottom: 10px;
-    }
-
-    main > #mashyn-details > mash-edit > table > tbody > tr > td {
-        width: 100%;
-        display: block;
-        padding: 5px;
-        box-sizing: border-box;
-    }
-
-    main > #mashyn-details > mash-edit > table > tbody > tr > td.panel_mash,
-    main > #mashyn-details > mash-edit > table > tbody > tr > td.panel_lira,
-    main > #mashyn-details > mash-edit > table > tbody > tr > td.panel_zm,
-    main > #mashyn-details > mash-edit > table > tbody > tr > td.panel_zm_npp,
-    main > #mashyn-details > mash-edit > table > tbody > tr > td.panel_um {
-        width: 100%;
-        margin: 0;
-        padding: 10px;
-        box-sizing: border-box;
-    }
-
-    main > #mashyn-details > mash-edit > table > tbody > tr > td.panel_mash,
-    main > #mashyn-details > mash-edit > table > tbody > tr > td.panel_lira,
-    main > #mashyn-details > mash-edit > table > tbody > tr > td.panel_zm,
-    main > #mashyn-details > mash-edit > table > tbody > tr > td.panel_zm_npp,
-    main > #mashyn-details > mash-edit > table > tbody > tr > td.panel_um {
-        width: 100% ;
-        min-width: 0 ;
-        max-width: 100%;
-        box-sizing: border-box;
-        margin: 0 ;
-        padding-left: 0 ;
-        padding-right: 0 ;
-    }
-
-    /* Всі .spoy-* блоки *//*
-    .spoy-panel,
-    .spoy-batja,
-    .spoy-mini,
-    .spoy-mini-l,
-    .spoy-mini-m,
-    .spoy-mini-n,
-    .spoy-kn {
-        width: 100% !important;
-        min-width: 0 !important;
-        max-width: 100% !important;
-        box-sizing: border-box !important;
-        margin: 0 !important;
-        padding-left: 0 !important;
-        padding-right: 0 !important;
-        display: block !important;
-    }
-
-    /* Винятки для меню */
-/*    nav ul,
-    nav ul li,
-    nav ul li a {
-        width: auto !important;
-        display: list-item !important;
-        max-width: none !important;
-        min-width: 0 !important;
-        box-sizing: border-box;
-        text-align: left;
-        white-space: normal;
-    }*/
+#lc-console.open {
+	opacity: 1;
+	transform: scale(1) translateY(0);
+	pointer-events: auto;
 }
 
-@media (min-width: 769px) {
-    #menuToggle {
-        display: none;
-    }
+#lc-console-bar {
+	flex-shrink: 0;
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	padding: 10px 14px;
+	background: #3498db;
+	color: #fff;
+	font-size: 14px;
+	font-weight: 600;
+	cursor: grab;
+	user-select: none;
+	-webkit-user-select: none;
 }
-/*
-nav ul li {
-    word-wrap: break-word;
+#lc-console-bar:active {
+	cursor: grabbing;
 }
-	
-/* Стилі для контенту */
-/*	
-	main {
-		background-color: #6ff2f3;
-	}*/
-/* 	main {
-		float: left;
-		margin-left: 24%;
-		width: 60%;
-	}
- */	
-	.pole_instr {
-		padding: 20px;
-		position: fixed;
-		width: 18%;
-		overflow-y: auto;
-	}
+#lc-console-bar .lc-hint {
+	font-size: 11px;
+	font-weight: 400;
+	opacity: .8;
+}
 
-	#instr_coment {
-		background-color: #f0f0f0;
-		right: 0;
-		top: 0;
-		bottom: 25%;
-	}
+/* Тіло — світле, але зі старою консольною строгістю: моноширинний шрифт, щільні
+   рядки, розділові лінії. Ніяких карток. Змінені лише кольори під світле тло. */
+#instr_zvity {
+	flex: 1;
+	overflow-y: auto;
+	overscroll-behavior: contain;
+	padding: 6px 10px;
+	background: #f5f7fa;
+	color: #333;
+	font-family: Consolas, 'Courier New', monospace;
+	font-size: 12px;
+	line-height: 1.5;
+}
+/* Специфічність (1,0,1) б'є .icon (0,1,0) — саме тому тут можна перекрити і
+   padding-left: 16px, і background-position: top left, які ставлять .icon/.*_icon. */
+#instr_zvity p {
+	margin: 0;
+	padding: 4px 0 4px 22px;
+	border-bottom: 1px solid #e6ebf0;
+	background-position: 2px 6px;
+	background-size: 14px 14px;
+	word-break: break-word;
+}
+#instr_zvity p:last-child {
+	border-bottom: none;
+}
+#instr_zvity lable {
+	margin-right: 8px;
+}
 
-	#instr_zvity {
-		background-color: #121111;
-		top: 75%;
-		bottom: 0;		
-		right: 0;
-		font-size: 12px;
-		text-align: right;
-		font-family: Consolas;
-		
-	}
-	
-	.msg_ok {
-		color: green;
-	}
-	.msg_err {
-		color: red;
-	}
-	.msg_warn {
-		color: yellow;
-	}
-	
-	.pole_opysu {
-		width: 52%;
-		/* right: 20%; */
-		margin-left: 24%;
-		/* left: 20%; */
-	}
-	
-	main mash-viev p {
-		font-size: 20px;
-	}
-	main mash-viev npp_det p {
-		font-size: 20px;
-		margin-left: 50px;
-	}
-	main mash-viev usl_det p {
-		font-size: 20px;
-		margin-left: 50px;
-	}
-	
-	main mash-edit p {
-		font-size: 14px;
-	}
-	.Bukva {
-		font-size: 20px;
-		font-weight: bold;
-	}
-	main mash-edit npp_det p {
-		font-size: 14px;
-		margin-left: 25px;
-	}
-	
-	main mash-edit usl_det p {
-		font-size: 14px;
-		margin-left: 50px;
-	}
-	main mash-edit zminni label {
-	
-		text-align: center;
-	}
-	
+/* Кольори — перефарбовані під світле тло (на #2c3e50 вони були значно яскравіші) */
+.msg_ok   { color: #1e8449; }
+.msg_err  { color: #c0392b; }
+.msg_warn { color: #b9770e; }
+.msg_time { color: #8a97a5; }
 
+/* ------------------------------------------------------------ поле редактора */
+.pole_opysu {
+	width: 100%;
+}
+
+main mash-viev p,
+.main-content mash-viev p {
+	font-size: 20px;
+}
+.main-content mash-viev npp_det p,
+.main-content mash-viev usl_det p {
+	font-size: 20px;
+	margin-left: 50px;
+}
+.main-content mash-edit p {
+	font-size: 14px;
+}
+.main-content mash-edit npp_det p {
+	font-size: 14px;
+	margin-left: 25px;
+}
+.main-content mash-edit usl_det p {
+	font-size: 14px;
+	margin-left: 50px;
+}
+.main-content mash-edit zminni label {
+	text-align: center;
+}
+.Bukva {
+	font-size: 20px;
+	font-weight: bold;
+	color: #2c3e50;
+}
+
+/* ------------------------------------------------- стос панелей (колишні table)
+   Layout-таблиці ніколи не були таблицями по суті: одна колонка, один <td> на
+   рядок. .stack = контейнер, .row = рядок, .cell = порожня комірка. */
+.stack {
+	width: 100%;
+}
+.stack > .row {
+	margin-bottom: 6px;
+}
+.stack > .row:last-child {
+	margin-bottom: 0;
+}
+.cell {
+	padding: 0.1em;
+}
+
+/* Дві речі, які <td> робив задарма, а звичайний <div> не робить:
+
+   box-sizing: у таблиці width:100% з падінгами й бордюром рахувався за
+     табличними правилами; блочний <div> без border-box вилазить за контейнер.
+
+   display: flow-root: комірка таблиці створює block formatting context і
+     УТРИМУЄ флоати всередині себе, звичайний <div> — ні. Глибше в панелі лежить
+     контейнер кнопок add/del npp із float: right — без containment він протікає
+     назовні й лягає поверх сусідньої панелі.                                  */
+.panel_mash,
+.panel_lira,
+.panel_zm,
+.panel_zm_npp,
+.panel_um,
+.cell {
+	box-sizing: border-box;
+	display: flow-root;
+	min-height: 0;
+}
+
+/* Драбинка за вкладеністю: що глибше панель, то трохи темніше тло */
+.panel_mash {
+	background: #ffffff;
+	border: 1px solid #ddd;
+	border-radius: 8px;
+	box-shadow: 0 2px 5px rgba(0, 0, 0, 0.08);
+	padding: 0.5em;
+	width: 100%;
+}
+.panel_lira {
+	background: #f8f9fa;
+	border: 1px solid #ddd;
+	border-left: 3px solid #3498db;
+	border-radius: 6px;
+	padding: 0.5em;
+	width: 100%;
+}
+.panel_zm {
+	background: #f0f3f6;
+	border: 1px solid #ddd;
+	border-radius: 6px;
+	padding: 0.1em;
+	width: 100%;
+}
+.panel_zm_npp {
+	background: #e8eef4;
+	border: 1px solid #d3dae1;
+	border-radius: 6px;
+	padding: 0.1em;
+	width: 100%;
+}
+.panel_um {
+	background: #eaf0f4;
+	border: 1px solid #d3dae1;
+	border-radius: 6px;
+	padding: 0.1em;
+	width: 100%;
+}
+
+/* Кнопки add/del npp: усередині <p style='float: right'>, а контейнер не має
+   іншого вмісту — тобто нульова висота, і флоат з нього тікає на .stack нижче.
+   Клас динамічний (npp-add-del-<z_id>), звідси селектор за префіксом. */
+npp_det > div[class^='npp-add-del-'] {
+	display: flow-root;
+}
+
+/* ---------------------------------------------------------------- спойлери
+   Прибрані: згортання радше заплутувало, ніж спрощувало сприйняття.
+   Клас .spoy-kn несуть і кнопки-перемикачі <a>, і згорнуті мінізаголовки <ui>,
+   тож одне правило ховає і те, і те. .spoy-panel ніде не має інлайнового
+   display:none — панелі стартують розгорнутими й такими лишаться: обробник
+   згортання делегований на a.spoy-kn, а невидиме не клікнеш.
+
+   Класи .spoy-batja і .spoy-panel НЕ чіпати — на них тримається обхід DOM
+   у application.js (closest('.spoy-batja'), closest('.spoy-panel')).         */
+.spoy-kn {
+	display: none;
+}
+
+/* -------------------------------------------------------------- поля вводу */
+label {
+	width: 100px;
+	display: inline-block;
+	font-weight: bold;
+	color: #2c3e50;
+}
+label2long {
+	width: 250px;
+	display: inline-block;
+	font-weight: bold;
+}
+.b { font-weight: bold; }
+.i { font-style: italic; }
 
 input,
 select,
 textarea {
-	font-family: Calibri, Arial, Helvetica, sans-serif;
+	font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
 }
 
-h1 {
-	margin: 0.3em 0 0.2em 0;
-	font-size:1.1em;
+/* Вигляд полів. Увага: базове правило раніше цілилось у input[type="text"] —
+   і не влучало НІ В ЩО, бо в розмітці edit.js атрибута type немає взагалі,
+   а клас називається .txt, не .text. Тому тут .txt додано явно. */
+input.txt,
+input.text,
+input[type="text"],
+input[type="password"],
+.customfile,
+select,
+textarea {
+	background: #fff;
+	border: 1px solid #ccc;
+	border-radius: 4px;
+	padding: 2px 6px;
+	transition: border-color 0.2s, box-shadow 0.2s;
 }
-h2 {
-	margin: 0.3em 0 0.2em 0;
-	font-size:1.1em;
-}
-h3 {
-	margin: 0.3em 0 0.2em 0;
-	font-size:1.1em;
-}
-h1 small, h2 small, h3 small{
-	opacity: .4;
-	font-size:.8em;
+input.txt:focus,
+input.text:focus,
+input[type="text"]:focus,
+input[type="password"]:focus,
+select:focus,
+textarea:focus {
+	outline: none;
+	border-color: #3498db;
+	box-shadow: 0 0 0 2px rgba(52, 152, 219, 0.15);
 }
 
-
-a.dwnldcnf:link,
-a.dwnldcnf:visited,
-a.dwnldcnf:active  {
-	margin-left: 20px;
-	font-size: 16px;
-	font-family: Consolas;
-	color: red;
+/* Уніфікована ширина полів редактора.
+   Через промах базового правила (див. вище) ширини розповзались: 7 полів мали
+   браузерний дефолт, 3 — .medium (250px), textarea — .dovhe (98%), а <select>
+   взагалі розтягувались під вміст. Тепер усі однакові — колонка вирівняна. */
+.main-content input.txt,
+.main-content input[type="text"],
+.main-content input[type="password"],
+.main-content select {
+	width: 250px;
+	box-sizing: border-box;
+}
+.main-content textarea.txt {
+	width: 100%;
+	box-sizing: border-box;
 }
 
-
-a:link, a:visited, a:active, a.link:link, a.link:visited, a:active { 
-	color: #06a; 
+textarea {
+	resize: vertical;
+	height: auto;
+	min-height: 35px;
+	max-height: 300px;
 }
- table { 
+
+/* Відступи, що раніше були зашиті інлайном у edit.js. Інлайн неможливо
+   перекрити з медіа-запиту — саме через це поле умови з'їжджало вправо на
+   мобілці. На десктопі 50px тут + 50px від «usl_det p» = 100px, тобто рівно
+   ширина <label>: поле умови (яке лейбла не має) стає в одну колонку з рештою. */
+.fc_bl_umovy_umova { margin-left: 50px; }
+.add-um            { margin-left: 50px; }
+.delete-um         { margin-left: 10px; }
+.delete-npp        { margin-left: 15px; }
+
+input[type="submit"],
+input[type="button"] {
+	background: #3498db;
+	color: #fff;
+	border: none;
+	border-radius: 4px;
+	padding: 4px 12px;
+	cursor: pointer;
+	transition: background 0.2s;
+}
+input[type="submit"]:hover,
+input[type="button"]:hover {
+	background: #2980b9;
+}
+
+/* ---------------------------------------------------------------- таблиця БД
+   Єдина справжня таблиця даних (перегляд FireBird). */
+table {
 	font-size: 1em;
-} 
-
-th { text-align:left; }
-a:link, a:visited, a:active { text-decoration:none; }
-a:hover { text-decoration:underline; }
-p {	margin: 0.5em 0 0.5em 0; }
-.b, label { font-weight: bold; }
-.b, label2long { font-weight: bold; }
-.i { font-style: italic; }
-img { border: none; }
-.c{ text-align: center; }
-.r{ text-align: right; }
-.float-l{ float:left; }
-.float-r{ float:right; }
-.center{
-	margin-left:0;
-	margin-right:0;
 }
-.bm { vertical-align:bottom;}
-.m { vertical-align:middle;}
-.t { vertical-align:top;}
-.inline{ display: inline; }
-.inline-block{
-	display: inline-block;
-	vertical-align:middle;
-}
-
-table.layout {
-    /* border-collapse: collapse; */
-    /* table-layout: auto; */
-	width: 100%;
-}
-
 table.grid {
-    border-collapse: collapse;
-    /* table-layout: auto; */
+	border-collapse: collapse;
 	width: 100%;
+	background: #fff;
+	border-radius: 6px;
+	overflow: hidden;
+	box-shadow: 0 2px 5px rgba(0, 0, 0, 0.08);
 }
-
 table.grid th,
 table.grid td {
-    border: 1px solid #bbb;
-    padding: 0.3em 0.5em;
+	border: 1px solid #ddd;
+	padding: 0.3em 0.5em;
 }
-
 table.grid th {
-	background: #ddd;
+	background: #f0f3f6;
+	color: #2c3e50;
+	border-bottom: 2px solid #3498db;
 }
 table.grid tr,
 table.grid td {
 	background: #fff;
 }
-table.grid tr:hover td{
-	background: #cde !important;
-}
-table.grid th, 
-table.grid td {
-	padding: 0.3em 0.5em;
+table.grid tr:hover td {
+	background: #e5f2fb !important;
 }
 
-td.panel_mash {
-	border-radius: 4px;
-	background: #eee;
-	padding: 0.5em;
-	width: 98%;
-}
-td.panel_lira {
-	border: 2px solid #aaa;
-	border-radius: 4px;
-	background: #dededd;
-	padding: 0.5em;
-	min-height:0px;
-	width: 100%;
-}
-td.panel_zm {
-	border: 1px solid #aaa;
-	border-radius: 4px;
-	background: #cdcdcd;
-	padding: 0.1em;
-	width: 100%;
-	min-height:0px;
-}
-td.panel_zm_npp {
-	border: 1px solid #aaa;
-	border-radius: 4px;
-	background: #c5c5c5;
-	padding: 0.1em;
-	width: 100%;
-	min-height:0px;
-}
-td.panel_um {
-	border: 1px solid #aaa;
-	border-radius: 4px;
-	background: #c8c8c0;
-	padding: 0.1em;
-	width: 100%;
-	min-height:0px;
-}/*
-td.panel:hover {
-	background: #efe;
-}*/
+/* -------------------------------------------------------------------- іконки */
+.icon { padding-left: 16px; }
+.edit_icon    { background: transparent url(famfam/pencil.png) top left no-repeat; }
+.add_icon     { background: transparent url(famfam/add.png) top left no-repeat; }
+.delete_icon  { background: transparent url(famfam/cross.png) top left no-repeat; }
+.view_icon    { background: transparent url(famfam/magnifier.png) top left no-repeat; }
+.info_icon    { background: transparent url(famfam/information.png) top left no-repeat; }
+.error_icon   { background: transparent url(famfam/exclamation.png) top left no-repeat; }
+.user_icon    { background: transparent url(famfam/user.png) top left no-repeat; }
+.ok_icon      { background: transparent url(famfam/tick.png) top left no-repeat; }
+.app_icon     { background: transparent url(famfam/brick.png) top left no-repeat; }
 
-.icon { padding-left:16px; }
-.edit_icon { background: transparent url(famfam/pencil.png) top left no-repeat; }
-.add_icon { background: transparent url(famfam/add.png) top left no-repeat; }
-.delete_icon { background: transparent url(famfam/cross.png) top left no-repeat; }
-.view_icon { background: transparent url(famfam/magnifier.png) top left no-repeat; }
-.info_icon { background: transparent url(famfam/information.png) top left no-repeat; }
-.error_icon { background: transparent url(famfam/exclamation.png) top left no-repeat; }
-.user_icon { background: transparent url(famfam/user.png) top left no-repeat; }
-.ok_icon { background: transparent url(famfam/tick.png) top left no-repeat; }
-.refresh_icon { background: transparent url(famfam/arrow_rotate_anticlockwise.png) top left no-repeat; }
-.app_icon { background: transparent url(famfam/brick.png) top left no-repeat; }
-
-.msg_err { color: red; }
-.msg_ok { color: #060; }
-
-label2long {
-	width: 250px;
-	display:inline-block;
+/* ==================================================== заголовок сторінки перегляду
+   Ті самі значення, що home_page.css дає .sidebar-title / .section-title
+   (1.2rem, #2c3e50, лінія 2px #3498db) — але лінія винесена на всю смугу, щоб
+   проходити й під кнопкою меню праворуч. */
+.view-header {
+	position: relative;
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: 8px;
+	margin: 0 0 1rem 0;
+	padding-bottom: 0.5rem;
+	border-bottom: 2px solid #3498db;
 }
 
-label {
-	width: 100px;
-	display:inline-block;
-}
-
-input.text, input[type="text"], input[type="password"], .customfile {
-    background: none repeat scroll 0 0 #FFFFFF;
-    border-radius: 4px 4px 4px 4px;
-    border-width: 1px;
-    box-shadow: 1px 3px 4px #DDDDDD inset;
-    padding: 2px;
-	width: 100px;
-}
-.medium {
-	width: 250px;
-}
-.dovhe {
-	width: 98%;
-}
-
-textarea {
-	resize: vertical; /* Заблокувати зміну розміру */
-	box-sizing: content-box;
-	height: auto; /* Автоматична висота залежно від вмісту */
-	min-height: 35px; /* Мінімальна висота (опціонально) */
-	max-height: 300px; /* Максимальна висота (опціонально) */
-}
-
-.spoy-kn {
-	font-size:12px;
-	font-family: Consolas;
-	cursor: pointer;
-}
-
-a.spoy-kn {
-	font-weight: normal;
-	float: right;
-}
-
-ui.spoy-kn {
-	font-weight: bold;
-}
-
-/*
-
-overflow
-*/
-
-/* Стилі для кнопки меню */
-#menuToggle {
-	transition: transform 0.3s ease;
-	position: fixed;
-	top: 50%;
-	left: 0;
-	transform: translateY(-50%);
-	z-index: 1001;
-	background-color: #000DFF;
-	color: white;
+.view-title {
+	font-size: 1.2rem;
+	color: #2c3e50;
+	margin: 0;
+	padding: 0;
 	border: none;
-	padding: 5px 3px;
-	font-size: 14px;
-	display: none;
-	border-radius: 0 12px 12px 0;
+	min-width: 0;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+
+.view-menu-btn {
+	flex-shrink: 0;
+	background: none;
+	border: none;
+	color: #2c3e50;
+	font-size: 1.15rem;
+	line-height: 1;
+	padding: 4px 8px;
+	border-radius: 4px;
 	cursor: pointer;
-	width: 10px; /* робимо кнопку тоншою */
-	height: 150px; /* збільшуємо висоту для більшої видимості */
+	transition: background 0.2s, color 0.2s;
 }
-/*
-#menuToggle span {
-    display: block;
-    width: 25px;
-    height: 3px;
-    background-color: #333;
-    margin: 5px 0;
-    transition: 0.3s;
-}
-*/
-#menuToggle:hover {
-	background-color: #0000FF;
+.view-menu-btn:hover {
+	background: #e5f2fb;
+	color: #3498db;
 }
 
-#sidebar.active {
-	transform: translateX(100%);
+.view-menu {
+	display: none;
+	position: absolute;
+	right: 0;
+	top: 100%;
+	margin-top: 4px;
+	min-width: 170px;
+	background: #fff;
+	border: 1px solid #ddd;
+	border-radius: 6px;
+	box-shadow: 0 4px 12px rgba(0, 0, 0, 0.12);
+	overflow: hidden;
+	z-index: 500;
+}
+.view-menu.open {
+	display: block;
+}
+.view-menu a,
+.view-menu a:link,
+.view-menu a:visited {
+	display: block;
+	padding: 0.5rem 0.75rem;
+	font-size: 0.9rem;
+	color: #2980b9;
+	white-space: nowrap;
+	text-decoration: none;
+}
+.view-menu a + a {
+	border-top: 1px solid #eee;
+}
+.view-menu a:hover {
+	background: #e5f2fb;
+	color: #3498db;
+	text-decoration: none;
 }
 
-#sidebar.active + #menuToggle {
-	transform: translateX(300px) translateY(-50%); /* Зміщення кнопки разом із сайдбаром */
-}
-
-#menuToggle.active span:nth-child(1) {
-    transform: rotate(-45deg) translate(-5px, 6px);
-}
-
-#menuToggle.active span:nth-child(2) {
-    opacity: 0;
-}
-
-#menuToggle.active span:nth-child(3) {
-    transform: rotate(45deg) translate(-5px, -6px);
-}
-
-/* Стилі для спливаючого вікна інструкцій */
+/* ----------------------------------------------------------------- підказка */
 .tooltip {
-    display: none;
-    position: absolute;
-    background: rgba(0, 0, 0, 0.8);
-    color: white;
-    padding: 10px;
-    border-radius: 4px;
-    z-index: 1000;
-    max-width: 300px;
-    font-size: 14px;
-    box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+	display: none;
+	position: absolute;
+	background: rgba(44, 62, 80, 0.95);
+	color: white;
+	padding: 10px;
+	border-radius: 4px;
+	z-index: 1000;
+	max-width: 300px;
+	font-size: 14px;
+	box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
 }
 
-/* Медіа-запити для мобільної версії */
+/* ============================================================================
+   Мобільна версія. Off-canvas сайдбар (свайпом) уже забезпечує home_page.css —
+   тут лише те, що стосується панелей і полів редактора.
+   ============================================================================ */
 @media (max-width: 768px) {
-    nav {
-        transform: translateX(-100%);
-        transition: transform 0.3s cubic-bezier(.4,0,.2,1);
-        width: 80vw;
-        z-index: 1000;
-    }
-    nav.active {
-        transform: translateX(0);
-    }
-    #menuToggle {
-        position: fixed;
-        top: 50%;
-        left: 0;
-        transform: translateY(-50%) translateX(0);
-        transition: transform 0.3s cubic-bezier(.4,0,.2,1), background 0.3s;
-        z-index: 1001;
-        background-color: #000DFF;
-        color: white;
-        border: none;
-        padding: 5px 3px;
-        font-size: 14px;
-        border-radius: 0 12px 12px 0;
-        cursor: pointer;
-        width: 10px;
-		display: none;
-        height: 150px;
-    }
-    nav.active + #menuToggle,
-    #menuToggle.active {
-        transform: translateY(-50%) translateX(80vw);
-    }
-    /* Приховуємо інструкції в сайдбарі */
-    .pole_instr {
-        display: none;
-    }
+	/* Обгортки — на всю ширину, без власних бічних відступів */
+	.pole_opysu,
+	#mashyn-details,
+	mash-edit,
+	mash-viev {
+		width: 100% !important;
+		min-width: 0 !important;
+		max-width: 100% !important;
+		box-sizing: border-box !important;
+		margin: 0 !important;
+		padding-left: 0 !important;
+		padding-right: 0 !important;
+	}
 
-    /* Адаптуємо основні контейнери */
-    main {
-        width: 100%;
-        margin: 0;
-        padding: 0;
-    }
+	/* Панелі — з РЕАЛЬНИМИ бічними відступами. Раніше тут теж стояло
+	   padding-left/right: 0 !important, і саме тому поля впиралися просто в
+	   край екрана. Тепер поле шириною 100% вимірюється від внутрішнього краю
+	   панелі, тобто має 12px повітря з обох боків. */
+	.panel_mash, .panel_lira, .panel_zm, .panel_zm_npp, .panel_um {
+		width: 100% !important;
+		min-width: 0 !important;
+		max-width: 100% !important;
+		box-sizing: border-box !important;
+		margin: 0 0 10px 0 !important;
+		padding: 10px 12px !important;
+	}
 
-    #mashyn-details {
-        width: 100%;
-        margin: 0;
-        padding: 0;
-    }
+	.stack {
+		width: 100%;
+		margin: 0;
+		padding: 0;
+	}
+	.stack > .row {
+		margin-bottom: 10px;
+	}
 
-    /* Розтягуємо основні блоки на всю ширину */
-    main > #mashyn-details > mash-viev,
-    main > #mashyn-details > mash-edit {
-        width: 100%;
-        margin: 0;
-        padding: 10px;
-        box-sizing: border-box;
-    }
+	.main-content mash-edit p,
+	.main-content mash-viev p {
+		font-size: 16px;
+		margin: 5px 0;
+	}
+	/* Увага на font-size у двох правилах нижче: медіа-запит НЕ додає
+	   специфічності. Десктопні «.main-content mash-viev npp_det p» (0,1,3) б'ють
+	   мобільне «.main-content mash-viev p» (0,1,2) — тому без явного розміру тут
+	   списки npp/umovy лишались із десктопними 20px, поки решта ставала 16px.
+	   Ці правила мають РІВНУ специфічність із десктопними і стоять нижче, тож
+	   виграють. */
 
-    main > #mashyn-details > mash-viev p,
-    main > #mashyn-details > mash-edit p {
-        font-size: 16px;
-        margin: 5px 0;
-    }
+	/* У РЕДАГУВАННІ відступи дають падінги панелей (.panel_*), тож власний
+	   margin-left тут зайвий — інакше зсуви складаються і поле їде вправо. */
+	.main-content mash-edit npp_det p,
+	.main-content mash-edit usl_det p {
+		font-size: 16px;
+		margin-left: 0;
+	}
 
-    main > #mashyn-details > mash-viev npp_det p,
-    main > #mashyn-details > mash-viev usl_det p {
-        margin-left: 20px;
-    }
+	/* А в ПЕРЕГЛЯДІ панелей немає взагалі — mash-viev це голі lir_det/zm_det без
+	   жодних падінгів. Тому падаючі списки npp і umovy мусять мати власний
+	   відступ, інакше липнуть до краю колонки й не читаються як вкладені. */
+	.main-content mash-viev npp_det p,
+	.main-content mash-viev usl_det p {
+		font-size: 16px;
+		margin-left: 20px;
+	}
 
-    main > #mashyn-details > mash-edit npp_det p,
-    main > #mashyn-details > mash-edit usl_det p {
-        margin-left: 20px;
-    }
+	/* Лейбл над полем: інлайновий лейбл на 100px з'їдав би ширину, а поле
+	   однаково переносилось на новий рядок. */
+	label {
+		width: auto;
+		display: block;
+		margin-bottom: 2px;
+	}
 
-    /* Адаптуємо таблиці */
-    table.layout,
-    table.grid {
-        width: 100%;
-        margin: 0;
-    }
+	.main-content input.txt,
+	.main-content input[type="text"],
+	.main-content input[type="password"],
+	.main-content select,
+	.main-content textarea.txt {
+		width: 100% !important;
+		min-width: 0 !important;
+		max-width: 100% !important;
+		box-sizing: border-box !important;
+	}
 
-    /* Адаптуємо форми */
-    .edit-lira-form,
-    .edit-zm-form,
-    .edit-npp-form,
-    .edit-usl-form {
-        width: 100%;
-    }
+	/* Зсуви, що на десктопі ставили поле умови під колонку лейблів */
+	.fc_bl_umovy_umova,
+	.add-um,
+	.delete-um,
+	.delete-npp {
+		margin-left: 0 !important;
+	}
 
-    input.text,
-    input[type="text"],
-    input[type="password"],
-    .customfile,
-    select,
-    textarea {
-        width: 100%;
-        box-sizing: border-box;
-    }
+	input[type="submit"],
+	input[type="button"] {
+		width: auto !important;
+	}
+	.sidebar-search input[type="text"] {
+		width: auto !important;
+	}
 
-    .medium,
-    .dovhe {
-        width: 100%;
-    }
+	.spoy-panel, .spoy-batja {
+		width: 100% !important;
+		min-width: 0 !important;
+		max-width: 100% !important;
+	}
 
-    main, #mashyn-details, mash-edit, mash-viev, .panel_lira, .panel_zm, .panel_um, .panel_npp, .panel_zm_npp, .panel_mash {
-        width: 100% !important;
-        min-width: 0 !important;
-        max-width: 100% !important;
-        box-sizing: border-box !important;
-        margin: 0 !important;
-        padding-left: 0 !important;
-        padding-right: 0 !important;
-    }
-    input, select, textarea {
-        width: 100% !important;
-        min-width: 0 !important;
-        max-width: 100% !important;
-        box-sizing: border-box !important;
-    }
-    .spoyler, .spoy-panel, .spoy-batja {
-        width: 100% !important;
-        min-width: 0 !important;
-        max-width: 100% !important;
-    }
-    body, html {
-        overflow-x: hidden !important;
-    }/*
-    .icon, .edit_icon, .add_icon, .delete_icon, .view_icon, .info_icon, .error_icon, .user_icon, .ok_icon, .refresh_icon, .app_icon {
-        width: auto !important;
-        min-width: 16px !important;
-        max-width: 24px !important;
-        display: inline-block !important;
-        vertical-align: middle !important;
-    }*/
+	table.grid {
+		display: block;
+		overflow-x: auto;
+		width: 100%;
+	}
+
+	body, html {
+		overflow-x: hidden !important;
+	}
+
+	/* Консоль на мобілці займає майже весь екран, але НЕ впритул: відступи по
+	   краях і збережене заокруглення лишають смужку основного контенту по
+	   периметру, тож воно читається як вікно, що тимчасово перекрило сторінку,
+	   а не як окрема сторінка. Ті самі значення — у ші-чата (chat_widget.html). */
+	#lc-console {
+		top: 14px;
+		right: 14px;
+		bottom: 14px;
+		left: 14px;
+		width: auto;
+		height: auto;
+		border-radius: 12px;
+	}
 }

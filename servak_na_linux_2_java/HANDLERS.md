@@ -26,14 +26,47 @@ Proxy to an external **OpenAI-compatible** LLM service (`/v1/chat/completions`, 
 - **Public:** `aiChatResend(HTTPRequest)` → `HTTPResponse`.
 
 ## PhpFpmHandler — `PHP_FPM`
-A full **binary FastCGI protocol client** for php-fpm — not a plain forward.
+A full **binary FastCGI protocol client** for php-fpm — not a forward at all.
+
+Every other handler passes HTTP through: HTTP goes in, HTTP comes out, and you can dump the
+bytes and read them. This one **destroys the request and rebuilds it in a foreign
+representation**, then reconstructs an HTTP response out of something that was never HTTP.
+That work is spread across **three places**, and the handler on its own is useless without
+the other two.
+
+**1. Pre-processing — `HTTPRequest` builds the CGI environment.**
+The reverse type is decided by a path match on `*.php` (also `.php3/.php4/.php5/.phtml`),
+gated by `FirewallPHP.phpFirewall(scriptName)`. On a hit, `phpQueryArr` is filled with the
+19 CGI variables php-fpm expects — HTTP has no such notion, so they are synthesised by hand:
+
+```
+GATEWAY_INTERFACE  REQUEST_METHOD   REQUEST_URI      REQUEST_SCHEME   QUERY_STRING
+SCRIPT_NAME        SCRIPT_FILENAME  PATH_INFO        DOCUMENT_ROOT    CONTENT_TYPE
+CONTENT_LENGTH     SERVER_NAME      SERVER_ADDR      SERVER_PORT      SERVER_PROTOCOL
+SERVER_SOFTWARE    REMOTE_ADDR      REMOTE_PORT      HTTPS
+```
+
+**2. The handler — FastCGI framing.**
 - **Backend:** `ip_php_fpm_server` / `port_php_fpm_server`.
-- Builds FastCGI records itself: `FCGI_BEGIN_REQUEST` → `FCGI_PARAMS` (correctly encoding
-  lengths ≥ 128 as 4 bytes, padded to 8) → `FCGI_STDIN` (body split into 65535-byte chunks).
+- Builds the records itself: `FCGI_BEGIN_REQUEST` → `FCGI_PARAMS` (name/value lengths ≥ 128
+  encoded as 4 bytes, each record padded to a multiple of 8) → `FCGI_STDIN` (body split into
+  65535-byte chunks).
 - Reads the reply through 8-byte record headers, assembles `FCGI_STDOUT`, logs `FCGI_STDERR`,
-  finishes on `FCGI_END_REQUEST`.
+  stops on `FCGI_END_REQUEST`.
 - **Public:** `phpFpmResend(HTTPRequest)` → `HTTPResponse`.
-  (private `sendPHPFPMRequest(...)` — builds and sends a single FastCGI record).
+  (private `sendPHPFPMRequest(...)` — builds and sends one record).
+
+**3. Post-processing — `HTTPResponse.normalizeHeaders(HTTPRequest)`.**
+What comes back is **CGI output, not an HTTP response**: no status line, and the headers are
+whatever the script chose to print. So `normalizeHeaders` scans the raw byte body for the
+first `\r\n\r\n`, splits it there, and rebuilds a real HTTP response around it. Called from
+`ClientHandler:185` (and by `UniProxyHendler:153` for the same "raw bytes in, HTTP out"
+reason).
+
+> **Nothing here is optional.** Get the padding wrong and php-fpm hangs silently; get the
+> length encoding wrong for a 130-byte header and the payload is quietly corrupted. Compare
+> with `UNI_PRXY`, where most of the branching is opt-in behaviour that can simply be turned
+> off.
 
 ## UniProxyHendler — `UNI_PRXY`  *(the most complex one)*
 Generic reverse proxy with per-port configuration and LLM streaming support.
@@ -92,9 +125,27 @@ Forwards **headers only** (body zeroed, `Content-Length: 0`) to the ban server.
 
 ---
 
+### NetworkClient — the transport every handler stands on
+
+All eight handlers and forwarders talk to their backend through `NetworkClient`. It is the
+reason the handlers stay as short as they are, and the reason so much of their behaviour is a
+config switch rather than a code path.
+
+- **TLS is a constructor boolean.** `new NetworkClient(host, port, useSSL)` — plain socket or
+  `SSLSocketFactory`, decided at runtime. That single argument is what turns `_dial_ssl`,
+  `ai_assist_url_ssl` and friends into config keys instead of duplicated code in every
+  handler.
+- **Response framing is handled for you.** `recvAll()` reads the headers, and if it finds
+  `Transfer-Encoding: chunked` it de-chunks the body **and strips the header**, so the
+  handler above simply receives a plain body. Otherwise it honours `Content-Length`.
+  No handler contains chunk-parsing code.
+- **Streaming out** is available where it is needed: `sendChunk()` / `sendFlush()` let
+  `UniProxyHendler` relay an LLM response to the client as it arrives.
+- **Socket tuning** in one place: `setSoTimeout`, `setKeepAlive`, `setTcpNoDelay`,
+  send/receive buffer sizes. `AiChatHandler`'s 5-minute timeout is just a call here.
+
 ### Shared patterns
 - All return `503` when the backend cannot be reached (`NetworkClient` throws `IOException`).
-- All use `NetworkClient` for send/receive (it handles chunked and `Content-Length` itself).
 - Backends and authorization keys come exclusively from the config file, which is kept out of
   git. See [CONFIG.md](CONFIG.md).
 

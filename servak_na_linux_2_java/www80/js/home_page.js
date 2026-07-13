@@ -121,22 +121,11 @@ document.addEventListener('DOMContentLoaded', function() {
 		// Завантажуємо головний вміст
 		loadHomeContent();
 		
-		// Очищаємо список перед початком завантаження
-		document.getElementById('links-list').innerHTML = '';
-		
-		// Завантажуємо спочатку авторизовані посилання, а потім звичайні
-		loadLinks_autorization_true();
-		
-		// Завантажуємо звичайні посилання незалежно від результату першого запиту
-		setTimeout(function() {
-			loadLinks();
-			
-			// Додаємо посилання на головну сторінку та активуємо початкову навігацію
-			setTimeout(function() {
-				addHomeLinkToSidebar();
-				updateActiveNav('nav-home');
-			}, 200);
-		}, 300); // Збільшуємо затримку, щоб авторизовані посилання завантажились першими
+		// Завантажуємо меню, а після нього - посилання на головну сторінку
+		loadLinks().then(function() {
+			addHomeLinkToSidebar();
+			updateActiveNav('nav-home');
+		});
 		setTimeout(function() {
 			const sidebar = document.getElementById('sidebar');
 			sidebar.classList.add('active');
@@ -179,13 +168,12 @@ document.addEventListener('DOMContentLoaded', function() {
 
 
 
-// Функція для завантаження списку звичайних посилань
+// Функція для завантаження меню: ім'я користувача та обидва списки посилань
 function loadLinks() {
 	const linksList = document.getElementById('links-list');
-	// Не очищаємо список, щоб зберегти авторизовані посилання, якщо вони вже є
-	
-	// Запит до сервера для отримання списку файлів
-	fetch('/www80_scripts/scan_directory', {
+	linksList.innerHTML = '';
+
+	return fetch('/www80_scripts/get_links', {
 		method: 'GET',
 		headers: {
 			'Content-Type': 'application/json'
@@ -194,132 +182,79 @@ function loadLinks() {
 	.then(response => {
 		if (!response.ok) {
 			throw new Error('Server request failed');
-			return true;
 		}
 		return response.json();
 	})
 	.then(data => {
-		// Очищаємо список
-		//linksList.innerHTML = '';
-		
-		// Обробка отриманих файлів
-		const files = data.files || [];
+		const name = data.name || '';
 		const links = data.links || [];
+		const pages = data.pages || [];
 
-		if (files.length === 0) {
+		// Ім'я непорожнє - користувач авторизований
+		if (name) {
+			showUserName(name);
+			setupLogoutButton();
+		}
+
+		// Посилання, що відкриваються окремими сторінками
+		links.forEach(link => {
+			addExternalLinkItem(link.title, link.url);
+		});
+
+		// Посилання, що відкриваються в контейнері поточної сторінки
+		pages.forEach(page => {
+			addLinkItem(page.title, page.url);
+		});
+
+		if (linksList.children.length === 0) {
 			linksList.innerHTML = `<li><span class="no-links-message">${t('no_links_found')}</span></li>`;
 			return;
 		}
 
-		if (links.length > 0) {
-			links.forEach(link => {
-				addLinkItem(link.title, link.url);
-			});
-		}
-		
-		files.forEach(file => {
-			if (file !== 'index.html') {
-				const name = file.replace('.html', '').replace(/_/g, ' ');
-				addLinkItem(name, file);
-			}
-		});
-		
-		// Додаємо обробники подій для посилань
 		addLinkEventListeners();
 	})
 	.catch(error => {
 		console.error('Error loading links:', error);
 		linksList.innerHTML = `<li><span class="error-message">${t('error_loading')}</span></li>`;
-		return true;
 	});
-	return true;
 }
-// Функція для завантаження списку посилань для авторизованих користувачів
-function loadLinks_autorization_true() {
-	// Очищаємо список перед завантаженням авторизованих посилань
+
+// Показує "Hi, <username>" і роздільник на початку списку
+function showUserName(name) {
 	const linksList = document.getElementById('links-list');
-	linksList.innerHTML = '';
-	// Запит до сервера для отримання посилань авторизованого користувача
-	fetch('/www_scripts/get_links', {
-		method: 'GET',
-		headers: {
-			'Content-Type': 'application/json'
-		}
-	})
-	.then(response => {
-		if (!response.ok) {
-			throw new Error('Server request failed');
-			return true;
-		}
-		return response.json();
-	})
-	.then(data => {
-		// Перевіряємо, чи є необхідні дані в відповіді
-		if (!data || !data.name || !data.links || data.links.length === 0) {
-			// Якщо відповідь порожня, не показуємо лінки і ім'я користувача
-			console.log('No links or user data available');
-			return true; // Повертаємо true, щоб продовжити з loadLinks()
-		}
-		
-		// Користувач авторизований, змінюємо кнопку авторизації на кнопку виходу
-		const authLink = document.getElementById('nav-auth');
-		authLink.textContent = t('logout');
-		authLink.classList.add('logout-link');
-		
-		// Перевизначаємо обробник кнопки для виходу
-		authLink.removeEventListener('click', showAuthForm); // Видаляємо старий обробник, якщо він був
-		
-		authLink.addEventListener('click', function(e) {
-			e.preventDefault();
-			
-			// Робимо запит на сервер для виходу, а потім перезавантажуємо сторінку
-			fetch('/www_scripts/logout', {
-				method: 'GET',
-				credentials: 'include' // Включаємо кукі в запит
-			})
-			.then(response => {
-				// Після запиту перезавантажуємо сторінку
-				window.location.reload();
-			})
-			.catch(error => {
-				console.error('Error during logout:', error);
-				// Навіть при помилці перезавантажуємо сторінку
-				window.location.reload();
-			});
+
+	const userNameElement = document.createElement('li');
+	userNameElement.className = 'user-name';
+	userNameElement.innerHTML = `<span>${t('welcome')}, ${name}!</span>`;
+	linksList.appendChild(userNameElement);
+
+	const dividerElement = document.createElement('li');
+	dividerElement.className = 'divider';
+	linksList.appendChild(dividerElement);
+}
+
+// Перетворює кнопку авторизації на кнопку виходу
+function setupLogoutButton() {
+	const authLink = document.getElementById('nav-auth');
+	authLink.textContent = t('logout');
+	authLink.classList.add('logout-link');
+	authLink.removeEventListener('click', showAuthForm);
+
+	authLink.addEventListener('click', function(e) {
+		e.preventDefault();
+
+		fetch('/www_scripts/logout', {
+			method: 'GET',
+			credentials: 'include' // Включаємо кукі в запит
+		})
+		.then(response => {
+			window.location.reload();
+		})
+		.catch(error => {
+			console.error('Error during logout:', error);
+			window.location.reload();
 		});
-		
-		
-		// Додаємо ім'я користувача на сторінку
-		const userNameElement = document.createElement('li');
-		userNameElement.className = 'user-name';
-		userNameElement.innerHTML = `<span>${t('welcome')}, ${data.name}!</span>`;
-		linksList.appendChild(userNameElement);
-		
-		// Додаємо роздільник
-		const dividerElement = document.createElement('li');
-		dividerElement.className = 'divider';
-		linksList.appendChild(dividerElement);
-		
-		// Додаємо посилання з отриманих даних
-		data.links.forEach(link => {
-			if(link.url.startsWith('relay_servak') && false)
-				addLinkItem(link.title, link.url);
-			else
-				addExternalLinkItem(link.title, link.url);
-		});
-		
-		// Додаємо обробники подій для посилань
-		addLinkEventListeners();
-		
-		return true; // Повертаємо true, щоб не запускати loadLinks()
-	})
-	.catch(error => {
-		console.error('Error loading authorized links:', error);
-		// При помилці не показуємо ніяких повідомлень
-		return true; // Повертаємо true, щоб продовжити з loadLinks()
 	});
-	
-	return true; // Поки запит виконується, повертаємо true
 }
 
 // Функція для показу форми авторизації

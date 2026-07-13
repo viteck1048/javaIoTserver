@@ -1,5 +1,6 @@
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -76,55 +77,64 @@ public final class GetRes80 {
 	}
 	
 	/**
-	 * Сканує директорію www80 і повертає список файлів у форматі JSON
-	 * 
-	 * @return HTTPResponse з JSON-даними про файли
+	 * Формує меню для головної сторінки: ім'я користувача (порожнє для неавторизованих),
+	 * links - ресурси, що відкриваються окремими сторінками,
+	 * pages - ресурси, що відкриваються в контейнері поточної сторінки.
 	 */
-	public static HTTPResponse scanDirectory(HTTPRequest httpRequest) {
+	public static HTTPResponse getLinks(HTTPRequest httpRequest) {
+		StringBuilder links = new StringBuilder();
+		StringBuilder pages = new StringBuilder();
+		String name = "";
+
+		if(httpRequest.userID != 0 && httpRequest.port == 443) {
+			String userName = KeyManager.getUserName(httpRequest.userID);
+			if(userName != null)
+				name = userName;
+
+			if(Configs.getBoolean("avr"))
+				appendLink(links, "avr_relays_control.html", "AVR Remote Control");
+			if(Configs.getBoolean("esp"))
+				appendLink(links, "relay_servak/knopky.html", "ESP Remote Control");
+			if(Configs.getBoolean("liraCalc"))
+				appendLink(links, "old_servak/", "LiraCalc ConfigEditor");
+			if(Configs.getBoolean("download"))
+				appendLink(pages, "download/html/index.html", "Downloads");
+		}
+
+		if(Configs.getBoolean("mach_time_rev"))
+			appendLink(links, Configs.getParam("mach_time_path"), "MachineTime");
+
+		for(String file : scanDirectory())
+			appendLink(pages, file, file.substring(0, file.length() - 5).replace('_', ' '));
+
+		String jsonString = "{\"name\":\"" + name + "\",\"links\":[" + links + "],\"pages\":[" + pages + "]}";
+
+		if(httpRequest.method.compareTo("HEAD") == 0)
+			return new HTTPResponse(jsonString.getBytes().length, jsonString.getBytes(), "links.app-json", true);
+		return new HTTPResponse(jsonString.getBytes().length, jsonString.getBytes(), "links.app-json");
+	}
+
+	private static void appendLink(StringBuilder sb, String url, String title) {
+		if(sb.length() > 0)
+			sb.append(",");
+		sb.append("{\"url\":\"").append(url).append("\",\"title\":\"").append(title).append("\"}");
+	}
+
+	/**
+	 * Повертає html-сторінки з www80_directory, окрім домашньої
+	 */
+	private static List<String> scanDirectory() {
 		try {
-			// Отримуємо список файлів з кешу директорії www80
-			String www80Path = Configs.getParam("www80_directory");
-			List<String> files = FileCacheManager.scanDir(www80Path);
+			String homepage = Configs.getParam("homepage");
+			if(homepage.startsWith("/"))
+				homepage = homepage.substring(1);
+			final String home = homepage;
 
-			// Фільтруємо тільки .html файли
-			files = files.stream().filter(filename -> filename.toLowerCase().endsWith(".html")).collect(Collectors.toList());
-
-			// Формуємо JSON-відповідь
-			StringBuilder jsonBuilder = new StringBuilder();
-			
-			jsonBuilder.append("{");
-			
-			if(httpRequest.userID != 0) {
-				jsonBuilder.append("\"links\":[\n");
-				if(Configs.getBoolean("download"))
-					jsonBuilder.append("{\"url\":\"download/html/index.html\",\"title\":\"Downloads\"}\n");
-				//jsonBuilder.append(",");
-
-				jsonBuilder.append("],\n");
-			}
-			
-			jsonBuilder.append("\"files\":[\n");
-
-			for (int i = 0; i < files.size(); i++) {
-				jsonBuilder.append("\"").append(files.get(i)).append("\"");
-				if (i < files.size() - 1) {
-					jsonBuilder.append(",\n");
-				}
-			}
-
-			jsonBuilder.append("\n]}");
-
-			String jsonString = jsonBuilder.toString();
-
-			if(httpRequest.method.compareTo("HEAD") == 0)
-				return new HTTPResponse(jsonString.getBytes().length, jsonString.getBytes(), "scan_www80_directory.app-json", true);
-			return new HTTPResponse(jsonString.getBytes().length, jsonString.getBytes(), "scan_www80_directory.app-json");
+			return FileCacheManager.scanDir(Configs.getParam("www80_directory")).stream()
+					.filter(filename -> filename.toLowerCase().endsWith(".html") && !filename.equals(home))
+					.collect(Collectors.toList());
 		} catch (Exception e) {
-			// В разі помилки повертаємо порожній JSON
-			String jsonString = "{\"links\":[],\"files\":[]}";
-			if(httpRequest.method.compareTo("HEAD") == 0)
-				return new HTTPResponse(jsonString.getBytes().length, jsonString.getBytes(), "scan_www80_directory.app-json", true);
-			return new HTTPResponse(jsonString.getBytes().length, jsonString.getBytes(), "scan_www80_directory.app-json");
+			return new ArrayList<>();
 		}
 	}
 }

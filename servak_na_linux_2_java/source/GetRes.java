@@ -151,35 +151,6 @@ public final class GetRes {
 		}
 	}
 
-	public static HTTPResponse getLinks(HTTPRequest httpRequest) {
-		String name = KeyManager.getUserName(httpRequest.userID);
-		if(name == null) {
-			return new HTTPResponse(503);
-		}
-		// Формуємо JSON-відповідь
-		StringBuilder jsonBuilder = new StringBuilder();
-		jsonBuilder.append("{");
-		jsonBuilder.append("\"name\": \"" + name + "\", ");
-		jsonBuilder.append("\"links\": [");
-		if(Configs.getBoolean("liraCalc"))
-			jsonBuilder.append("{\"url\": \"old_servak/\", \"title\": \"LiraCalc ConfigEditor\"}");
-		if(Configs.getBoolean("esp"))
-			jsonBuilder.append(",{\"url\": \"relay_servak/knopky.html\", \"title\": \"ESP Remote Control\"}");
-		if(Configs.getBoolean("avr"))
-			jsonBuilder.append(",{\"url\": \"avr_relays_control.html\", \"title\": \"AVR Remote Control\"}");
-		
-		//jsonBuilder.append(",{\"url\": \"https://mijservak.pp.ua:18080/MachineTime18Channels/\", \"title\": \"MachineTime\"}");
-		if(Configs.getBoolean("mach_time_rev"))
-			jsonBuilder.append(",{\"url\": \"/MachineTime18Channels/\", \"title\": \"MachineTime\"}");
-		
-		jsonBuilder.append("]");
-		jsonBuilder.append("}");
-		String jsonString = jsonBuilder.toString();
-		if(httpRequest.method.compareTo("HEAD") == 0)
-			return new HTTPResponse(jsonString.getBytes().length, jsonString.getBytes(), "links.app-json", true);
-		return new HTTPResponse(jsonString.getBytes().length, jsonString.getBytes(), "links.app-json");
-	}
-
 	private static HTTPResponse getPerelikPrystrojiv(int userID) {
 		ArrayList<KeyManager.SnInfo> devices = KeyManager.getSnMegaList(userID);
 		

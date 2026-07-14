@@ -123,7 +123,8 @@ server.exe
 **Process Behavior**:
 - Normal Ctrl+C termination works only before any database operations
 - After first database request: Process becomes unkillable via Ctrl+C
-- Requires process killer or system reboot to force termination
+- Plain `kill` (SIGTERM) does not work either, for the same reason
+- `kill -9` does work, but tears the Firebird attachment apart mid-flight — not a clean stop
 
 ### Proper Shutdown Procedure
 
@@ -139,7 +140,24 @@ For **correct server shutdown**:
 
 3. **Only then terminate the server process** if needed
 
-**Why this happens**: Firebird database connections create system-level resources that require special handling for cleanup.
+**Why this happens**: the server is linked against `-lfbclient`, and `db.cpp` attaches to
+`database.fdb` on the first request. From that moment the Firebird client library owns the
+process's signal handling and swallows `SIGINT`/`SIGTERM`, so neither Ctrl+C nor `kill` ever
+reaches the accept loop in `main()` — which, on top of that, is a bare `while(1)` with no exit
+condition, so the process has no way to terminate itself.
+
+`?command=exit` (`KM_server.cpp`, checked before any method dispatch, so it works on any path)
+is therefore not a convenience: it is the **only** clean way to stop this server. Calling
+`exit(0)` from inside the request handler unwinds normally and lets fbclient detach from the
+database properly.
+
+This is also why the crutch is specific to LiraCalc. `servak_na_winapi_relays` was cloned from
+the same code body and inherited the same command, but it links no Firebird (`-pthread -ldl`)
+and does not need it — a plain Ctrl+C stops it.
+
+Note that `exit(0)` is a *clean* exit, so systemd's `Restart=on-failure` in `oldSrvr.service`
+does not resurrect the process. That is a lucky side effect, not the reason the command exists:
+it predates the service units, the build scripts and the tmux windows entirely.
 
 ## Configuration Management
 

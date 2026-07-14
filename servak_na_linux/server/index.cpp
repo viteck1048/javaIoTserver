@@ -126,20 +126,20 @@ std::string index_cpp_get(int method, int m_id, const char* name)
 			// означає просто повний список, і скидати нічого.
 			bool pokazaty_vsi = (method == POST && praporec_nicjoho_ne_znajdeno == 2);
 
-			buff << "<h3 class=\"sidebar-title\">Машини";
+			buff << "<h3 class=\"sidebar-title\"><span data-i18n=\"machines\">Mashyny</span>";
 			if(pokazaty_vsi) {
-				buff << "<a href='./' class='refresh-link' title='Показати всі верстати' aria-label='Показати всі верстати'></a>";
+				buff << "<a href='./' class='refresh-link' data-i18n-title='show_all_machines' data-i18n-aria='show_all_machines' title='Pokazaty vsi verstaty' aria-label='Pokazaty vsi verstaty'></a>";
 			}
 			buff << "</h3>";
 
 			buff << "<form class=\"sidebar-search\" action=\"\" method=\"POST\">";
-				buff << "<input type=\"text\" name=\"search_m\" id=\"search_m\" placeholder=\"Пошук за назвою\">";
-				buff << "<input type=\"submit\" value=\"Знайти\">";
+				buff << "<input type=\"text\" name=\"search_m\" id=\"search_m\" data-i18n-placeholder=\"search_by_name\" placeholder=\"Poshuk za nazvoju\">";
+				buff << "<input type=\"submit\" data-i18n-value=\"search_button\" value=\"Znajty\">";
 			buff << "</form>";
 
 			buff << "<ul class=\"links-list\" id=\"links-list\">";
 				buff << list_buff.str();
-				buff << "<li><a href='?index=add-mash' class='icon add_icon add-mash' tabindex='-1'>Add new mashin</a></li>";
+				buff << "<li><a href='?index=add-mash' class='icon add_icon add-mash' tabindex='-1' data-i18n='add_machine'>Add new mashin</a></li>";
 			buff << "</ul>";
 		buff << "</div>";	// #sidebar
 
@@ -154,29 +154,31 @@ std::string index_cpp_get(int method, int m_id, const char* name)
 		buff << "</div>";	// .content
 
 		buff << "<footer class=\"thin-footer\">";
-			buff << "<a href='FireBird' class='footer-link icon user_icon mysqlviev'>преглед на БД</a>";
-			buff << "<p>&copy; 2025 MijServak. Всі права захищено.</p>";
+			buff << "<a href='FireBird' class='footer-link icon user_icon mysqlviev' data-i18n='view_db'>perehljad BD</a>";
+			buff << "<p data-i18n=\"footer_text\">&copy; 2025 MijServak. Vsi prava zahyshcheno.</p>";
 			// Кнопка консолі — праворуч, дзеркально до посилання на БД. Місце під
 			// іконку зарезервоване завжди; картинку в нього ставить JS, дублюючи
 			// іконку ОСТАННЬОГО повідомлення в консолі (див. lcUpdateConsoleMark).
 			buff << "<a href='#' class='footer-console' id='lc-console-btn'>";
-				buff << "<span class='console-mark' id='lc-console-mark'></span>консоль";
+				buff << "<span class='console-mark' id='lc-console-mark'></span><span data-i18n='console'>konsol</span>";
 			buff << "</a>";
 		buff << "</footer>";
 
 		// Плаваюче вікно консолі. Сам #instr_zvity переїхав сюди — тобто
 		// push_my_console() і далі дописує в нього, а localStorage працює як
 		// працював. Ніякого дзеркалення вмісту немає.
-		buff << "<div id='lc-console' role='dialog' aria-label='Консоль звітів'>";
+		buff << "<div id='lc-console' role='dialog' data-i18n-aria='console_title' aria-label='Konsol zvitiv'>";
 			buff << "<div id='lc-console-bar'>";
-				buff << "<span>Консоль</span>";
-				buff << "<span class='lc-hint'>тап — згорнути</span>";
+				buff << "<span data-i18n='console'>Konsol</span>";
+				buff << "<span class='lc-hint' data-i18n='console_hint'>tap — zhornuty</span>";
 			buff << "</div>";
 			buff << "<div id='instr_zvity'></div>";
 		buff << "</div>";
 
 	buff << "</div>";	// .main-container
 		buff << "<script type=\"text/javascript\" src=\"js/jquery-2.1.3.js\"></script>";
+		buff << "<script type=\"text/javascript\" src=\"./js/translations.js\"></script>";
+		buff << "<script type=\"text/javascript\" src=\"./js/translate.js\"></script>";
 		buff << "<script type=\"text/javascript\" src=\"js/application.js\"></script>";
 		buff << "<script type=\"text/javascript\" src=\"./js/edit.js\"></script>";
 		buff << "<script type=\"text/javascript\" src=\"./js/view.js\"></script>";

@@ -1,4 +1,4 @@
-
+/*
 function prnt_instr(_this) {
 	var res = '';
 	res += "script-coment?res=";
@@ -51,7 +51,7 @@ function prnt_instr(_this) {
 	if(_this.hasClass('zadijaty-zminy-liry')) {
 		res += "mouse_on_zadijaty_zminy";
 	}else		{
-		push_my_console("<p class='icon error_icon msg_err'>ERRcoment невідомий class</p>");
+		push_my_console("<p class='icon error_icon msg_err'>" + t('err_coment_unknown_class') + "</p>");
 		return false;
 	}
 	
@@ -61,7 +61,7 @@ function prnt_instr(_this) {
 //	xhttp.setRequestHeader('Expires', new Date(Date.now() + 3600000).toUTCString());
 	xhttp.send();
 }
-
+*/
 
 // #instr_zvity живе у плаваючому вікні консолі (#lc-console), яке відкривається
 // кнопкою у футері. Вміст і далі пише себе в localStorage — це пам'ять звітів.
@@ -117,7 +117,7 @@ function sub_edit_mash(action, formData, method) {
 			if(data.startsWith("<p class='icon")) {
 				push_my_console(data);
 			}else if((data + 0) > 0) {
-				push_my_console("<p class='icon ok_icon msg_ok'>Машинка успішно додана.</p>");
+				push_my_console("<p class='icon ok_icon msg_ok'>" + t('ok_machine_added') + "</p>");
 				var newUrl = "?m_id=" + data;
 				// Перезавантажуємо сторінку з новим URL
 				window.location.href = newUrl;

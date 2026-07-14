@@ -1,7 +1,6 @@
 var br_lir = 0;
 var m_id_mem = 0;
 var xhttp = new XMLHttpRequest();
-var lng = navigator.language.slice(0, 2);
 
 
 // Підсвітка активного пункту бокового меню. Стиль .links-list a.active приходить
@@ -56,7 +55,6 @@ function lcUpdateConsoleMark() {
 }
 
 
-// (lng === "uk" ? "nazva verstatu" : (lng === "bg" ? "imeto na mashina" : "Mashine"))
 $(document).ready(function() {
 	
 	xhttp.onreadystatechange = function() {
@@ -76,7 +74,7 @@ $(document).ready(function() {
 				var m2 = $('#mashyn-details').find('input[name="mash[M2]"]');
 				if(m2.val().length < 3) {
 					$(this).val('1');
-					push_my_console_err("няма магаз 2.");
+					push_my_console_err(t('err_no_magaz2'));
 					return false;
 				}
 			}
@@ -142,7 +140,7 @@ $(document).ready(function() {
 	$(document).on('click', 'a.delete-npp', function(e) {
 		var z_id = $(this).attr('value');
 		if($(this).closest('npp_det').find('.npp-det-list-' + z_id).find('.npp-kont').toArray().length < 3) {
-			push_my_console_warn("преключвател не може да има по малку от 2 полож.");
+			push_my_console_warn(t('warn_switch_min2'));
 			return false;
 		}
 		var href = $(this).attr('href');
@@ -260,6 +258,8 @@ $(document).ready(function() {
 	$(document).on('click', 'a.add-mash', function(e) {
 		$.get($(this).attr('href'), function(data) {
 			$('#mashyn-details').html(data);
+			// у HTML з add.cpp є data-i18n — перекладаємо його одразу після вставки
+			applyI18n(document.getElementById('mashyn-details'));
 		});
 		return false;
 	});
@@ -320,7 +320,7 @@ $(document).ready(function() {
 	
 	
 	$(document).on('focus', '.input_non_enter', function() {
-		prnt_instr($(this));
+		//prnt_instr($(this));
 		$(this).css("background", "");
 		if($(this).hasClass('fc_bl_lira_form')) {
 			var res = $(this).closest('.panel_lira');
@@ -332,7 +332,7 @@ $(document).ready(function() {
 			}else if(res.is('#lir-det-2')) {
 				ii = 2;
 			}
-			$('#knop-zadijaty-zminy-' + ii).html("<label>обратна ф-я</label><label2long>" + (res.find('input[name="lira[FORM_ZV]"]').val() || '') + "</label2long>");
+			$('#knop-zadijaty-zminy-' + ii).html("<label>" + t('inverse_formula') + "</label><label2long>" + (res.find('input[name="lira[FORM_ZV]"]').val() || '') + "</label2long>");
 		}
 		return false;
 	});
@@ -559,7 +559,7 @@ $(document).ready(function() {
 			$('#instr_coment').html('viev DataBase');
 			return false;
 		}
-		prnt_instr($(this));
+		//prnt_instr($(this));
 		return false;
 	});
 	
@@ -567,10 +567,10 @@ $(document).ready(function() {
 	$(document).on('mouseout', '.zadijaty-zminy-liry, .input_non_enter, .mysqlviev', function(e) {
 //	$(document).on('mouseout', '.mysqlviev', function(e) {
 		if(!($(this).is(":focus"))) {
-			if($(':focus').is('.input_non_enter')) {
+			/*if($(':focus').is('.input_non_enter')) {
 				prnt_instr($(':focus'));
 			}
-			else {
+			else*/ {
 				$('#instr_coment').html('');
 			}
 		}
@@ -780,7 +780,7 @@ document.addEventListener('DOMContentLoaded', function() {
 	document.addEventListener('touchend', function() { drag = null; });
 })();
 // --- Кінець блоку консолі ---
-
+/* це невдала спробаші-агента зробити спливаюче вікно з підказками, але вона працює через сраку
 function prnt_instr(element) {
     // Створюємо спливаюче вікно, якщо його ще немає
     let tooltip = document.querySelector('.tooltip');
@@ -815,3 +815,4 @@ function prnt_instr(element) {
         tooltip.style.display = 'none';
     }
 }
+*/

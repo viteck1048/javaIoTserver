@@ -31,12 +31,12 @@ function analiz_umovy(_this) {
 		}
 	}
 	if(str.length < 3) {
-		push_my_console_err("условието има по малко от 3 знака");
+		push_my_console_err(t('err_umova_short'));
 		return false;
 	}
 	var strfinal = '';
 	if(/^[e-z()|&^!]*$/.test(str) && _this.is('.fc_bl_umovy_umova')) {
-		push_my_console_ok("логічний вираз");
+		push_my_console_ok(t('ok_logic_expr'));
 		let match;
 		var regex = /\(/g;
 		var n1 = 0;
@@ -70,7 +70,7 @@ function analiz_umovy(_this) {
 				var j;
 				for(j = 0; j < maslit.length && maslit[j] !== str[i]; j++);
 				if(j === maslit.length) {
-					push_my_console_err("алиас '" + str[i] + "' не дефиниран");
+					push_my_console_err(t('err_alias_undefined', { a: str[i] }));
 					maslit += str[i];
 				}
 			}
@@ -90,14 +90,14 @@ function analiz_umovy(_this) {
 		var str0 = '';
 		if(str[1] === ':' && _this.is('.fc_bl_umovy_umova')) {
 			if(!/[e-z]/.test(str[0])) {
-				push_my_console_err("грешен синтаксис f:1=1");
+				push_my_console_err(t('err_syntax_f'));
 				return false;
 			}else {
-				push_my_console_ok("частина логічного виразу");
+				push_my_console_ok(t('ok_logic_part'));
 				var maslit = get_lit_um(_this);
 				for(var i = 0; i < maslit.length; i++) {
 					if(str[0] === maslit[i]) {
-						push_my_console_err("алиас '" + str[0] + "' зает.");
+						push_my_console_err(t('err_alias_taken', { a: str[0] }));
 						return false;
 					}
 				}
@@ -107,11 +107,11 @@ function analiz_umovy(_this) {
 			}
 		}
 		if(!/^[a-d0-9+\-*/=<>!().%]*$/.test(str) && _this.is('.fc_bl_umovy_umova')) {
-			push_my_console_err("Недопустим символ");
+			push_my_console_err(t('err_bad_symbol'));
 			return false;
 		}
 		if(!/^[e-hj-z0-9+\-*/=<>!().%]*$/.test(str) && _this.is('.fc_bl_npp_umova')) {
-			push_my_console_err("Недопустим символ");
+			push_my_console_err(t('err_bad_symbol'));
 			return false;
 		}
 		var str1, str2;
@@ -121,7 +121,7 @@ function analiz_umovy(_this) {
 			porivn = '!';
 			str2 = str.slice(1);
 			if(!/^[0-9]*$/.test(str2)) {
-				push_my_console_err("недопустими знаци след '!'");
+				push_my_console_err(t('err_bad_after_excl'));
 				return false;
 			}
 			if(str2.length > 3) {
@@ -142,7 +142,7 @@ function analiz_umovy(_this) {
 				}
 			}
 			if(!(porivn === ">=" || porivn === "<=" || porivn === "!=" || porivn === ">" || porivn === "<" || porivn === "=")) {
-				push_my_console_err("'" + porivn + "' не е валидна операция");
+				push_my_console_err(t('err_bad_operation', { op: porivn }));
 				return false;
 			}//push_my_console_ok("1 " + str1);push_my_console_ok("2 " + porivn);push_my_console_ok("3 " + str2);
 			let match;
@@ -293,12 +293,12 @@ function analiz_form(_this, flag) {
 		});
 		var regex = /^[e-hj-z0-9A-F+\-*/().]*$/;
 		if(!regex.test(ff)) {
-			push_my_console("<p class='icon error_icon msg_err'>присутні непідтримувані символи</p>");
+			push_my_console("<p class='icon error_icon msg_err'>" + t('err_unsupported_symbols') + "</p>");
 			return false;
 		}
 		regex = /^[0-9A-F+\-*/().]*$/;
 		if(regex.test(ff)) {
-			push_my_console("<p class='icon error_icon msg_err'>відсутні змінні</p>");
+			push_my_console("<p class='icon error_icon msg_err'>" + t('err_no_vars') + "</p>");
 			return false;
 		}
 		let match;
@@ -367,15 +367,11 @@ function analiz_form(_this, flag) {
 				zm_odyn++;
 			}
 			else {
-				push_my_console_warn(lng === "uk" ? ("змінна «" + v + "» входить у формулу " + zm_cnt[v] + " рази — зворотну формулу по ній побудувати неможливо")
-					: (lng === "bg" ? ("променливата «" + v + "» се среща " + zm_cnt[v] + " пъти — обратна формула по нея е невъзможна")
-					: ("variable «" + v + "» occurs " + zm_cnt[v] + " times — no inverse formula can be built for it")));
+				push_my_console_warn(t('warn_var_repeats', { v: v, n: zm_cnt[v] }));
 			}
 		}
 		if(zm_odyn === 0) {
-			push_my_console_err(lng === "uk" ? "жодна змінна не входить у формулу рівно один раз — зворотну формулу побудувати неможливо"
-				: (lng === "bg" ? "няма променлива, която да се среща точно веднъж — обратна формула е невъзможна"
-				: "no variable occurs exactly once — an inverse formula cannot be built"));
+			push_my_console_err(t('err_no_single_var'));
 			return false;
 		}
 	}
@@ -432,14 +428,14 @@ function analiz_i_redaguvannja(str) {
 	}
 	for(i = 0; i < cory.length - 1; i++) {
 		if(cory[i].end == cory[i + 1].start) {
-			push_my_console_err("м-у 2та операнда няма оператори.");
+			push_my_console_err(t('err_no_operators'));
 			return null;
 		}
 	}
 	for(i = 0; i < dija.length - 1; i++) {
 		if(dija[i].i + 1 === dija[i + 1].i) {
 			if(dija[i + 1].oper !== 1 || dija[i].oper === 1) {
-				push_my_console_err("м-у 2та оператора няма операнди.");
+				push_my_console_err(t('err_no_operands'));
 				return null;
 			}
 		}
@@ -486,7 +482,7 @@ function analiz_i_redaguvannja(str) {
 			j++;
 		}
 		if(j === cory.length) {
-			push_my_console_err("няма операнд.");
+			push_my_console_err(t('err_missing_operand'));
 			return null;
 		}
 		if(dija[max_p.i].oper == 1) {
@@ -500,7 +496,7 @@ function analiz_i_redaguvannja(str) {
 				k--;
 			}
 			if(k === -1) {
-				push_my_console_err("няма операнд.");
+				push_my_console_err(t('err_missing_operand'));
 				return null;
 			}
 			dija[max_p.i].oper = 5;
@@ -559,7 +555,7 @@ function anmathform(str, i) {
 	if(/[0-9.]/.test(str[start])) {
 		var regex = /^\d+(\.\d+)?$/;
 		if(!regex.test(str.slice(start, end))) {
-			push_my_console_err(str.slice(start, end) + " - некоректна константа.");
+			push_my_console_err(str.slice(start, end) + t('err_bad_constant'));
 			return null;
 		}
 	}
@@ -698,7 +694,7 @@ function analiz_mash_m(pole, _post, this_mem_f) {
 	for(var i = 0; i < numbers.length; i++) {
 		var number = parseInt(numbers[i]);
 		if(number > 300 || number < 10) {
-			push_my_console_err("едно от колела извьн диапазона 10..300.");
+			push_my_console_err(t('err_wheel_range'));
 			return false;
 		}
 	}
@@ -716,7 +712,7 @@ function analiz_mash_m1(_this) {
 	}
 	var this_mem_f = _this.closest('.spoy-panel').find('input[name="mash[M1]"]');
 	if(pole.length < 10) {
-		push_my_console_err("непопьлнено поле.");
+		push_my_console_err(t('err_empty_field'));
 		return false;
 	}
 	return analiz_mash_m(pole, _this.closest('.spoy-panel').find('.save-mash'), this_mem_f);
@@ -734,7 +730,7 @@ function analiz_mash_m2(_this) {
 		if($('.fc_bl_lira_magaz').filter(function() {
 			return $(this).val() == 2;
 		}).length > 0) {
-			push_my_console_err("набор от колела 2 използва поне 1на лира.");
+			push_my_console_err(t('err_magaz2_in_use'));
 			return false;
 		}else {
 			this_mem_f.val(pole);
@@ -754,7 +750,7 @@ function analiz_konst_npp(_this) {
 	}
 	var this_mem = _this.closest('.spoy-panel').find('.npp_mem_znachennja');
 	if(pole.length < 1) {
-		push_my_console_err("непопьлнено поле.");
+		push_my_console_err(t('err_empty_field'));
 		return false;
 	}
 	return analiz_konst(pole, _this.closest('.spoy-panel').find('.save-npp'), this_mem);
@@ -769,7 +765,7 @@ function analiz_konst_zm(_this) {
 	}
 	var this_mem = _this.closest('.kont-zm').find('input[name="zm[ZNACHENNJA]"]');
 	if(pole.length < 1) {
-		push_my_console_err("непопьлнено поле.");
+		push_my_console_err(t('err_empty_field'));
 		return false;
 	}
 	if(analiz_konst(pole, _this.closest('.kont-zm').find('.save-zm'), this_mem) === true) {
@@ -785,7 +781,7 @@ function analiz_konst_zm(_this) {
 function analiz_konst(pole, _post, this_mem) {
 	var regex = /^\d+(\.\d+)?$/;
 	if(!regex.test(pole)) {
-		push_my_console_err("введено невалидно значение.");
+		push_my_console_err(t('err_invalid_value'));
 		return false;
 	}
 	this_mem.val(pole);
@@ -798,7 +794,7 @@ function combobpox_dlja_f(bb, zm_cnt, li) {
 	var html = '';
 	var persha = '';
 	html +=
-		"<p><label for='selectbb-" + li + "'>Найважната променлива</label>" +
+		"<p><label for='selectbb-" + li + "'>" + t('main_variable') + "</label>" +
 		"<select class='input_non_enter fc_bl_lira_form_zv' id='selectbb-" + li + "' >";
 		for(var i = 0; i < bb.length; i++) {
 			// Дубльована змінна лишається в списку (за ним іде менеджмент змінних),
@@ -808,9 +804,7 @@ function combobpox_dlja_f(bb, zm_cnt, li) {
 			// кожен символ. Будь-яка приписка стала б окремими змінними. Тому позначка
 			// живе в title.
 			var dubl = zm_cnt[bb[i]] > 1;
-			var pidkazka = lng === "uk" ? "входжень у формулу: " + zm_cnt[bb[i]] + " — обернення неможливе"
-				: (lng === "bg" ? "срещания във формулата: " + zm_cnt[bb[i]] + " — обръщане невъзможно"
-				: "occurrences in formula: " + zm_cnt[bb[i]] + " — inversion impossible");
+			var pidkazka = t('hint_occurrences', { n: zm_cnt[bb[i]] });
 			html += "<option value='" + bb[i] + "'" +
 				(dubl ? " disabled title=\"" + pidkazka + "\"" : "") +
 				">" + bb[i] + "</option>";
@@ -820,7 +814,7 @@ function combobpox_dlja_f(bb, zm_cnt, li) {
 		}
 	html += "</select>";
 	html += "<script>document.getElementById('selectbb-" + li + "').value = '" + persha + "';</script>";
-	html += "<button class='zadijaty-zminy-liry' id='zadijaty-zminy-liry-" + li + "'>Задействай промени</button>";
+	html += "<button class='zadijaty-zminy-liry' id='zadijaty-zminy-liry-" + li + "'>" + t('apply_changes') + "</button>";
 	var res = "#knop-zadijaty-zminy-" + li;
 	$(res).html(html);
 //	xhttp.open("GET", "script-coment?res=lira_form_zv", true);
@@ -945,7 +939,7 @@ function obrobka_zmin_v_formuli(_this) {
 	$('#lir-det-' + li + ' .save-lira').trigger('click');
 	
 	res = "#knop-zadijaty-zminy-" + li;
-	$(res).html('<p><label>обратна ф-я</label><label2long>' + ff_zv + '</label2long></p>');
+	$(res).html('<p><label>' + t('inverse_formula') + '</label><label2long>' + ff_zv + '</label2long></p>');
 	
 }
 

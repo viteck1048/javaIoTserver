@@ -75,18 +75,18 @@ function show_mash(href) {
 		html +=
 			"<div class='view-header'>" +
 				"<h3 class='view-title'>" + name + "</h3>" +
-				"<button type='button' class='view-menu-btn' aria-label='Меню'>&#9776;</button>" +
+				"<button type='button' class='view-menu-btn' aria-label='" + t('menu') + "'>&#9776;</button>" +
 				"<div class='view-menu'>" +
-					"<a href='?m_id=" + m_id + "&name=" + name + "&json=liry' class='mashyn-edit-details'>Редактор</a>" +
-					"<a href='download?m_id=" + m_id + "' download='" + name + ".cnf'>Download .cnf</a>" +
-					"<a href='preview?m_id=" + m_id + "'>Preview .cnf</a>" +
+					"<a href='?m_id=" + m_id + "&name=" + name + "&json=liry' class='mashyn-edit-details'>" + t('editor') + "</a>" +
+					"<a href='download?m_id=" + m_id + "' download='" + name + ".cnf'>" + t('download_cnf') + "</a>" +
+					"<a href='preview?m_id=" + m_id + "'>" + t('preview_cnf') + "</a>" +
 				"</div>" +
 			"</div>";
 
 		$.each(json_data.liry, function(i, lira) {
 			html +=
 				"<lir_det>" +
-				"<h1>Lira za " + lira.NAME + "  izpolzva " + (lira.MAGAZ == 1 ? "magaz 1 " : "magaz 2 ") + "</h1>" +
+				"<h1>" + t('lira_uses', { name: lira.NAME, magaz: (lira.MAGAZ == 1 ? t('magaz_1') : t('magaz_2')) }) + "</h1>" +
 				"<p>" + lira.FORM + "</p>";
 
 			$.each(json_data.liry_zm_arr[i], function(j, zm) {
@@ -98,7 +98,7 @@ function show_mash(href) {
 			});
 
 			html +=
-				"<p><a href='?l_id=" + lira.L_ID + "&json=umovy' id='umovy_" + lira.L_ID + "' class='umovy-show-details'>Условия за зацепване</a></p>" +
+				"<p><a href='?l_id=" + lira.L_ID + "&json=umovy' id='umovy_" + lira.L_ID + "' class='umovy-show-details'>" + t('engagement_conditions') + "</a></p>" +
 				"<div id='usl-det_" + lira.L_ID + "'></div>" +
 				"</lir_det>";	// раніше не додавалось: між двома літералами бракувало
 								// '+', і автопідстановка крапки з коми обривала оператор

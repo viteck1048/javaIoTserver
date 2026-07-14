@@ -1,36 +1,12 @@
 
-std::string save_zm(int m_id, int l_id, int z_id, char bukva, int npp_s, const char* name, double znachennja, const char* lng)
+std::string save_zm(int m_id, int l_id, int z_id, char bukva, int npp_s, const char* name, double znachennja)
 {
-	printf("PUT SAVE ZMINNA\tm_id = %d, l_id = %d, z_id = %d, bukva = %c, name = %s, znach = %.20f, lng = %s\n", m_id, l_id, z_id, bukva, name, znachennja, lng);
-	std::string txt1, txt2, txt3, txt5, txt6;
-	if(lng[0] == 'u' && lng[1] == 'k') {
-		txt1 = "змінна ";
-		txt2 = "перемекач ";
-		txt3 = " збережена.";
-		txt5 = "індекс M_ID або Z_ID";
-		txt6 = " дорівнює нулю.";
-	}
-	else if(lng[0] == 'b' && lng[1] == 'g') {
-		txt1 = "променлива ";
-		txt2 = "преключвател ";
-		txt3 = " сьхранена.";
-		txt5 = "индекс M_ID или Z_ID";
-		txt6 = " е нула.";
-	}
-	else if(lng[0] == 'e' && lng[1] == 'n') {
-		txt1 = "the variable ";
-		txt2 = " the swich ";
-		txt3 = " is preserved.";
-		txt5 = "index M_ID or Z_ID";
-		txt6 = " is equal to zero.";
-	}
-	else {
-		txt1 = "err";
-		txt2 = "err";
-		txt3 = "err";
-		txt6 = "err";
-		txt5 = "err";
-	}
+	printf("PUT SAVE ZMINNA\tm_id = %d, l_id = %d, z_id = %d, bukva = %c, name = %s, znach = %.20f\n", m_id, l_id, z_id, bukva, name, znachennja);
+	const std::string txt1 = "zminna ";
+	const std::string txt2 = "peremykach ";
+	const std::string txt3 = " zberezhena.";
+	const std::string txt5 = "indeks M_ID abo Z_ID";
+	const std::string txt6 = " dorivnjuje nulju.";
 	Status status;
 	if(npp_s < 0 || npp_s > 2)
 		status.error("NPP_S != 0...2");
@@ -83,34 +59,13 @@ std::string save_zm(int m_id, int l_id, int z_id, char bukva, int npp_s, const c
 }
 
 
-std::string save_usl(int u_id, int l_id, const char* umova, const char* lng)
+std::string save_usl(int u_id, int l_id, const char* umova)
 {
-	printf("PUT SAVE UMOVA\tu_id = %d, l_id = %d, umova = %s, lng = %s\n", u_id, l_id, umova, lng);
-	std::string txt1, txt2, txt3, txt4;
-	if(lng[0] == 'u' && lng[1] == 'k') {
-		txt1 = "умова ";
-		txt2 = " збережена.";
-		txt3 = " має меньше 3-х символів.";
-		txt4 = "індекс U_ID або L_ID дорівнює нулю.";
-	}
-	else if(lng[0] == 'b' && lng[1] == 'g') {
-		txt1 = "условието ";
-		txt2 = " сьхранено.";
-		txt3 = " има по малко от 3 символа.";
-		txt4 = "индекс U_ID или L_ID е нула.";
-	}
-	else if(lng[0] == 'e' && lng[1] == 'n') {
-		txt1 = "the condition ";
-		txt2 = " is preserved.";
-		txt3 = " should be more than 3 character.";
-		txt4 = "index U_ID or L_ID is equal to zero.";
-	}
-	else {
-		txt1 = "err";
-		txt2 = "err";
-		txt3 = "err";
-		txt4 = "err";
-	}
+	printf("PUT SAVE UMOVA\tu_id = %d, l_id = %d, umova = %s\n", u_id, l_id, umova);
+	const std::string txt1 = "umova ";
+	const std::string txt2 = " zberezhena.";
+	const std::string txt3 = " maje menshe 3-h symvoliv.";
+	const std::string txt4 = "indeks U_ID abo L_ID dorivnjuje nulju.";
 	Status status;
 	if(strlen(umova) < 3)
 		status.error((txt1 + umova + txt3).c_str());
@@ -136,46 +91,16 @@ std::string save_usl(int u_id, int l_id, const char* umova, const char* lng)
 }
 
 
-std::string save_npp(int n_id, int z_id, double znachennja, const char* umova, const char* coment, const char* lng)
+std::string save_npp(int n_id, int z_id, double znachennja, const char* umova, const char* coment)
 {
-	printf("PUT SAVE NPP\tn_id = %d, z_id = %d, coment = %s, lng = %s\n", n_id, z_id, coment, lng);
-	std::string txt1, txt2, txt3, txt4, txt5, txt6, txt7;
-	if(lng[0] == 'u' && lng[1] == 'k') {
-		txt1 = "умова ";
-		txt5 = "коментар ";
-		txt2 = " збережена.";
-		txt3 = " має меньше 3-х символів.";
-		txt4 = "індекс N_ID або Z_ID";
-		txt6 = " дорівнює нулю.";
-		txt7 = "константа ";
-	}
-	else if(lng[0] == 'b' && lng[1] == 'g') {
-		txt1 = "условието ";
-		txt5 = "коментарий ";
-		txt2 = " сьхранена.";
-		txt3 = " има по малко от 3 символа.";
-		txt4 = "индекс N_ID или Z_ID";
-		txt6 = " е нула.";
-		txt7 = "константа ";
-	}
-	else if(lng[0] == 'e' && lng[1] == 'n') {
-		txt1 = "the condition ";
-		txt5 = "the coment ";
-		txt2 = " is preserved.";
-		txt3 = " should be more than 3 character.";
-		txt4 = "index N_ID or Z_ID";
-		txt6 = " is equal to zero.";
-		txt7 = "the constant ";
-	}
-	else {
-		txt1 = "err";
-		txt5 = "err";
-		txt2 = "err";
-		txt3 = "err";
-		txt4 = "err";
-		txt6 = "err";
-		txt7 = "err";
-	}
+	printf("PUT SAVE NPP\tn_id = %d, z_id = %d, coment = %s\n", n_id, z_id, coment);
+	const std::string txt1 = "umova ";
+	const std::string txt5 = "komentar ";
+	const std::string txt2 = " zberezhena.";
+	const std::string txt3 = " maje menshe 3-h symvoliv.";
+	const std::string txt4 = "indeks N_ID abo Z_ID";
+	const std::string txt6 = " dorivnjuje nulju.";
+	const std::string txt7 = "konstanta ";
 	Status status;
 	if(strlen(umova) < 3)
 		status.error((txt1 + umova + txt3).c_str());
@@ -205,42 +130,14 @@ std::string save_npp(int n_id, int z_id, double znachennja, const char* umova, c
 }
 
 
-std::string save_mash(int m_id, const char* name, const char* m1, const char* m2, const char* lng)
+std::string save_mash(int m_id, const char* name, const char* m1, const char* m2)
 {
-	printf("PUT SAVE MASH\tm_id = %d, name = %s, lng = %s\n", m_id, name, lng);
-	std::string txt1, txt2, txt3, txt6, txt7, txt8;
-	if(lng[0] == 'u' && lng[1] == 'k') {
-		txt1 = "верстат ";
-		txt2 = " має меньше 3-х символів.";
-		txt3 = " збережено.";
-		txt6 = "ім'я верстата ";
-		txt7 = "перелік коліс ";
-		txt8 = "налічує непідтримувані символи.";
-	}
-	else if(lng[0] == 'b' && lng[1] == 'g') {
-		txt1 = "лира ";
-		txt2 = " има по малко от 3 символа.";
-		txt3 = " сьхранена.";
-		txt6 = "името на машина ";
-		txt7 = "поле 'зьбни колела' ";
-		txt8 = "сьдьржа букви";
-	}
-	else if(lng[0] == 'e' && lng[1] == 'n') {
-		txt1 = "the mashine ";
-		txt2 = " should be more than 3 character.";
-		txt3 = " is preserved.";
-		txt6 = "";
-		txt7 = "list of gears ";
-		txt8 = "has characters.";
-	}
-	else {
-		txt1 = "err";
-		txt2 = "err";
-		txt3 = "err";
-		txt6 = "err";
-		txt7 = "err";
-		txt8 = "err";
-	}
+	printf("PUT SAVE MASH\tm_id = %d, name = %s\n", m_id, name);
+	const std::string txt1 = "verstat ";
+	const std::string txt2 = " maje menshe 3-h symvoliv.";
+	const std::string txt3 = " zberezheno.";
+	const std::string txt6 = "im'ja verstata ";
+	const std::string txt7 = "perelik kolis ";
 	Status status;
 	if(strlen(name) < 3)
 		status.error((txt6 + name + txt2).c_str());
@@ -269,46 +166,16 @@ std::string save_mash(int m_id, const char* name, const char* m1, const char* m2
 }
 
 
-std::string save_lira(int m_id, int l_id, const char* name, int magaz, int br_kol_lir, const char* form, const char* form_zv, const char* lng)
+std::string save_lira(int m_id, int l_id, const char* name, int magaz, int br_kol_lir, const char* form, const char* form_zv)
 {
-	printf("PUT SAVE LIRA\tm_id = %d, l_id = %d, name = %s, lng = %s\n", m_id, l_id, name, lng);
-	std::string txt1, txt2, txt3, txt5, txt6, txt7, txt8;
-	if(lng[0] == 'u' && lng[1] == 'k') {
-		txt1 = "ліра ";
-		txt2 = " має меньше 3-х символів.";
-		txt3 = " збережена.";
-		txt5 = "індекс M_ID або L_ID дорівнює нулю.";
-		txt6 = "ім'я ліри ";
-		txt7 = "основна формула ліри ";
-		txt8 = "зворотня формула ліри ";
-	}
-	else if(lng[0] == 'b' && lng[1] == 'g') {
-		txt1 = "лира ";
-		txt2 = " има по малко от 3 символа.";
-		txt3 = " сьхранена.";
-		txt5 = "индекс M_ID или L_ID е нула.";
-		txt6 = "името на лира ";
-		txt7 = "основна формула на лира ";
-		txt8 = "обратна формула на лира ";
-	}
-	else if(lng[0] == 'e' && lng[1] == 'n') {
-		txt1 = "the lira ";
-		txt2 = " should be more than 3 character.";
-		txt3 = " is preserved.";
-		txt5 = "index M_ID or L_ID is equal to zero.";
-		txt6 = "the name of the lira ";
-		txt7 = "the basic formula of the lira ";
-		txt8 = "he inverse formula of the lira ";
-	}
-	else {
-		txt1 = "err";
-		txt2 = "err";
-		txt3 = "err";
-		txt5 = "err";
-		txt6 = "err";
-		txt7 = "err";
-		txt8 = "err";
-	}
+	printf("PUT SAVE LIRA\tm_id = %d, l_id = %d, name = %s\n", m_id, l_id, name);
+	const std::string txt1 = "lira ";
+	const std::string txt2 = " maje menshe 3-h symvoliv.";
+	const std::string txt3 = " zberezhena.";
+	const std::string txt5 = "indeks M_ID abo L_ID dorivnjuje nulju.";
+	const std::string txt6 = "im'ja liry ";
+	const std::string txt7 = "osnovna formula liry ";
+	const std::string txt8 = "zvorotnja formula liry ";
 	Status status;
 	if(strlen(name) < 3)
 		status.error((txt6 + name + txt2).c_str());

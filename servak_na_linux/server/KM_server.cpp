@@ -363,7 +363,7 @@ void obrobka_post(SOCKET fd_client, Request* rq)
 	
 	else if(rq->query_len == 1 && !strcmp(rq->path.c_str(), "/lialiapam/")) {
 		puts(rq->znach("param"));
-		buff << "привіт, жорстокий світе!";
+		buff << "pryvit, zhorstokyj svite!";
 	}
 	
 	else {
@@ -421,28 +421,23 @@ void obrobka_put(SOCKET fd_client, Request* rq)
 //	puts("322");///////////////////////////////////////////////////////////////////////////////			322
 //	rq->prnt();
 	
-	char lng[3];
-	lng[0] = rq->accept_language[0];
-	lng[1] = rq->accept_language[1];
-	lng[2] = 0;
-	
 	if(rq->query_len == 2 && !strcmp(rq->path.c_str(), "/lialiapam") && rq->param("sn") && rq->param("button"))
 		buff << rr_put_status(atoi(rq->znach("sn")), atoi(rq->znach("button")));
-	
+
 	else if(rq->query_len == 7 && !strcmp(rq->path.c_str(), "/save-lira"))
-		buff << save_lira(atoi(rq->znach("lira[M_ID]")), atoi(rq->znach("lira[L_ID]")), rq->znach("lira[NAME]"), atoi(rq->znach("lira[MAGAZ]")), atoi(rq->znach("lira[BR_KOL_LIR]")), rq->znach("lira[FORM]"), rq->znach("lira[FORM_ZV]"), lng);
-	
+		buff << save_lira(atoi(rq->znach("lira[M_ID]")), atoi(rq->znach("lira[L_ID]")), rq->znach("lira[NAME]"), atoi(rq->znach("lira[MAGAZ]")), atoi(rq->znach("lira[BR_KOL_LIR]")), rq->znach("lira[FORM]"), rq->znach("lira[FORM_ZV]"));
+
 	else if(rq->query_len == 4 && !strcmp(rq->path.c_str(), "/save-mash"))
-		buff << save_mash(atoi(rq->znach("mash[M_ID]")), rq->znach("mash[NAME]"), rq->znach("mash[M1]"), rq->znach("mash[M2]"), lng);
-	
+		buff << save_mash(atoi(rq->znach("mash[M_ID]")), rq->znach("mash[NAME]"), rq->znach("mash[M1]"), rq->znach("mash[M2]"));
+
 	else if(rq->query_len == 5 && !strcmp(rq->path.c_str(), "/save-npp"))
-		buff << save_npp(atoi(rq->znach("npp[N_ID]")), atoi(rq->znach("npp[Z_ID]")), atof(rq->znach("npp[ZNACHENNJA]")), rq->znach("npp[UMOVA]"), rq->znach("npp[COMENT]"), lng);
-	
+		buff << save_npp(atoi(rq->znach("npp[N_ID]")), atoi(rq->znach("npp[Z_ID]")), atof(rq->znach("npp[ZNACHENNJA]")), rq->znach("npp[UMOVA]"), rq->znach("npp[COMENT]"));
+
 	else if(rq->query_len == 3 && !strcmp(rq->path.c_str(), "/save-usl"))
-		buff << save_usl(atoi(rq->znach("usl[U_ID]")), atoi(rq->znach("usl[L_ID]")), rq->znach("usl[UMOVA]"), lng);
-	
+		buff << save_usl(atoi(rq->znach("usl[U_ID]")), atoi(rq->znach("usl[L_ID]")), rq->znach("usl[UMOVA]"));
+
 	else if(rq->query_len == 7 && !strcmp(rq->path.c_str(), "/save-zm"))
-		buff << save_zm(atoi(rq->znach("zm[M_ID]")), atoi(rq->znach("zm[L_ID]")), atoi(rq->znach("zm[Z_ID]")), *(rq->znach("zm[BUKVA]")), atoi(rq->znach("zm[NPP_S]")), rq->znach("zm[NAME]"), atof(rq->znach("zm[ZNACHENNJA]")), lng);
+		buff << save_zm(atoi(rq->znach("zm[M_ID]")), atoi(rq->znach("zm[L_ID]")), atoi(rq->znach("zm[Z_ID]")), *(rq->znach("zm[BUKVA]")), atoi(rq->znach("zm[NPP_S]")), rq->znach("zm[NAME]"), atof(rq->znach("zm[ZNACHENNJA]")));
 	
 	else {
 		puts("7777777777777777777777\t\t377\t\tundeclarated PUT");
@@ -463,7 +458,6 @@ void send_res(SOCKET fd_client, Request* rq, bool head = false)
 	std::ifstream fl;
 	int length, typ = 0;
 	std::string bb, typstr;
-	int lngf = -1;
 	int fl_content = 0;
 	if(!strcmp(rq->path.c_str(), "/lialiapam") && rq->param("sn")) {
 		bb = rr_get_status(atoi(rq->znach("sn")));

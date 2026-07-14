@@ -256,7 +256,7 @@ std::string add_zm_npp(int z_id)
 		return buff.str();
 	}
 	
-	sprintf(sql_query, "UPDATE ZMINNY_NPP SET COMENT='положення %d' WHERE N_ID=%d", n_id, n_id);
+	sprintf(sql_query, "UPDATE ZMINNY_NPP SET COMENT='polozhennja %d' WHERE N_ID=%d", n_id, n_id);
 	isc_start_transaction(status_vector, &tr_handle, 1, &db_handle, 0, NULL);
 	isc_dsql_execute_immediate(status_vector, &db_handle, &tr_handle, 0, sql_query, SQL_DIALECT_V6, /* sqlda */NULL);
 	isc_commit_transaction(status_vector, &tr_handle);
@@ -471,7 +471,7 @@ std::string get_add_mash()
 	
 	std::stringstream buff;
 	
-	buff << "<h1 class='icon add_icon'>новий верстат</h1>";
+	buff << "<h1 class='icon add_icon' data-i18n='new_machine'>novyj verstat</h1>";
 	buff << "<form id='add-mash-form' action='add-mash' enctype='multipart/form-data' method='post'>";
 		buff << "<input type='hidden' name='mash[M_ID]' value=''/>";
 		buff << "<p><label>NAME</label><input name='mash[NAME]' class='txt medium fc_bl_mash_name' value=''/></p>";
@@ -545,7 +545,7 @@ std::string post_add_mash(const char* mash, const char* m1)
 			isc_print_status(status_vector);
 			isc_rollback_transaction(status_vector, &tr_handle);
 			disconect_db();
-			status.error("M1(M2) имат character или NAME има не-ASCII символи.");
+			status.error("M1(M2) maje literu abo NAME maje ne-ASCII symvoly.");
 			buff << status.html();
 			return buff.str();
 		}
@@ -578,7 +578,7 @@ std::string post_add_mash(const char* mash, const char* m1)
 		free(sqlda_output);
 		
 		if(!fl_find) {
-			status.error("M1(M2) имат character.");
+			status.error("M1(M2) maje literu.");
 			buff << status.html();
 		}
 	}

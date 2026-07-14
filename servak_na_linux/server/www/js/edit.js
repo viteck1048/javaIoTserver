@@ -2,19 +2,19 @@
 function html_lira(i, m_id, l_id, name, magaz, br_kol_lir, form_, form_zv, fl_add, json_data) {
 	var html = '';
 	html += 
-		"<ui class='spoy-kn spoy-mini spoy-mini-l' style='display: none;'>" + (name || '') + "</ui><a class='spoy-kn'>spoyler</a><div class='spoy-panel'>" + 
-			"<h2>lira " + (parseInt(i) + 1) + "</h2>" +
+		"<ui class='spoy-kn spoy-mini spoy-mini-l' style='display: none;'>" + (name || '') + "</ui><a class='spoy-kn'>" + t('spoiler') + "</a><div class='spoy-panel'>" + 
+			"<h2>" + t('lira') + " " + (parseInt(i) + 1) + "</h2>" +
 			"<mem_promizhna_f id='mem-prom-f-" + i + "' style='display: none' value=''/>" + 
-			"<knop_del_lir><a href='delete-lira' data-l_id='" + (l_id || 0) + "' class='icon delete_icon delete-lira' id='delete-lira-" + i + "' tabindex='-1'>del lira</a></knop_del_lir>" +
+			"<knop_del_lir><a href='delete-lira' data-l_id='" + (l_id || 0) + "' class='icon delete_icon delete-lira' id='delete-lira-" + i + "' tabindex='-1'>" + t('del_lira') + "</a></knop_del_lir>" +
 			"<input type='hidden' class='lir_name_mem' value='" + (name || '') + "'/>" +
 			"<form class='edit-lira-form' action='save-lira' enctype='multipart/form-data' method='put'>" +
 				"<input type='hidden' name='lira[M_ID]' value='" + (m_id || 0) + "'/>" +
 				"<input type='hidden' name='lira[L_ID]' value='" + (l_id || 0) + "'/>" +
 				"<p><label>NAME</label><input name='lira[NAME]' class='txt input_non_enter fc_bl_lira_name' value='" + (name || '') + "'/>" +
-				"<p><label for='selectMag-" + i + "'>Магазин:</label>" +
+				"<p><label for='selectMag-" + i + "'>" + t('magazine') + "</label>" +
 				"<select class='input_non_enter fc_bl_lira_magaz' id='selectMag-" + i + "' name='lira[MAGAZ]'>" +
-					"<option value=1>Набір коліс 1</option>" +
-					"<option value=2>Набір коліс 2</option>" +
+					"<option value=1>" + t('gear_set_1') + "</option>" +
+					"<option value=2>" + t('gear_set_2') + "</option>" +
 				"</select>";
 			if(magaz == 1) {
 				html += "<script>document.getElementById('selectMag-" + i + "').value = 1;</script>";
@@ -22,11 +22,11 @@ function html_lira(i, m_id, l_id, name, magaz, br_kol_lir, form_, form_zv, fl_ad
 				html += "<script>document.getElementById('selectMag-" + i + "').value = 2;</script>";
 			}
 			html +=
-				"<p><label for='selectbrk-" + i + "'>Тип ліри:</label>" +
+				"<p><label for='selectbrk-" + i + "'>" + t('lira_type') + "</label>" +
 				"<select class='input_non_enter fc_bl_lira_br_kol_lir' id='selectbrk-" + i + "' name='lira[BR_KOL_LIR]'>" +
-					"<option value=2>2 колеса: a/b</option>" +
-					"<option value=3>3 колеса: a/c</option>" +
-					"<option value=4>4: (a/b)*(c/d)</option>" +
+					"<option value=2>" + t('wheels_2') + "</option>" +
+					"<option value=3>" + t('wheels_3') + "</option>" +
+					"<option value=4>" + t('wheels_4') + "</option>" +
 				"</select>";
 			if(br_kol_lir == 2) {
 				html += "<script>document.getElementById('selectbrk-" + i + "').value = 2;</script>";
@@ -40,15 +40,15 @@ function html_lira(i, m_id, l_id, name, magaz, br_kol_lir, form_, form_zv, fl_ad
 				"<p><input type='hidden' name='lira[FORM_ZV]' id='form-zv-lir-" + i + "' value='" + (form_zv || '') + "'/>" +
 				"<p><input type='submit' class='save-lira' value='Save' style='display: none;'>" +
 			"</form>" + 
-			"<p><label>Формула</label><input class='txt medium input_non_enter fc_bl_lira_form' id='form-lir-" + i + "' value='" + (form_ || '') + "'/>" +
-			"<p><knop id='knop-zadijaty-zminy-" + i + "'><label>обратна ф-я</label><label2long>" + (form_zv || '') + "</label2long></knop></p>" +
+			"<p><label>" + t('formula') + "</label><input class='txt medium input_non_enter fc_bl_lira_form' id='form-lir-" + i + "' value='" + (form_ || '') + "'/>" +
+			"<p><knop id='knop-zadijaty-zminy-" + i + "'><label>" + t('inverse_formula') + "</label><label2long>" + (form_zv || '') + "</label2long></knop></p>" +
 			"<zminni id='zminni-" + i + "'>";
 			var jj = 0;
 			var fl_zm = 0;
 			html += "<div class='stack'>";
 			if(fl_add === 0) {
 				$.each(json_data.liry_zm_arr[i], function(j, zm) {
-					html += "<div class='row' id='zm-det-show" + i + "-" + j + "'><div class='panel_zm spoy-batja'><ui class='spoy-kn spoy-mini' style='display: none; margin-left: 45px;'>" + (zm.BUKVA == 'u' ? 'β' : zm.BUKVA) + "</ui><a class='spoy-kn'>spoyler</a><div class='spoy-panel' id='zm-det-" + i + "-" + j + "'>";
+					html += "<div class='row' id='zm-det-show" + i + "-" + j + "'><div class='panel_zm spoy-batja'><ui class='spoy-kn spoy-mini' style='display: none; margin-left: 45px;'>" + (zm.BUKVA == 'u' ? 'β' : zm.BUKVA) + "</ui><a class='spoy-kn'>" + t('spoiler') + "</a><div class='spoy-panel' id='zm-det-" + i + "-" + j + "'>";
 					
 					html += html_zm(m_id, l_id, zm.Z_ID, zm.BUKVA, i, j, zm.NAME, zm.ZNACHENNJA, zm.NPP_S);	
 							
@@ -58,15 +58,15 @@ function html_lira(i, m_id, l_id, name, magaz, br_kol_lir, form_, form_zv, fl_ad
 				});
 			}
 			if(fl_zm == 0) {
-				html += "<div class='row' style='display: none;' id='zm-det-show" + i + "-" + jj + "'><div class='panel_zm spoy-batja'><ui class='spoy-kn spoy-mini' style='display: none; margin-left: 45px;'></ui><a class='spoy-kn'>spoyler</a><div class='spoy-panel' id='zm-det-" + i + "-" + jj + "'></div></div></div>";
+				html += "<div class='row' style='display: none;' id='zm-det-show" + i + "-" + jj + "'><div class='panel_zm spoy-batja'><ui class='spoy-kn spoy-mini' style='display: none; margin-left: 45px;'></ui><a class='spoy-kn'>" + t('spoiler') + "</a><div class='spoy-panel' id='zm-det-" + i + "-" + jj + "'></div></div></div>";
 			}
 			while(jj < 9) {
 				jj++;
-				html += "<div class='row' style='display: none;' id='zm-det-show" + i + "-" + jj + "'><div class='panel_zm spoy-batja'><ui class='spoy-kn spoy-mini' style='display: none; margin-left: 45px;'></ui><a class='spoy-kn'>spoyler</a><div class='spoy-panel' id='zm-det-" + i + "-" + jj + "'></div></div></div>";
+				html += "<div class='row' style='display: none;' id='zm-det-show" + i + "-" + jj + "'><div class='panel_zm spoy-batja'><ui class='spoy-kn spoy-mini' style='display: none; margin-left: 45px;'></ui><a class='spoy-kn'>" + t('spoiler') + "</a><div class='spoy-panel' id='zm-det-" + i + "-" + jj + "'></div></div></div>";
 			}
 			html += 
 				"</div></zminni>" + 
-			"<p><a href='?l_id=" + l_id + "&json=umovy' id='umovy_" + l_id + "' class=umovy-edit-details style='display: none;'>Условия за зацепване</a></p>" +
+			"<p><a href='?l_id=" + l_id + "&json=umovy' id='umovy_" + l_id + "' class=umovy-edit-details style='display: none;'>" + t('engagement_conditions') + "</a></p>" +
 			"<div id='usl-det_" + l_id + "'></div>" + 
 			"<script>document.getElementById('umovy_" + l_id + "').click();</script>" +
 		"</div>";
@@ -81,10 +81,10 @@ function edit_mash(href) {
 		html += 
 			"<mash-edit><div class='stack'><div class='row'><div class='panel_mash spoy-batja'>" +
 			"<ui class='spoy-kn spoy-mini spoy-mini-m' style='display: none;'>" + (json_data.mash.NAME || '') + "</ui>" +
-			"<a class='spoy-kn' tabindex='-1'>spoyler</a><div class='spoy-panel'>" +
-			"<h2>mashyna</h2>";
+			"<a class='spoy-kn' tabindex='-1'>" + t('spoiler') + "</a><div class='spoy-panel'>" +
+			"<h2>" + t('machine') + "</h2>";
 		html +=
-			"<a href='delete-mash' data-m_id='" + (json_data.mash.M_ID || 0) + "' class='icon delete_icon delete-mash' tabindex='-1'>del mash</a>" +
+			"<a href='delete-mash' data-m_id='" + (json_data.mash.M_ID || 0) + "' class='icon delete_icon delete-mash' tabindex='-1'>" + t('del_machine') + "</a>" +
 			"<form id='edit-mash-form' action='save-mash' enctype='multipart/form-data' method='put'>" +
 				"<input type='hidden' name='mash[M_ID]' value='" + (json_data.mash.M_ID || 0) + "'/>" +
 				"<input type='hidden' name='mash[NAME]' value='" + (json_data.mash.NAME || '') + "'/>" +
@@ -93,7 +93,7 @@ function edit_mash(href) {
 				"<input type='submit' class='save-mash' value='Save' style='display: none;'>" +
 			"</form>";
 		html +=
-			"<p><label>" + (lng === "uk" ? "nazva verstatu" : (lng === "bg" ? "imeto na mashina" : "Mashine")) + "</label><input class='txt medium input_non_enter fc_bl_mash_name' value='" + (json_data.mash.NAME || '') + "'/></p>" +
+			"<p><label>" + t('machine_name') + "</label><input class='txt medium input_non_enter fc_bl_mash_name' value='" + (json_data.mash.NAME || '') + "'/></p>" +
 			"<p><label>magaz_1</label><textarea class='txt dovhe input_non_enter fc_bl_mash_m1'>" + (json_data.mash.M1 || '') + "</textarea></p>" +
 			"<p><label>magaz_2</label><textarea class='txt dovhe input_non_enter fc_bl_mash_m2'>" + (json_data.mash.M2 || '') + "</textarea></p>";
 		
@@ -122,7 +122,7 @@ function edit_mash(href) {
 		html += "<div class='row'><div class='cell'><div id='add-lira'><a href='add-lira' data-m_id='" + (json_data.mash.M_ID || 0) + "' class='icon add_icon add-lira' ";
 		if(br_lir >= 2)
 			html += "style='display: none;' ";
-		html += " tabindex='-1'>Add Lira</a></div></div></div>";
+		html += " tabindex='-1'>" + t('add_lira') + "</a></div></div></div>";
 		
 		html += "</div></div></div></div></div></mash-edit>";
 		html += "<p><input type='button' id='save-all' value='Save All' style='display: none;'></p>";
@@ -137,7 +137,7 @@ function edit_umovy(href) {
 		var html = '';
 		
 		html += 
-			"<usl_det><div class='stack'><div class='row'><div class='panel_um spoy-batja'><ui class='spoy-kn spoy-mini' style='display: none;'>Условия за зацепване</ui><a class='spoy-kn'>spoyler</a><div class='spoy-panel'><h2>Условия за зацепване</h2>" +
+			"<usl_det><div class='stack'><div class='row'><div class='panel_um spoy-batja'><ui class='spoy-kn spoy-mini' style='display: none;'>" + t('engagement_conditions') + "</ui><a class='spoy-kn'>" + t('spoiler') + "</a><div class='spoy-panel'><h2>" + t('engagement_conditions') + "</h2>" +
 			"<div id='usl-lenta-" + json_data.l_id + "'>";
 			
 		$.each(json_data.umovy, function(i, umovy) {
@@ -145,7 +145,7 @@ function edit_umovy(href) {
 		});
 		
 		html += "</div>";
-		html += "<p><a href='add-umova' data-l_id='" + json_data.l_id + "' class='icon add_icon add-um' tabindex='-1' value='" + json_data.l_id + "'>Add umova</a></p>"
+		html += "<p><a href='add-umova' data-l_id='" + json_data.l_id + "' class='icon add_icon add-um' tabindex='-1' value='" + json_data.l_id + "'>" + t('add_umova') + "</a></p>"
 		html += "</div></div></div></div></usl_det>";
 		$(res).html(html);
 	});
@@ -173,7 +173,7 @@ function html_um(u_id, l_id, umova) {
 			"</form>" +
 			"<p>" +
 				"<input class='txt medium input_non_enter fc_bl_umovy_umova' value='" + (umova || '') + "'/>" +
-				"<a href='delete-um' data-u_id='" + (u_id || 0) + "' class='icon delete_icon delete-um' tabindex='-1'>del umova</a>" +
+				"<a href='delete-um' data-u_id='" + (u_id || 0) + "' class='icon delete_icon delete-um' tabindex='-1'>" + t('del_umova') + "</a>" +
 			"</p>" +
 		"</div>";
 	return html;
@@ -202,13 +202,13 @@ function html_zm(m_id, l_id, z_id, bukva, i, j, name, znach, npp_s) {
 			
 			"<p><label> </label>" +
 			"<select class='input_non_enter fc_bl_zm_npp_s' id='selectZm-" + i + "-" + j + "' >" +
-				"<option value=0>змінна</option>" +
-				"<option value=1>перемикач із умовами</option>" +
-				"<option value=2>перемикач без умов</option>" +
+				"<option value=0>" + t('var_plain') + "</option>" +
+				"<option value=1>" + t('var_switch_cond') + "</option>" +
+				"<option value=2>" + t('var_switch_nocond') + "</option>" +
 			"</select>" +
 			
 			"<p id='stoynost-show-" + i + "-" + j + "' class='stoynost-show' style='display: none;'>" +
-				"<label>стойност</label><input class='txt input_non_enter fc_bl_zm_znachennja' value='" + (znach || '') + "'/>" +
+				"<label>" + t('value') + "</label><input class='txt input_non_enter fc_bl_zm_znachennja' value='" + (znach || '') + "'/>" +
 			"</p>";
 			
 		if(npp_s == 0) {
@@ -238,8 +238,8 @@ function edit_zm_npp(href) {
 			"<npp_det data-npp_det>" +
 			"<div class='npp-add-del-" + json_data.z_id + "' style='display: none;' id='npp-none-" + json_data.z_id + "-" + json_data.l_id + "'>" +
 				"<p style='float: right'>" +
-					"<a href='add-zm-npp' data-z_id='" + json_data.z_id + "' class='icon add_icon add-npp' value='" + json_data.z_id + "' tabindex='-1'>add</a>" +
-					"<a href='delete-zm-npp' class='icon delete_icon delete-npp' value='" + json_data.z_id + "' tabindex='-1'>del</a>" +
+					"<a href='add-zm-npp' data-z_id='" + json_data.z_id + "' class='icon add_icon add-npp' value='" + json_data.z_id + "' tabindex='-1'>" + t('add') + "</a>" +
+					"<a href='delete-zm-npp' class='icon delete_icon delete-npp' value='" + json_data.z_id + "' tabindex='-1'>" + t('del') + "</a>" +
 				"</p>" +
 			"</div>" +
 			"<div class='stack npp-det-list-" + json_data.z_id + "'>";
@@ -260,7 +260,7 @@ function html_zm_npp(n_id, z_id, znach, umova, coment, npp_s) {
 	html += 
 		"<div class='row npp-kont'>" +
 			"<div class='panel_zm_npp spoy-batja'><ui class='spoy-kn spoy-mini spoy-mini-n' style='display: none;'>" + (coment || '') + "</ui>" +
-				"<a class='spoy-kn'>spoyler</a>" +
+				"<a class='spoy-kn'>" + t('spoiler') + "</a>" +
 				"<div class='spoy-panel'>" +
 					"<form class='edit-npp-form' action='save-npp' enctype='multipart/form-data' method='put'>" +
 						"<input type='hidden' name='npp[N_ID]' value='" + (n_id || 0) + "'/>" +
@@ -271,14 +271,14 @@ function html_zm_npp(n_id, z_id, znach, umova, coment, npp_s) {
 						"<p><input type='submit' class='save-npp' value='Save' style='display: none;'>" +
 					"</form>" +
 					
-					"<p style='margin-left: 0px;'><label>константа</label><input class='txt input_non_enter fc_bl_npp_znachennja' value='" + (znach || '') + "'/>";
+					"<p style='margin-left: 0px;'><label>" + t('constant') + "</label><input class='txt input_non_enter fc_bl_npp_znachennja' value='" + (znach || '') + "'/>";
 				if(npp_s == 1) {
-					html += "<p style='margin-left: 0px;' class='um-show'><label>умова</label><input class='txt input_non_enter fc_bl_npp_umova' value='" + (umova || '') + "'/>";
+					html += "<p style='margin-left: 0px;' class='um-show'><label>" + t('condition') + "</label><input class='txt input_non_enter fc_bl_npp_umova' value='" + (umova || '') + "'/>";
 				}else {
-					html += "<p style='margin-left: 0px; display: none;' class='um-show'><label>умова</label><input class='txt input_non_enter fc_bl_npp_umova' value='" + (umova || '') + "'/>";
+					html += "<p style='margin-left: 0px; display: none;' class='um-show'><label>" + t('condition') + "</label><input class='txt input_non_enter fc_bl_npp_umova' value='" + (umova || '') + "'/>";
 				}
 				html += 
-					"<p style='margin-left: 0px;'><label>коментар</label><input class='txt input_non_enter fc_bl_npp_coment' value='" + (coment || '') + "'/>" +
+					"<p style='margin-left: 0px;'><label>" + t('comment') + "</label><input class='txt input_non_enter fc_bl_npp_coment' value='" + (coment || '') + "'/>" +
 				"</div>" +
 			"</div>" +
 		"</div>";
@@ -292,7 +292,7 @@ function add_npp(href, z_id, npp_s) {
 		// Додайте інші дані, які вам потрібні, до об'єкту postData
 	};
 	$.post(href, postData, function(n_id) {
-		var html = html_zm_npp(n_id, z_id, 1, '1=1', 'положення ' + n_id, npp_s);
+		var html = html_zm_npp(n_id, z_id, 1, '1=1', 'polozhennja ' + n_id, npp_s);
 		$('.npp-det-list-' + z_id).append(html);
 		push_my_console_ok("add npp " + n_id);
 	});

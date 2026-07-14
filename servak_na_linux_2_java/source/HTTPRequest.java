@@ -489,12 +489,18 @@ public class HTTPRequest {
 						phpQueryArr.add(new Query("DOCUMENT_ROOT", Configs.getParam("php_directory_abs")));
 						phpQueryArr.add(new Query("SCRIPT_FILENAME", Configs.getParam("php_directory_abs") + scriptName));
 						phpQueryArr.add(new Query("SCRIPT_NAME", scriptName));
-						if((method.compareTo("GET") == 0 || method.compareTo("HEAD") == 0) && XwwwFormUrlEncodedString.length() > 0) {
+						// Рядок запиту не залежить від методу: у POST теж буває ?route=...,
+						// і без QUERY_STRING скрипт не побачить його в $_GET.
+						// XwwwFormUrlEncodedString тут ще тримає query з рядка запиту — для
+						// x-www-form-urlencoded його пізніше перезапише тіло
+						if(XwwwFormUrlEncodedString.length() > 0) {
 							phpQueryArr.add(new Query("REQUEST_URI", path + "?" + XwwwFormUrlEncodedString));
 							phpQueryArr.add(new Query("QUERY_STRING", XwwwFormUrlEncodedString));
 						}
-						else
+						else {
 							phpQueryArr.add(new Query("REQUEST_URI", path));
+							phpQueryArr.add(new Query("QUERY_STRING", ""));
+						}
 						phpQueryArr.add(new Query("REMOTE_ADDR", clientAddress.getHostAddress()));
 						phpQueryArr.add(new Query("REMOTE_PORT", "7777"));
 						phpQueryArr.add(new Query("SERVER_ADDR", Configs.getParam("localIP")));
@@ -653,6 +659,13 @@ public class HTTPRequest {
 					body = "hexData";
 				}
 				contentLength = bodyData.length;
+				if(revers == ReversType.PHP_FPM && Content_Type.length() > 0) {
+					// CONTENT_LENGTH клали ще із заголовка запиту, але після розпакування gzip
+					// чи збирання чанків реальний розмір тіла інший, а PHP читає stdin рівно
+					// на цю довжину
+					setPhpParam("CONTENT_LENGTH", String.valueOf(contentLength));
+					setPhpParam("CONTENT_TYPE", Content_Type);
+				}
 				if (header.contains("Content-Length:")) {
 					header = header.replaceFirst("Content-Length: .*\\r?\\n", "Content-Length: " + contentLength + "\r\n");
 				} else {
@@ -881,6 +894,16 @@ public class HTTPRequest {
 		return phpQueryArr.size();
 	}
 
+	private void setPhpParam(String param, String znach) {
+		for(Query query : phpQueryArr) {
+			if(query.getParam().compareTo(param) == 0) {
+				query.setZnach(znach);
+				return;
+			}
+		}
+		phpQueryArr.add(new Query(param, znach));
+	}
+
 	public String getPhpParam(int index) {
 		return phpQueryArr.get(index).getParam();
 	}
@@ -905,6 +928,9 @@ public class HTTPRequest {
 		}
 		public String getParam() {
 			return param;
+		}
+		public void setZnach(String znach) {
+			this.znach = znach;
 		}
 	}
 }

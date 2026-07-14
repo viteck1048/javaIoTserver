@@ -162,6 +162,7 @@ line, blank lines and `#` comments skipped. Used for `whitePathList`, `blackPath
 | `php_fpm` | bool | Enable proxying to PHP-FPM. |
 | `ip_php_fpm_server` | String | FPM address. |
 | `port_php_fpm_server` | int | FPM port. |
+| `php_fpm_timeout_ms` | int | *(optional)* Socket read timeout while waiting for FPM, in ms. Defaults to `30000`. Must cover the script's whole execution time: nothing arrives on the socket until the script produces output. |
 | `php_directory` | String | PHP root, relative to the project. |
 | `php_directory_abs` | String | The same root as an **absolute** path — FPM requires this form. |
 | `php_prefix` | String | *(optional)* URL prefix for PHP. |

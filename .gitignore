@@ -71,6 +71,12 @@ nppBackup/
 # NOTE: OpenSpeedTest is vendored third-party code but it IS a working feature
 # served by the Java gateway, so its html + www80/assets/ stay tracked on purpose.
 
+# phpMyAdmin: сторонній застосунок, розкладений по двох теках маршрутизації
+# (www80 — статика, www_php — скрипти). Не наш код; www_php/phpMyAdmin/config.inc.php
+# ще й містить blowfish_secret
+**/www80/phpMyAdmin/
+**/www_php/phpMyAdmin/
+
 # Misc local helpers
 ai_assist_path_list.txt
 

@@ -131,8 +131,7 @@ public class Configs {
 			"host",
 			"db_user",
 			"db_password",
-			"dbg_post_message_path",
-			"key_expiration_time"
+			"dbg_post_message_path"
 		};
 
 		for (String key : requiredKeys) {

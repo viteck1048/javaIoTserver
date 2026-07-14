@@ -138,7 +138,9 @@ function localizeUI() {
 	if (submitBtnOld) submitBtnOld.textContent = t('submit');
 	
 	// Локалізуємо текст футера
-	const footer = document.querySelector('footer p');
+	// Підпис загорнутий у посилання на гітхаб. Пишемо в сам <a>: якби ми
+	// підставили текст у <p>, textContent зніс би посилання разом із href.
+	const footer = document.querySelector('footer p a') || document.querySelector('footer p');
 	if (footer) footer.textContent = t('footer_text');
 	
 	// Локалізуємо текст головної сторінки

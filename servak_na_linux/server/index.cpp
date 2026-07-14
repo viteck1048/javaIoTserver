@@ -155,7 +155,7 @@ std::string index_cpp_get(int method, int m_id, const char* name)
 
 		buff << "<footer class=\"thin-footer\">";
 			buff << "<a href='FireBird' class='footer-link icon user_icon mysqlviev' data-i18n='view_db'>perehljad BD</a>";
-			buff << "<p data-i18n=\"footer_text\">&copy; 2025 MijServak. Vsi prava zahyshcheno.</p>";
+			buff << "<p><a href='https://github.com/viteck1048/javaIoTserver' style='color: inherit; text-decoration: none;' data-i18n='footer_text'>&copy; 2026 MijServak. Vsi prava zahyshcheno.</a></p>";
 			// Кнопка консолі — праворуч, дзеркально до посилання на БД. Місце під
 			// іконку зарезервоване завжди; картинку в нього ставить JS, дублюючи
 			// іконку ОСТАННЬОГО повідомлення в консолі (див. lcUpdateConsoleMark).

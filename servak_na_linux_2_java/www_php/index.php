@@ -67,12 +67,7 @@
 			?>
 			<li><a href='add_mash.php' class='icon add_icon add-mash' tabindex='-1'>Add new mashin</a></li>
 		</ul>
-		<?php
-			$remoteAddress = $_SERVER['REMOTE_ADDR'];
-			if($remoteAddress === '127.0.0.1' || $remoteAddress === '::1') {
-				echo "<p><a href='phpmyadmin/index.php?route=/database/structure&db=lira_molly' class='icon user_icon mysqlviev'>преглед на БД</a>";
-			}
-		?>
+		<p><a href='phpMyAdmin/index.php?route=/database/structure&db=lira_molly' class='icon user_icon mysqlviev'>преглед на БД</a></p>
 	</nav>
 	<!-- Контент сторінки -->
 	<main>

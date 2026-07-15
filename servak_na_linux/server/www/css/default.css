@@ -246,13 +246,15 @@ img { border: none; }
 	width: 100%;
 }
 
+/* Шрифт перегляду -- 16px, як був у мобільній версії (менший і гармонійніший);
+   мобільний медіа-запис тепер збігається за розміром. */
 main mash-viev p,
 .main-content mash-viev p {
-	font-size: 20px;
+	font-size: 16px;
 }
 .main-content mash-viev npp_det p,
 .main-content mash-viev usl_det p {
-	font-size: 20px;
+	font-size: 16px;
 	margin-left: 50px;
 }
 .main-content mash-edit p {
@@ -672,32 +674,11 @@ table.grid tr:hover td {
 		margin-left: 20px;
 	}
 
-	/* Лейбл над полем: інлайновий лейбл на 100px з'їдав би ширину, а поле
-	   однаково переносилось на новий рядок. */
-	label {
-		width: auto;
-		display: block;
-		margin-bottom: 2px;
-	}
-
-	.main-content input.txt,
-	.main-content input[type="text"],
-	.main-content input[type="password"],
-	.main-content select,
-	.main-content textarea.txt {
-		width: 100% !important;
-		min-width: 0 !important;
-		max-width: 100% !important;
-		box-sizing: border-box !important;
-	}
-
-	/* Зсуви, що на десктопі ставили поле умови під колонку лейблів */
-	.fc_bl_umovy_umova,
-	.add-um,
-	.delete-um,
-	.delete-npp {
-		margin-left: 0 !important;
-	}
+	/* Ширини полів редагування тут БІЛЬШЕ НЕ чіпаємо: костиль "усе на 100%" був
+	   потрібен старому дизайну (панель інструкцій, розгорнута консоль і видиме
+	   меню з'їдали ширину). Тепер місця вистачає, тож edit на <768px користується
+	   десктопними ширинами (лейбл 100px inline, поле 250px, textarea 100%) і
+	   десктопними відступами умов. */
 
 	input[type="submit"],
 	input[type="button"] {

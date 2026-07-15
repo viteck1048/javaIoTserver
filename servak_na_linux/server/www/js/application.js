@@ -499,7 +499,7 @@ $(document).ready(function() {
 			type: 'DELETE',
 			data: requestData,
 			success: function (data) {
-				push_my_console_ok("lira delete");
+				push_my_console_ok(t('msg_lira_deleted'));
 				$('head').html(data);
 			},
 			error: function (error) {
@@ -523,7 +523,7 @@ $(document).ready(function() {
 			type: 'DELETE',
 			data: requestData,
 			success: function (data) {
-				push_my_console_ok("mashyna delete");
+				push_my_console_ok(t('msg_mash_deleted'));
 				$('head').html('<meta http-equiv="refresh" content="0;url=./">');
 			},
 			error: function (error) {

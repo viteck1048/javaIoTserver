@@ -125,7 +125,7 @@ function sub_edit_mash(action, formData, method) {
 			if(data.startsWith("<p class='icon")) {
 				push_my_console(data);
 			}else if((data + 0) > 0) {
-				push_my_console("<p class='icon ok_icon msg_ok'>" + t('ok_machine_added') + "</p>");
+				push_my_console_ok(t('ok_machine_added'));
 				var newUrl = "?m_id=" + data;
 				// Перезавантажуємо сторінку з новим URL
 				window.location.href = newUrl;

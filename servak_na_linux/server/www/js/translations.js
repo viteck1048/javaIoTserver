@@ -117,7 +117,18 @@ const translations = {
 		'srv_mash_exists': 'такий верстат уже існує.',
 		'srv_name_min1': 'ім\'я верстата має бути довше 1 символа.',
 		'srv_m1m2_or_name': 'поле коліс містить літеру або назва має не-ASCII символи.',
-		'srv_m1m2': 'поле коліс містить літеру.'
+		'srv_m1m2': 'поле коліс містить літеру.',
+		'srv_npp_all_deleted': 'усі положення видалено.',
+		'srv_npp_deleted': 'положення видалено.',
+		'srv_zm_deleted': 'змінну видалено.',
+		'srv_umova_deleted': 'умову видалено.',
+		'msg_lira_deleted': 'ліру видалено.',
+		'msg_mash_deleted': 'верстат видалено.',
+		'msg_npp_added': 'додано положення (id {v}).',
+		'msg_umova_added': 'додано умову (id {v}).',
+		'msg_lira_added': 'додано ліру (id {v}).',
+		'msg_zm_checked': 'змінну {v} перевірено/створено.',
+		'err_paren_mismatch': 'кількість відкритих і закритих дужок не збігається.'
 	},
 
 	'bg': {
@@ -232,7 +243,18 @@ const translations = {
 		'srv_mash_exists': 'такава машина вече съществува.',
 		'srv_name_min1': 'името на машината трябва да е по-дълго от 1 символ.',
 		'srv_m1m2_or_name': 'поле с колела съдържа буква или името има не-ASCII символи.',
-		'srv_m1m2': 'поле с колела съдържа буква.'
+		'srv_m1m2': 'поле с колела съдържа буква.',
+		'srv_npp_all_deleted': 'всички положения са изтрити.',
+		'srv_npp_deleted': 'положението е изтрито.',
+		'srv_zm_deleted': 'променливата е изтрита.',
+		'srv_umova_deleted': 'условието е изтрито.',
+		'msg_lira_deleted': 'лирата е изтрита.',
+		'msg_mash_deleted': 'машината е изтрита.',
+		'msg_npp_added': 'добавено положение (id {v}).',
+		'msg_umova_added': 'добавено условие (id {v}).',
+		'msg_lira_added': 'добавена лира (id {v}).',
+		'msg_zm_checked': 'променлива {v} проверена/създадена.',
+		'err_paren_mismatch': 'броят на отварящите и затварящите скоби не съвпада.'
 	},
 
 	'en': {
@@ -347,6 +369,17 @@ const translations = {
 		'srv_mash_exists': 'such a machine already exists.',
 		'srv_name_min1': 'machine name must be longer than 1 character.',
 		'srv_m1m2_or_name': 'wheel field contains a letter or the name has non-ASCII characters.',
-		'srv_m1m2': 'wheel field contains a letter.'
+		'srv_m1m2': 'wheel field contains a letter.',
+		'srv_npp_all_deleted': 'all positions deleted.',
+		'srv_npp_deleted': 'position deleted.',
+		'srv_zm_deleted': 'variable deleted.',
+		'srv_umova_deleted': 'condition deleted.',
+		'msg_lira_deleted': 'lira deleted.',
+		'msg_mash_deleted': 'machine deleted.',
+		'msg_npp_added': 'position added (id {v}).',
+		'msg_umova_added': 'condition added (id {v}).',
+		'msg_lira_added': 'lira added (id {v}).',
+		'msg_zm_checked': 'variable {v} checked/created.',
+		'err_paren_mismatch': 'number of opening and closing parentheses does not match.'
 	}
 };

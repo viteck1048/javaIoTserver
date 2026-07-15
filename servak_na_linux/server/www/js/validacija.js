@@ -47,7 +47,7 @@ function analiz_umovy(_this) {
 		while((match = regex.exec(str)) !== null)
 			n2++;
 		if(n1 !== n2) {
-			push_my_console_err("'(' != ')'");
+			push_my_console_err(t('err_paren_mismatch'));
 			return false;
 		}
 		var zm = 0;
@@ -155,7 +155,7 @@ function analiz_umovy(_this) {
 			while((match = regex.exec(str1)) !== null)
 				n2++;
 			if(n1 !== n2) {
-				push_my_console_err("'(' != ')'");
+				push_my_console_err(t('err_paren_mismatch'));
 				return false;
 			}
 			var zm = 0;
@@ -311,7 +311,7 @@ function analiz_form(_this, flag) {
 		while((match = regex.exec(ff)) !== null)
 			n2++;
 		if(n1 !== n2) {
-			push_my_console_err("'(' != ')'");
+			push_my_console_err(t('err_paren_mismatch'));
 			return false;
 		}
 		var zm = 0;
@@ -932,6 +932,8 @@ function obrobka_zmin_v_formuli(_this) {
 				res = "#zm-det-show" + li + "-" + jdata.zm_poz;
 				$(res).find('.spoy-mini').html(jdata.zm.BUKVA == 'u' ? 'β' : jdata.zm.BUKVA);
 				$(res).show();
+				// Сервер перевірив/створив змінну; подробиці (в т.ч. буква) прийшли аж тут.
+				push_my_console_ok(t('msg_zm_checked', { v: jdata.zm.BUKVA == 'u' ? 'β' : jdata.zm.BUKVA }));
 			})
 		}, 'json');
 	}

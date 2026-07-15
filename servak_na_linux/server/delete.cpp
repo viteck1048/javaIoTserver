@@ -26,7 +26,7 @@ std::string delete_zm_npp_all(int z_id)
 	}
 	disconect_db();
 	if(status.success())
-		status.info("npp all deleted.");
+		status.info("npp all deleted.", "srv_npp_all_deleted");
 	buff << status.html();
 	return buff.str();
 }
@@ -50,7 +50,7 @@ std::string delete_zm_npp(int n_id)
 	}
 	disconect_db();
 	if(status.success())
-		status.info("npp deleted.");
+		status.info("npp deleted.", "srv_npp_deleted");
 	buff << status.html();
 	return buff.str();
 }
@@ -197,7 +197,7 @@ std::string delete_zm(int l_id, int z_id)
 	
 	disconect_db();
 	if(status.success())
-		status.info("zminna deleted.");
+		status.info("zminna deleted.", "srv_zm_deleted");
 	buff << status.html();
 	return buff.str();
 }
@@ -221,7 +221,7 @@ std::string delete_um(int u_id)
 	}
 	disconect_db();
 	if(status.success())
-		status.info("umova deleted.");
+		status.info("umova deleted.", "srv_umova_deleted");
 	buff << status.html();
 	return buff.str();
 }

@@ -158,6 +158,7 @@ function add_um(_this, data) {
 	var html = '';
 	html += html_um(data, l_id, '1=1');
 	$(res).append(html);
+	push_my_console_ok(t('msg_umova_added', { v: data }));
 }
 
 
@@ -311,7 +312,7 @@ function add_npp(href, z_id, npp_s) {
 		var poz = $('.npp-det-list-' + z_id + ' .npp-kont').length + 1;
 		var html = html_zm_npp(n_id, z_id, 1, '1=1', toRoman(poz), npp_s);
 		$('.npp-det-list-' + z_id).append(html);
-		push_my_console_ok("add npp " + n_id);
+		push_my_console_ok(t('msg_npp_added', { v: n_id }));
 	});
 }
 
@@ -335,6 +336,7 @@ function add_lira(href, mIdValue) {
 		var res = '';
 		res += "#lir-det-" + br_lir;
 		$(res).html(html);
+		push_my_console_ok(t('msg_lira_added', { v: data }));
 	});
 }
 

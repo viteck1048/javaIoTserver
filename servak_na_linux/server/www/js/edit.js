@@ -10,7 +10,7 @@ function html_lira(i, m_id, l_id, name, magaz, br_kol_lir, form_, form_zv, fl_ad
 			"<form class='edit-lira-form' action='save-lira' enctype='multipart/form-data' method='put'>" +
 				"<input type='hidden' name='lira[M_ID]' value='" + (m_id || 0) + "'/>" +
 				"<input type='hidden' name='lira[L_ID]' value='" + (l_id || 0) + "'/>" +
-				"<p><label>NAME</label><input name='lira[NAME]' class='txt input_non_enter fc_bl_lira_name' value='" + (name || '') + "'/>" +
+				"<p><label>" + t('lira_name') + "</label><input name='lira[NAME]' class='txt input_non_enter fc_bl_lira_name' value='" + (name || '') + "'/>" +
 				"<p><label for='selectMag-" + i + "'>" + t('magazine') + "</label>" +
 				"<select class='input_non_enter fc_bl_lira_magaz' id='selectMag-" + i + "' name='lira[MAGAZ]'>" +
 					"<option value=1>" + t('gear_set_1') + "</option>" +
@@ -94,8 +94,8 @@ function edit_mash(href) {
 			"</form>";
 		html +=
 			"<p><label>" + t('machine_name') + "</label><input class='txt medium input_non_enter fc_bl_mash_name' value='" + (json_data.mash.NAME || '') + "'/></p>" +
-			"<p><label>magaz_1</label><textarea class='txt dovhe input_non_enter fc_bl_mash_m1'>" + (json_data.mash.M1 || '') + "</textarea></p>" +
-			"<p><label>magaz_2</label><textarea class='txt dovhe input_non_enter fc_bl_mash_m2'>" + (json_data.mash.M2 || '') + "</textarea></p>";
+			"<p><label>" + t('gear_set_1') + "</label><textarea class='txt dovhe input_non_enter fc_bl_mash_m1'>" + (json_data.mash.M1 || '') + "</textarea></p>" +
+			"<p><label>" + t('gear_set_2') + "</label><textarea class='txt dovhe input_non_enter fc_bl_mash_m2'>" + (json_data.mash.M2 || '') + "</textarea></p>";
 		
 		html += "<div class='stack'>";
 		var ii = 0;
@@ -198,9 +198,9 @@ function html_zm(m_id, l_id, z_id, bukva, i, j, name, znach, npp_s) {
 			"<input type='hidden' name='var_i' value='" + i + "'>" +
 			"<input type='hidden' name='var_j' value='" + j + "'>" +
 			
-			"<p><label class='Bukva'>" + (bukva == 'u' ? 'β' : bukva) + "</label><input class='txt input_non_enter fc_bl_zm_name' value='" + (name || '') + "'/>" + 
+			"<p><label class='Bukva'>" + (bukva == 'u' ? 'β' : bukva) + "</label><input class='txt input_non_enter fc_bl_zm_name' placeholder='" + t('var_name') + "' value='" + (name || '') + "'/>" + 
 			
-			"<p><label> </label>" +
+			"<p><label>" + t('var_type') + "</label>" +
 			"<select class='input_non_enter fc_bl_zm_npp_s' id='selectZm-" + i + "-" + j + "' >" +
 				"<option value=0>" + t('var_plain') + "</option>" +
 				"<option value=1>" + t('var_switch_cond') + "</option>" +

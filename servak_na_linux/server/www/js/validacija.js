@@ -200,7 +200,7 @@ function analiz_umovy(_this) {
 			while((match = regex.exec(str2)) !== null)
 				n2++;
 			if(n1 !== n2) {
-				push_my_console_err("'(' ≠ ')'");
+				push_my_console_err(t('err_paren_mismatch'));
 				return false;
 			}
 			zm = 0;
@@ -389,7 +389,7 @@ function analiz_form(_this, flag) {
 
 function analiz_i_redaguvannja(str) {
 	if(!str.length) {
-		push_my_console_err("mezhdu '(' i ')' porozhnjo.");
+		push_my_console_err(t('err_empty_parens'));
 		return null;
 	}
 	var str2 = [];

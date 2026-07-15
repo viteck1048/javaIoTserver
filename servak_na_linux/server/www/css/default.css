@@ -645,7 +645,11 @@ table.grid tr:hover td {
 		margin-bottom: 10px;
 	}
 
-	.main-content mash-edit p,
+	/* Редагування бере десктопний шрифт (14px); перегляд лишається на 16px. */
+	.main-content mash-edit p {
+		font-size: 14px;
+		margin: 5px 0;
+	}
 	.main-content mash-viev p {
 		font-size: 16px;
 		margin: 5px 0;
@@ -661,7 +665,7 @@ table.grid tr:hover td {
 	   margin-left тут зайвий — інакше зсуви складаються і поле їде вправо. */
 	.main-content mash-edit npp_det p,
 	.main-content mash-edit usl_det p {
-		font-size: 16px;
+		font-size: 14px;
 		margin-left: 0;
 	}
 

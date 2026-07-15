@@ -98,6 +98,9 @@ function push_my_console(data) {
 		// ключа не мають, тож для них це порожня операція.
 		var $frag = $(data);
 		if(typeof translateServerMsg === 'function') translateServerMsg($frag);
+		// Сервер може бути в іншій таймзоні: показуємо час клієнта на момент запису.
+		// Клієнтські повідомлення вже мають той самий час, тож підміна для них -- no-op.
+		$frag.find('.msg_time').text(new Date().toLocaleTimeString('uk-UA', { timeZone: 'Europe/Kyiv' }));
 		$('#instr_zvity').append($frag);
 		$('#instr_zvity').scrollTop($('#instr_zvity').prop('scrollHeight'));
 		localStorage.setItem('instr_zvity', $('#instr_zvity').html());

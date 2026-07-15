@@ -299,7 +299,7 @@ std::string add_zm_npp(int z_id)
 	free(sqlda_output);
 
 	std::string roman = to_roman(npp_poz);
-	sprintf(sql_query, "UPDATE ZMINNY_NPP SET COMENT='polozhennja %s' WHERE N_ID=%d", roman.c_str(), n_id);
+	sprintf(sql_query, "UPDATE ZMINNY_NPP SET COMENT='%s' WHERE N_ID=%d", roman.c_str(), n_id);
 	isc_start_transaction(status_vector, &tr_handle, 1, &db_handle, 0, NULL);
 	isc_dsql_execute_immediate(status_vector, &db_handle, &tr_handle, 0, sql_query, SQL_DIALECT_V6, /* sqlda */NULL);
 	isc_commit_transaction(status_vector, &tr_handle);

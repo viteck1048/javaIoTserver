@@ -225,6 +225,12 @@ img { border: none; }
 #instr_zvity p:last-child {
 	border-bottom: none;
 }
+/* час плаває праворуч -> p мусить його охопити, інакше border-bottom ляже вище */
+#instr_zvity p::after {
+	content: "";
+	display: block;
+	clear: both;
+}
 #instr_zvity lable {
 	margin-right: 8px;
 }
@@ -233,7 +239,7 @@ img { border: none; }
 .msg_ok   { color: #1e8449; }
 .msg_err  { color: #c0392b; }
 .msg_warn { color: #b9770e; }
-.msg_time { color: #8a97a5; }
+.msg_time { color: #8a97a5; float: right; margin: 0 0 0 8px; }
 
 /* ------------------------------------------------------------ поле редактора */
 .pole_opysu {

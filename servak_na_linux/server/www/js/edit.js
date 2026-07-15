@@ -309,7 +309,7 @@ function add_npp(href, z_id, npp_s) {
 		// Позиція = скільки положень уже в цьому перемикачі + додане. Збігається з
 		// серверним COUNT(*) після вставки (add.cpp), тож назви не розходяться.
 		var poz = $('.npp-det-list-' + z_id + ' .npp-kont').length + 1;
-		var html = html_zm_npp(n_id, z_id, 1, '1=1', 'polozhennja ' + toRoman(poz), npp_s);
+		var html = html_zm_npp(n_id, z_id, 1, '1=1', toRoman(poz), npp_s);
 		$('.npp-det-list-' + z_id).append(html);
 		push_my_console_ok("add npp " + n_id);
 	});

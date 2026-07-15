@@ -93,7 +93,9 @@ class Status {
 				out << "<p class='icon " << (type[i] == INFO_MSG ? "ok_icon" : "error_icon") << "'><lable class='" << (type[i] == INFO_MSG ? "msg_ok" : "msg_err") << "'";
 				if(!keys[i].empty())
 					out << " data-msg-key='" << keys[i] << "' data-msg-arg=\"" << attr_escape(args[i]) << "\"";
-				out << ">" << messages[i] << "</lable><lable style='color: #AAAAAA;'>";
+				// Час у серверній таймзоні; клієнт (push_my_console) підмінить його на свій
+				// за класом msg_time, бо сервер може бути в іншій зоні.
+				out << ">" << messages[i] << "</lable><lable class='msg_time'>";
 				out << mt.hor(2) << ':' << mt.min(2) << ':' << mt.sec(2);
 				out << "</lable></p>";
 			}

@@ -129,7 +129,9 @@ const translations = {
 		'msg_lira_added': 'додано ліру (id {v}).',
 		'msg_zm_checked': 'змінну {v} перевірено/створено.',
 		'err_paren_mismatch': 'кількість відкритих і закритих дужок не збігається.',
-		'err_empty_parens': 'порожньо між дужками «(» та «)».'
+		'err_empty_parens': 'порожньо між дужками «(» та «)».',
+		'err_internal_parse': 'непередбачена помилка обробки формули.',
+		'err_formula_start': 'формула має починатися з «i=».'
 	},
 
 	'bg': {
@@ -256,7 +258,9 @@ const translations = {
 		'msg_lira_added': 'добавена лира (id {v}).',
 		'msg_zm_checked': 'променлива {v} проверена/създадена.',
 		'err_paren_mismatch': 'броят на отварящите и затварящите скоби не съвпада.',
-		'err_empty_parens': 'празно между «(» и «)».'
+		'err_empty_parens': 'празно между «(» и «)».',
+		'err_internal_parse': 'неочаквана грешка при обработка на формулата.',
+		'err_formula_start': 'формулата трябва да започва с «i=».'
 	},
 
 	'en': {
@@ -383,6 +387,8 @@ const translations = {
 		'msg_lira_added': 'lira added (id {v}).',
 		'msg_zm_checked': 'variable {v} checked/created.',
 		'err_paren_mismatch': 'number of opening and closing parentheses does not match.',
-		'err_empty_parens': 'empty content between \'(\' and \')\'.'
+		'err_empty_parens': 'empty content between \'(\' and \')\'.',
+		'err_internal_parse': 'unexpected error while processing the formula.',
+		'err_formula_start': 'the formula must start with \'i=\'.'
 	}
 };

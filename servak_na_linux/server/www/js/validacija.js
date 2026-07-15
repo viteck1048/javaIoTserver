@@ -79,7 +79,7 @@ function analiz_umovy(_this) {
 			}
 		}
 		if(zm !== 0 || di !== 0) {
-			push_my_console_err("jakas dyvna pomylka)skladovi;)");
+			push_my_console_err(t('err_internal_parse') + ' [skladovi]');
 			return false;
 		}
 		if(str[0] === '(') {
@@ -187,7 +187,7 @@ function analiz_umovy(_this) {
 				}
 			}
 			if(cf !== 0 || zm !== 0 || di !== 0) {
-				push_my_console_err("jakas dyvna pomylka)skladovi;)");
+				push_my_console_err(t('err_internal_parse') + ' [skladovi]');
 				return false;
 			}
 			match;
@@ -232,7 +232,7 @@ function analiz_umovy(_this) {
 				}
 			}
 			if(cf !== 0 || zm !== 0 || di !== 0) {
-				push_my_console_err("jakas dyvna pomylka)skladovi;)");
+				push_my_console_err(t('err_internal_parse') + ' [skladovi]');
 				return false;
 			}
 			if(str1[0] === '(') {
@@ -275,7 +275,7 @@ function analiz_form(_this, flag) {
 		var ff = _this.val().replace(/\s+/g, '');
 		ff = ff.toLowerCase();
 		if(ff[0] != 'i' || ff[1] != '=') {
-			push_my_console("<p class='icon error_icon msg_err'>not i=</p>");
+			push_my_console_err(t('err_formula_start'));
 			return false;
 		}else {
 			ff = ff.slice(2);
@@ -345,7 +345,7 @@ function analiz_form(_this, flag) {
 			}
 		}
 		if(cf !== 0 || zm !== 0 || di !== 0) {
-			push_my_console_err("jakas dyvna pomylka)skladovi;).");
+			push_my_console_err(t('err_internal_parse') + ' [skladovi]');
 			return false;
 		}
 		// Змінна, що трапляється у формулі більш ніж раз, оберненню не піддається:
@@ -457,7 +457,7 @@ function analiz_i_redaguvannja(str) {
 			str2.push({str: str.slice(cory[i].start, cory[i].end), scb: 0});
 		}
 		if(str2[i] == null) {
-			push_my_console_err("jakas dyvna pomylka.str2.push");
+			push_my_console_err(t('err_internal_parse') + ' [str2.push]');
 			return null;
 		}
 		i++;

@@ -58,6 +58,21 @@ function applyI18n(root) {
 	});
 }
 
+// Перекладає повідомлення, що прийшли з сервера (status.cpp). Кожне несе
+// data-msg-key і data-msg-arg на <lable>; латинський текст усередині -- fallback.
+// $scope -- jQuery-набір або DOM-вузол зі щойно доданими повідомленнями.
+function translateServerMsg($scope) {
+	var nodes = ($scope && $scope.jquery) ? $scope.find('[data-msg-key]') : $($scope).find('[data-msg-key]');
+	nodes.each(function() {
+		var key = this.getAttribute('data-msg-key');
+		var hasKey = (translations[currentLang] && translations[currentLang][key]) ||
+		             (translations['en'] && translations['en'][key]);
+		if(hasKey) {
+			this.textContent = t(key, { v: this.getAttribute('data-msg-arg') || '' });
+		}
+	});
+}
+
 function localizeUI() {
 	document.title = t('page_title');
 	applyI18n(document);

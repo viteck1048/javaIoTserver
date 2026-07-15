@@ -93,7 +93,12 @@ function push_my_console_ok (data) {
 
 function push_my_console(data) {
 	if(data.startsWith("<p class='icon")) {
-		$('#instr_zvity').append(data);
+		// Повідомлення з сервера несуть data-msg-key -- перекладаємо перед вставкою,
+		// щоб у localStorage лягав уже перекладений текст. Клієнтські (err/warn/ok)
+		// ключа не мають, тож для них це порожня операція.
+		var $frag = $(data);
+		if(typeof translateServerMsg === 'function') translateServerMsg($frag);
+		$('#instr_zvity').append($frag);
 		$('#instr_zvity').scrollTop($('#instr_zvity').prop('scrollHeight'));
 		localStorage.setItem('instr_zvity', $('#instr_zvity').html());
 		// Позначка біля кнопки у футері дублює іконку останнього запису

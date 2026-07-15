@@ -92,7 +92,32 @@ const translations = {
 		'err_invalid_value': 'введено некоректне значення.',
 		'warn_var_repeats': 'змінна «{v}» входить у формулу {n} рази — зворотну формулу по ній побудувати неможливо',
 		'err_no_single_var': 'жодна змінна не входить у формулу рівно один раз — зворотну формулу побудувати неможливо',
-		'hint_occurrences': 'входжень у формулу: {n} — обернення неможливе'
+		'hint_occurrences': 'входжень у формулу: {n} — обернення неможливе',
+		'save': 'Зберегти',
+
+		// серверні повідомлення (status.cpp): fallback -- латиниця, {v} -- дані користувача
+		'srv_zm_index_zero': 'індекс M_ID або Z_ID дорівнює нулю.',
+		'srv_zm_saved': 'змінну {v} збережено.',
+		'srv_switch_saved': 'перемикач {v} збережено.',
+		'srv_umova_short': 'умова {v} має менше 3 знаків.',
+		'srv_usl_index_zero': 'індекс U_ID або L_ID дорівнює нулю.',
+		'srv_umova_saved': 'умову {v} збережено.',
+		'srv_coment_short': 'коментар {v} має менше 3 знаків.',
+		'srv_npp_index_zero': 'індекс N_ID або Z_ID дорівнює нулю.',
+		'srv_const_zero': 'константа {v} дорівнює нулю.',
+		'srv_const_saved': 'константу {v} збережено.',
+		'srv_mashname_short': 'ім\'я верстата {v} має менше 3 знаків.',
+		'srv_gears_short': 'перелік коліс має менше 3 знаків.',
+		'srv_mash_saved': 'верстат {v} збережено.',
+		'srv_liraname_short': 'ім\'я ліри {v} має менше 3 знаків.',
+		'srv_liraform_short': 'основна формула ліри {v} має менше 3 знаків.',
+		'srv_lirainvform_short': 'зворотна формула ліри {v} має менше 3 знаків.',
+		'srv_lira_index_zero': 'ліра {v}: індекс M_ID або L_ID дорівнює нулю.',
+		'srv_lira_saved': 'ліру {v} збережено.',
+		'srv_mash_exists': 'такий верстат уже існує.',
+		'srv_name_min1': 'ім\'я верстата має бути довше 1 символа.',
+		'srv_m1m2_or_name': 'поле коліс містить літеру або назва має не-ASCII символи.',
+		'srv_m1m2': 'поле коліс містить літеру.'
 	},
 
 	'bg': {
@@ -182,7 +207,32 @@ const translations = {
 		'err_invalid_value': 'въведена е невалидна стойност.',
 		'warn_var_repeats': 'променливата «{v}» се среща {n} пъти — обратна формула по нея е невъзможна',
 		'err_no_single_var': 'няма променлива, която да се среща точно веднъж — обратна формула е невъзможна',
-		'hint_occurrences': 'срещания във формулата: {n} — обръщане невъзможно'
+		'hint_occurrences': 'срещания във формулата: {n} — обръщане невъзможно',
+		'save': 'Запази',
+
+		// сървърни съобщения (status.cpp): fallback -- латиница, {v} -- потребителски данни
+		'srv_zm_index_zero': 'индекс M_ID или Z_ID е нула.',
+		'srv_zm_saved': 'променлива {v} е запазена.',
+		'srv_switch_saved': 'превключвател {v} е запазен.',
+		'srv_umova_short': 'условието {v} има по-малко от 3 знака.',
+		'srv_usl_index_zero': 'индекс U_ID или L_ID е нула.',
+		'srv_umova_saved': 'условието {v} е запазено.',
+		'srv_coment_short': 'коментарът {v} има по-малко от 3 знака.',
+		'srv_npp_index_zero': 'индекс N_ID или Z_ID е нула.',
+		'srv_const_zero': 'константата {v} е нула.',
+		'srv_const_saved': 'константата {v} е запазена.',
+		'srv_mashname_short': 'името на машината {v} има по-малко от 3 знака.',
+		'srv_gears_short': 'списъкът с колела има по-малко от 3 знака.',
+		'srv_mash_saved': 'машината {v} е запазена.',
+		'srv_liraname_short': 'името на лира {v} има по-малко от 3 знака.',
+		'srv_liraform_short': 'основната формула на лира {v} има по-малко от 3 знака.',
+		'srv_lirainvform_short': 'обратната формула на лира {v} има по-малко от 3 знака.',
+		'srv_lira_index_zero': 'лира {v}: индекс M_ID или L_ID е нула.',
+		'srv_lira_saved': 'лирата {v} е запазена.',
+		'srv_mash_exists': 'такава машина вече съществува.',
+		'srv_name_min1': 'името на машината трябва да е по-дълго от 1 символ.',
+		'srv_m1m2_or_name': 'поле с колела съдържа буква или името има не-ASCII символи.',
+		'srv_m1m2': 'поле с колела съдържа буква.'
 	},
 
 	'en': {
@@ -272,6 +322,31 @@ const translations = {
 		'err_invalid_value': 'invalid value entered.',
 		'warn_var_repeats': 'variable "{v}" occurs {n} times in the formula — no inverse formula can be built for it',
 		'err_no_single_var': 'no variable occurs exactly once — an inverse formula cannot be built',
-		'hint_occurrences': 'occurrences in formula: {n} — inversion impossible'
+		'hint_occurrences': 'occurrences in formula: {n} — inversion impossible',
+		'save': 'Save',
+
+		// server messages (status.cpp): fallback is Latin, {v} is user data
+		'srv_zm_index_zero': 'index M_ID or Z_ID is zero.',
+		'srv_zm_saved': 'variable {v} saved.',
+		'srv_switch_saved': 'switch {v} saved.',
+		'srv_umova_short': 'condition {v} is shorter than 3 characters.',
+		'srv_usl_index_zero': 'index U_ID or L_ID is zero.',
+		'srv_umova_saved': 'condition {v} saved.',
+		'srv_coment_short': 'comment {v} is shorter than 3 characters.',
+		'srv_npp_index_zero': 'index N_ID or Z_ID is zero.',
+		'srv_const_zero': 'constant {v} is zero.',
+		'srv_const_saved': 'constant {v} saved.',
+		'srv_mashname_short': 'machine name {v} is shorter than 3 characters.',
+		'srv_gears_short': 'wheel list is shorter than 3 characters.',
+		'srv_mash_saved': 'machine {v} saved.',
+		'srv_liraname_short': 'lira name {v} is shorter than 3 characters.',
+		'srv_liraform_short': 'main formula of lira {v} is shorter than 3 characters.',
+		'srv_lirainvform_short': 'inverse formula of lira {v} is shorter than 3 characters.',
+		'srv_lira_index_zero': 'lira {v}: index M_ID or L_ID is zero.',
+		'srv_lira_saved': 'lira {v} saved.',
+		'srv_mash_exists': 'such a machine already exists.',
+		'srv_name_min1': 'machine name must be longer than 1 character.',
+		'srv_m1m2_or_name': 'wheel field contains a letter or the name has non-ASCII characters.',
+		'srv_m1m2': 'wheel field contains a letter.'
 	}
 };

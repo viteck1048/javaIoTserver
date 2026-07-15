@@ -7,16 +7,17 @@ std::string save_zm(int m_id, int l_id, int z_id, char bukva, int npp_s, const c
 	const std::string txt3 = " zberezhena.";
 	const std::string txt5 = "indeks M_ID abo Z_ID";
 	const std::string txt6 = " dorivnjuje nulju.";
+	char bukva_s[2] = { bukva, 0 };
 	Status status;
 	if(npp_s < 0 || npp_s > 2)
 		status.error("NPP_S != 0...2");
 	if(m_id == 0 || z_id == 0)
-		status.error((txt5 + txt6).c_str());
+		status.error((txt5 + txt6).c_str(), "srv_zm_index_zero");
 	if(status.success()) {
 		if(npp_s == 0)
-			status.info((txt1 + bukva + txt3).c_str());
+			status.info((txt1 + bukva + txt3).c_str(), "srv_zm_saved", bukva_s);
 		else
-			status.info((txt2 + bukva + txt3).c_str());
+			status.info((txt2 + bukva + txt3).c_str(), "srv_switch_saved", bukva_s);
 		connect_db();
 		char sql_query[200];
 		if(znachennja != 0)
@@ -68,12 +69,12 @@ std::string save_usl(int u_id, int l_id, const char* umova)
 	const std::string txt4 = "indeks U_ID abo L_ID dorivnjuje nulju.";
 	Status status;
 	if(strlen(umova) < 3)
-		status.error((txt1 + umova + txt3).c_str());
+		status.error((txt1 + umova + txt3).c_str(), "srv_umova_short", umova);
 	if(u_id == 0 || l_id == 0)
-		status.error(txt4.c_str());
-	
+		status.error(txt4.c_str(), "srv_usl_index_zero");
+
 	if(status.success()) {
-		status.info((txt1 + umova + txt2).c_str());
+		status.info((txt1 + umova + txt2).c_str(), "srv_umova_saved", umova);
 		char sql_query[200];
 		sprintf(sql_query, "UPDATE UMOVY SET UMOVA='%s' WHERE U_ID=%d", umova, u_id);
 		connect_db();
@@ -103,16 +104,16 @@ std::string save_npp(int n_id, int z_id, double znachennja, const char* umova, c
 	const std::string txt7 = "konstanta ";
 	Status status;
 	if(strlen(umova) < 3)
-		status.error((txt1 + umova + txt3).c_str());
+		status.error((txt1 + umova + txt3).c_str(), "srv_umova_short", umova);
 	if(strlen(coment) < 1)
-		status.error((txt5 + coment + txt3).c_str());
+		status.error((txt5 + coment + txt3).c_str(), "srv_coment_short", coment);
 	if(n_id == 0 || z_id == 0)
-		status.error((txt4 + txt6).c_str());
+		status.error((txt4 + txt6).c_str(), "srv_npp_index_zero");
 	if(znachennja == 0)
-		status.error((txt7 + coment + txt6).c_str());
-	
+		status.error((txt7 + coment + txt6).c_str(), "srv_const_zero", coment);
+
 	if(status.success()) {
-		status.info((txt7 + coment + txt2).c_str());
+		status.info((txt7 + coment + txt2).c_str(), "srv_const_saved", coment);
 		char sql_query[200];
 		sprintf(sql_query, "UPDATE ZMINNY_NPP SET UMOVA='%s', COMENT='%s', ZNACHENNJA='%.20f' WHERE N_ID='%d'", umova, coment, znachennja, n_id);
 		connect_db();
@@ -140,12 +141,12 @@ std::string save_mash(int m_id, const char* name, const char* m1, const char* m2
 	const std::string txt7 = "perelik kolis ";
 	Status status;
 	if(strlen(name) < 3)
-		status.error((txt6 + name + txt2).c_str());
+		status.error((txt6 + name + txt2).c_str(), "srv_mashname_short", name);
 	if(strlen(m1) < 3)
-		status.error((txt7 + txt2).c_str());
-	
+		status.error((txt7 + txt2).c_str(), "srv_gears_short");
+
 	if(status.success()) {
-		status.info((txt1 + name + txt3).c_str());
+		status.info((txt1 + name + txt3).c_str(), "srv_mash_saved", name);
 		char sql_query[2000];
 		if(m2[0] == 0)
 			sprintf(sql_query, "UPDATE MASHYNES SET NAME='%s', M1='%s', M2=null WHERE M_ID='%d'", name, m1, m_id);
@@ -178,13 +179,13 @@ std::string save_lira(int m_id, int l_id, const char* name, int magaz, int br_ko
 	const std::string txt8 = "zvorotnja formula liry ";
 	Status status;
 	if(strlen(name) < 3)
-		status.error((txt6 + name + txt2).c_str());
+		status.error((txt6 + name + txt2).c_str(), "srv_liraname_short", name);
 	if(strlen(form) < 3)
-		status.error((txt7 + name + txt2).c_str());
+		status.error((txt7 + name + txt2).c_str(), "srv_liraform_short", name);
 	if(strlen(form_zv) < 3)
-		status.error((txt8 + name + txt2).c_str());
+		status.error((txt8 + name + txt2).c_str(), "srv_lirainvform_short", name);
 	if(m_id == 0 || l_id == 0)
-		status.error((txt1 + name + txt5).c_str());
+		status.error((txt1 + name + txt5).c_str(), "srv_lira_index_zero", name);
 	if(magaz != 1 && magaz != 2)
 		status.error("MAGAZ != 1/2");
 	if(br_kol_lir < 2 || br_kol_lir > 4)
@@ -203,7 +204,7 @@ std::string save_lira(int m_id, int l_id, const char* name, int magaz, int br_ko
 			status.error("ERROR INSERT INTO LIRY");
 		}
 		else {
-			status.info((txt1 + name + txt3).c_str());
+			status.info((txt1 + name + txt3).c_str(), "srv_lira_saved", name);
 		}
 		disconect_db();
 	}

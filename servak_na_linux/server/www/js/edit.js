@@ -286,13 +286,30 @@ function html_zm_npp(n_id, z_id, znach, umova, coment, npp_s) {
 }
 
 
+// Порядковий номер положення в межах перемикача -> римська цифра.
+// Дублює серверний to_roman (add.cpp), щоб оптимістичний рядок збігався зі
+// збереженою в БД дефолтною назвою до першого перезавантаження.
+function toRoman(n) {
+	if(n <= 0) return String(n);
+	var val = [1000, 900, 500, 400, 100, 90, 50, 40, 10, 9, 5, 4, 1];
+	var sym = ['M', 'CM', 'D', 'CD', 'C', 'XC', 'L', 'XL', 'X', 'IX', 'V', 'IV', 'I'];
+	var r = '';
+	for(var i = 0; i < val.length; i++)
+		while(n >= val[i]) { r += sym[i]; n -= val[i]; }
+	return r;
+}
+
+
 function add_npp(href, z_id, npp_s) {
 	var postData = {
 		zz_id: z_id
 		// Додайте інші дані, які вам потрібні, до об'єкту postData
 	};
 	$.post(href, postData, function(n_id) {
-		var html = html_zm_npp(n_id, z_id, 1, '1=1', 'polozhennja ' + n_id, npp_s);
+		// Позиція = скільки положень уже в цьому перемикачі + додане. Збігається з
+		// серверним COUNT(*) після вставки (add.cpp), тож назви не розходяться.
+		var poz = $('.npp-det-list-' + z_id + ' .npp-kont').length + 1;
+		var html = html_zm_npp(n_id, z_id, 1, '1=1', 'polozhennja ' + toRoman(poz), npp_s);
 		$('.npp-det-list-' + z_id).append(html);
 		push_my_console_ok("add npp " + n_id);
 	});

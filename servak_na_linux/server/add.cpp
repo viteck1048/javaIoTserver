@@ -1,4 +1,20 @@
 
+// Порядковий номер положення в межах перемикача -> римська цифра.
+static std::string to_roman(int n) {
+	if(n <= 0)
+		return std::to_string(n);
+	static const int val[] = {1000, 900, 500, 400, 100, 90, 50, 40, 10, 9, 5, 4, 1};
+	static const char* sym[] = {"M", "CM", "D", "CD", "C", "XC", "L", "XL", "X", "IX", "V", "IV", "I"};
+	std::string r;
+	for(int i = 0; i < 13; i++)
+		while(n >= val[i]) {
+			r += sym[i];
+			n -= val[i];
+		}
+	return r;
+}
+
+
 std::string add_zminna(int l_id, char bukva, int zm_poz)
 {
 	printf("POST ADD-ZMINNA\t\tl_id = %d\tbukva = %c\tzm_poz = %d\n", l_id, bukva, zm_poz);
@@ -255,8 +271,35 @@ std::string add_zm_npp(int z_id)
 		buff << "ERROR SELECT L_ID FROM ZMINNY_NPP 57";
 		return buff.str();
 	}
-	
-	sprintf(sql_query, "UPDATE ZMINNY_NPP SET COMENT='polozhennja %d' WHERE N_ID=%d", n_id, n_id);
+
+	// Дефолтна назва положення -- римська цифра його порядку в ЦЬОМУ перемикачі (z_id),
+	// а не глобальний N_ID. Свіжовставлений рядок уже враховано в COUNT, тож це і є номер.
+	int npp_poz = 0;
+	sprintf(sql_query, "SELECT COUNT(*) FROM ZMINNY_NPP WHERE Z_ID=%d", z_id);
+	bufer_int(b_npp_poz);
+	sqlda_output = (XSQLDA*)malloc(XSQLDA_LENGTH(1));
+	sqlda_output->version = SQLDA_VERSION1;
+	sqlda_output->sqln = 1;
+	sqlda_output->sqld = 1;
+	sqlda_output->sqlvar[0].sqldata = b_npp_poz;
+	sqlda_output->sqlvar[0].sqlind = &rr[0];
+	isc_start_transaction(status_vector, &tr_handle, 1, &db_handle, 0, NULL);
+	stmt_handle = 0;
+	if (isc_dsql_allocate_statement(status_vector, &db_handle, &stmt_handle) == 0) {
+		if (isc_dsql_prepare(status_vector, &tr_handle, &stmt_handle, 0, sql_query, 1, sqlda_output) == 0) {
+			if (isc_dsql_execute(status_vector, &tr_handle, &stmt_handle, 1, NULL) == 0) {
+				if(isc_dsql_fetch(status_vector, &stmt_handle, 1, sqlda_output) == 0) {
+					npp_poz = to_int(b_npp_poz);
+				}
+			}
+		}
+		isc_dsql_free_statement(status_vector, &stmt_handle, DSQL_close);
+	}
+	isc_commit_transaction(status_vector, &tr_handle);
+	free(sqlda_output);
+
+	std::string roman = to_roman(npp_poz);
+	sprintf(sql_query, "UPDATE ZMINNY_NPP SET COMENT='polozhennja %s' WHERE N_ID=%d", roman.c_str(), n_id);
 	isc_start_transaction(status_vector, &tr_handle, 1, &db_handle, 0, NULL);
 	isc_dsql_execute_immediate(status_vector, &db_handle, &tr_handle, 0, sql_query, SQL_DIALECT_V6, /* sqlda */NULL);
 	isc_commit_transaction(status_vector, &tr_handle);
@@ -474,10 +517,10 @@ std::string get_add_mash()
 	buff << "<h1 class='icon add_icon' data-i18n='new_machine'>novyj verstat</h1>";
 	buff << "<form id='add-mash-form' action='add-mash' enctype='multipart/form-data' method='post'>";
 		buff << "<input type='hidden' name='mash[M_ID]' value=''/>";
-		buff << "<p><label>NAME</label><input name='mash[NAME]' class='txt medium fc_bl_mash_name' value=''/></p>";
+		buff << "<p><label data-i18n='machine_name'>im'ja verstata</label><input name='mash[NAME]' class='txt medium fc_bl_mash_name' value=''/></p>";
 		buff << "<p style='display: none;'><label>magaz_1</label><input name='mash[M1]' class='txt dovhe input_non_enter fc_bl_mash_m1' value='11 22 33 44 55 66 77 88 99 111 222'/></p>";
 		buff << "<p style='display: none;'><label>magaz_2</label><input name='mash[M2]' class='txt dovhe input_non_enter fc_bl_mash_m2' value=''/></p>";
-		buff << "<p><input type='submit' class='save-new-mash' value='Save'/></p>";
+		buff << "<p><input type='submit' class='save-new-mash' data-i18n-value='save' value='Save'/></p>";
 	buff << "</form>";
 	
 	return buff.str();
@@ -513,7 +556,7 @@ std::string post_add_mash(const char* mash, const char* m1)
 		if (isc_dsql_prepare(status_vector, &tr_handle, &stmt_handle, 0, sql_query, 1, sqlda_output) == 0) {
 			if (isc_dsql_execute(status_vector, &tr_handle, &stmt_handle, 1, NULL) == 0) {
 				if(isc_dsql_fetch(status_vector, &stmt_handle, 1, sqlda_output) == 0) {
-					status.error("taka mashynka vzhe isnuje");
+					status.error("taka mashynka vzhe isnuje", "srv_mash_exists");
 				}
 			}
 		}
@@ -533,7 +576,7 @@ std::string post_add_mash(const char* mash, const char* m1)
 	free(sqlda_output);
 	
 	if(strlen(mash) <= 1)
-		status.error("NAME should be more than 1 character.");
+		status.error("im'ja verstata maje buty dovshe 1 symvola.", "srv_name_min1");
 	
 	
 	if(status.success()) {
@@ -545,7 +588,7 @@ std::string post_add_mash(const char* mash, const char* m1)
 			isc_print_status(status_vector);
 			isc_rollback_transaction(status_vector, &tr_handle);
 			disconect_db();
-			status.error("M1(M2) maje literu abo NAME maje ne-ASCII symvoly.");
+			status.error("M1(M2) maje literu abo NAME maje ne-ASCII symvoly.", "srv_m1m2_or_name");
 			buff << status.html();
 			return buff.str();
 		}
@@ -578,7 +621,7 @@ std::string post_add_mash(const char* mash, const char* m1)
 		free(sqlda_output);
 		
 		if(!fl_find) {
-			status.error("M1(M2) maje literu.");
+			status.error("M1(M2) maje literu.", "srv_m1m2");
 			buff << status.html();
 		}
 	}

@@ -84,3 +84,7 @@ ai_assist_path_list.txt
 
 # Graphify: службовий кеш і граф проєкту (генерується, не версіонується)
 graphify-out/
+
+# SDD plugin: per-developer local settings + parallel-agent worktrees
+.claude/*.local.md
+.worktrees/

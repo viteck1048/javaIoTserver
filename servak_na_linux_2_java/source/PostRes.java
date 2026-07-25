@@ -68,7 +68,7 @@ public final class PostRes {
 			
 			// Зберігаємо тіло запиту як файл
 			try(java.io.FileOutputStream fos = new java.io.FileOutputStream(outputFile)) {
-				fos.write(httpRequest.bodyData);
+				fos.write(httpRequest.body);
 				fos.flush();
 			}
 			

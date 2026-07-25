@@ -30,8 +30,9 @@ public final class RegistrUsers {
 				
 				pstmt.setString(1, httpRequest.getZnach("login"));
 				ResultSet rs = pstmt.executeQuery();
-				if(rs.next() || httpRequest.getZnach("invite").equals(Configs.getParam("invite") + httpRequest.getZnach("login"))) {
-					if(httpRequest.getZnach("invite").equals("delete")) {
+				String invite = httpRequest.getZnach("invite");
+				if(rs.next() || (invite != null && invite.equals(Configs.getParam("invite") + httpRequest.getZnach("login")))) {
+					if("delete".equals(invite)) {
 						sql = "DELETE FROM clients WHERE login = ? and password = ?";
 						try (PreparedStatement pstmt2 = conn.prepareStatement(sql)) {
 							pstmt2.setString(1, httpRequest.getZnach("login"));

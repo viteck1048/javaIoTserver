@@ -12,6 +12,11 @@ public final class AiChatHandler {
 	}
 
 	public static HTTPResponse aiChatResend(HTTPRequest httpRequest) {
+		boolean autorizUser = httpRequest.userID != 0 && httpRequest.isHttps;
+		if (!autorizUser) {
+			return new HTTPResponse(401);
+		}
+
 		if (!Configs.getBoolean("ai_assist_parallel_requests")) {
 			if (!aiChatBusy.compareAndSet(false, true)) {
 				return new HTTPResponse(503);
@@ -32,7 +37,7 @@ public final class AiChatHandler {
 			String userMess      = httpRequest.getZnach("user_mess",    HTTPRequest.arrType.QUERY);
 			String chatHistJson  = httpRequest.getZnach("chat_history",  HTTPRequest.arrType.QUERY);
 			String page          = httpRequest.getZnach("page",          HTTPRequest.arrType.QUERY);
-			String acceptLang    = httpRequest.getZnach("Accept-Language", HTTPRequest.arrType.HEADER);
+			String acceptLang    = httpRequest.getZnach("accept-language", HTTPRequest.arrType.HEADER);
 			String userName      = KeyManager.getUserName(httpRequest.userID);
 
 			String systemPrompt = buildSystemPrompt(page, userName, acceptLang);

@@ -204,6 +204,8 @@ int main() {
 	return 0;
 }
 
+#define MAX_BODY_LEN (64 * 1024 * 1024)		// стеля на Content-Length, щоб не виділяти абищо
+
 // decod_request: копія адаптованої функції з KM_server.cpp
 int decod_request(Request* rq, socket_t fd_client) {
 	char *buff = (char*)calloc(1024 * 101, sizeof(char));
@@ -261,19 +263,19 @@ int decod_request(Request* rq, socket_t fd_client) {
 				}
 				buff[ii] = 0;
 				ii += 2;
-				if(!strcmp("Accept-Language", &(buff[i]))) {
+				if(!strcmp("accept-language", &(buff[i]))) {
 					rq->accept_language = &(buff[ii]);
 					rq->f_accept_language = 1;
 				}
-				if(!strcmp("Host", &(buff[i]))) {
+				if(!strcmp("host", &(buff[i]))) {
 					rq->host = &(buff[ii]);
 					rq->f_host = 1;
 				}
-				if(!strcmp("User-Agent", &(buff[i]))) {
+				if(!strcmp("user-agent", &(buff[i]))) {
 					rq->user_agent = &(buff[ii]);
 					rq->f_user_agent = 1;
 				}
-				if(!strcmp("Content-Length", &(buff[i]))) {
+				if(!strcmp("content-length", &(buff[i]))) {
 					content_len = atoi(&(buff[ii]));
 				}
 			}
@@ -291,16 +293,27 @@ int decod_request(Request* rq, socket_t fd_client) {
 	if(rq->method == 1001 && bbb != 0) {
 		i = bbb;
 	} else if((rq->method == 1004 || rq->method == 1005 || rq->method == 1007) && content_len + i > len) {
+		if(content_len > MAX_BODY_LEN) {
+			free(buff);
+			return 1;
+		}
 		int already = len - i;
 		int need = content_len - already;
+		char* nbuff = (char*)realloc(buff, len + need + 1);	// початкових 101KB на тіло може не вистачити
+		if(nbuff == NULL) {
+			free(buff);
+			return 1;
+		}
+		buff = nbuff;
 		int got = 0;
 		while (got < need) {
 			int n = _resv(fd_client, buff + len + got, need - got);
 			if (n <= 0) break;
 			got += n;
 		}
+		buff[len + got] = 0;
 		if(!(!strcmp(rq->path.c_str(), "/log_file") && rq->method == POST))
-			rq->header += std::string(buff + i, content_len);
+			rq->header += std::string(buff + i, already + got);	// лише те, що справді прийшло
 	}
 	j = i;
 	len = i;

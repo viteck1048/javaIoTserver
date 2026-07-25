@@ -43,7 +43,7 @@ public class SimpleHTTPSServer implements Runnable {
 			
 			while (true) {
 				SSLSocket socket = (SSLSocket) serverSocket.accept();
-				new ClientHandler(socket, port).start();
+				new ClientHandler(socket, port, true).start();
 			}
 		} catch (Exception e) {
 			e.printStackTrace();

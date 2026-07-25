@@ -4,6 +4,7 @@ import java.nio.charset.StandardCharsets;
 import java.text.SimpleDateFormat;
 import java.util.Arrays;
 import java.util.Date;
+import java.util.Map;
 
 /**
  * Обробник для PHP_FPM типу реверсу
@@ -39,6 +40,13 @@ public final class PhpFpmHandler {
 
 	public static HTTPResponse phpFpmResend(HTTPRequest httpRequest) {
 
+		if (!Configs.getBoolean("php_non_login")) {
+			boolean autorizUser = httpRequest.userID != 0 && httpRequest.isHttps;
+			if (!autorizUser) {
+				return new HTTPResponse(401);
+			}
+		}
+
 		String host = Configs.getParam("ip_php_fpm_server");
 		int port = Configs.getInt("port_php_fpm_server");
 		int timeout = Configs.getInt("php_fpm_timeout_ms");
@@ -58,16 +66,11 @@ public final class PhpFpmHandler {
 		try {
 			int requestID = 1;
 			sendBeginRequest(nc, requestID);
-			for(int i = 0; i < httpRequest.getPhpQueryLength(); i++) {
-				sendParam(nc, httpRequest.getPhpParam(i), httpRequest.getPhpZnach(i), requestID);
-			}
+			sendCgiParams(nc, httpRequest, requestID);
 			sendParam(nc, null, null, requestID);								// кінець потоку FCGI_PARAMS
 
-			byte[] bodyData = httpRequest.bodyData;
-			if(bodyData != null && bodyData.length > 0
-					&& (httpRequest.method.compareTo("POST") == 0
-						|| httpRequest.method.compareTo("PUT") == 0
-						|| httpRequest.method.compareTo("DELETE") == 0)) {
+			byte[] bodyData = httpRequest.body;
+			if(bodyData != null && bodyData.length > 0 && (httpRequest.method.compareTo("POST") == 0 || httpRequest.method.compareTo("PUT") == 0 || httpRequest.method.compareTo("DELETE") == 0)) {
 				int index = 0;
 				while(bodyData.length - index > MAX_RECORD_CONTENT) {
 					sendStdin(nc, bodyData, index, MAX_RECORD_CONTENT, requestID);
@@ -95,7 +98,7 @@ public final class PhpFpmHandler {
 						String formattedDate = formatter.format(new Date());
 						System.out.println("\r" + formattedDate + " PHP Request from " + httpRequest.clientAddress + "; FCGI_END_REQUEST: " + httpRequest.path);
 						//System.out.println(new String(baos.toByteArray()));
-					return new HTTPResponse(null, baos.toByteArray(), "revers to old server");
+						return new HTTPResponse(null, baos.toByteArray(), "revers to PHP_FPM");
 					case FastCGIRecordType.FCGI_STDOUT:
 						buffer = nc.recvChunk(contentLength);
 						if(buffer == null || !skip(nc, paddingLength))
@@ -121,6 +124,63 @@ public final class PhpFpmHandler {
 		} finally {
 			nc.close();
 		}
+	}
+
+	/**
+	 * Генерує CGI-поля на льоту (fixed-поля запиту + прохід по заголовках) і шле їх як FCGI_PARAMS
+	 */
+	private static void sendCgiParams(NetworkClient nc, HTTPRequest httpRequest, int requestID) {
+		String path = httpRequest.path;
+		int phpIndex = path.indexOf(".php");
+		String scriptName = path;
+		String pathInfo = "";
+		if(phpIndex != -1) {
+			int scriptEnd = phpIndex + 4;
+			scriptName = path.substring(0, scriptEnd);
+			if(path.length() > scriptEnd) {
+				pathInfo = path.substring(scriptEnd);
+			}
+		}
+
+		sendParam(nc, "GATEWAY_INTERFACE", "CGI/1.1", requestID);
+		sendParam(nc, "SERVER_SOFTWARE", "MijServak/" + Configs.getParam("version"), requestID);
+		sendParam(nc, "SERVER_PROTOCOL", httpRequest.protocol, requestID);
+		sendParam(nc, "SERVER_PORT", String.valueOf(httpRequest.port), requestID);
+		sendParam(nc, "SERVER_NAME", Configs.getParam("host"), requestID);
+		sendParam(nc, "REQUEST_METHOD", httpRequest.method, requestID);
+		sendParam(nc, "DOCUMENT_ROOT", Configs.getParam("php_directory_abs"), requestID);
+		sendParam(nc, "SCRIPT_FILENAME", Configs.getParam("php_directory_abs") + scriptName, requestID);
+		sendParam(nc, "SCRIPT_NAME", scriptName, requestID);
+		// Рядок запиту не залежить від методу: у POST теж буває ?route=...,
+		// і без QUERY_STRING скрипт не побачить його в $_GET.
+		if(httpRequest.urlQueryString != null && httpRequest.urlQueryString.length() > 0) {
+			sendParam(nc, "REQUEST_URI", path + "?" + httpRequest.urlQueryString, requestID);
+			sendParam(nc, "QUERY_STRING", httpRequest.urlQueryString, requestID);
+		}
+		else {
+			sendParam(nc, "REQUEST_URI", path, requestID);
+			sendParam(nc, "QUERY_STRING", "", requestID);
+		}
+		sendParam(nc, "REMOTE_ADDR", httpRequest.clientAddress.getHostAddress(), requestID);
+		sendParam(nc, "REMOTE_PORT", "7777", requestID);
+		sendParam(nc, "SERVER_ADDR", Configs.getParam("localIP"), requestID);
+		if(httpRequest.isHttps) {
+			sendParam(nc, "HTTPS", "on", requestID);
+			sendParam(nc, "REQUEST_SCHEME", "https", requestID);
+		}
+		else {
+			sendParam(nc, "REQUEST_SCHEME", "http", requestID);
+		}
+		if(pathInfo.length() > 0)
+			sendParam(nc, "PATH_INFO", pathInfo, requestID);
+
+		for(Map.Entry<String, String> header : httpRequest.headers.entrySet()) {
+			sendParam(nc, toCGIHeader(header.getKey()), header.getValue(), requestID);
+		}
+	}
+
+	private static String toCGIHeader(String str) {
+		return "HTTP_" + str.toUpperCase().replaceAll("[- ]", "_");
 	}
 
 	/**

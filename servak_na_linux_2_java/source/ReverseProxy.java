@@ -10,6 +10,21 @@ public final class ReverseProxy {
 	}
 	
 	/**
+	 * Шлях без префікса, за яким Router упізнав реверс: бекенд знає лише свої власні
+	 * шляхи. Порожній залишок — це "/"
+	 */
+	public static String stripPrefix(String path, String prefix) {
+		if(prefix == null || prefix.isEmpty() || !path.startsWith(prefix)) {
+			return path;
+		}
+		String stripped = path.substring(prefix.length());
+		if(stripped.isEmpty()) {
+			return "/";
+		}
+		return stripped.startsWith("/") ? stripped : "/" + stripped;
+	}
+
+	/**
 	 * Обробляє запити з реверсом
 	 *
 	 * @param httpRequest Запит з реверсом
@@ -18,16 +33,6 @@ public final class ReverseProxy {
 	public static HTTPResponse handleReverseRequest(HTTPRequest httpRequest) {
 		if (httpRequest.revers == HTTPRequest.ReversType.NO_REVERSE) {
 			System.out.println("ReversProxy. err: NO_REVERSE");
-			for (StackTraceElement ste : Thread.currentThread().getStackTrace()) {
-				System.err.println(ste);
-			}
-			return new HTTPResponse(500);
-		}
-
-		boolean machineTimeRead = httpRequest.revers == HTTPRequest.ReversType.MACHINE_TIME && (httpRequest.method.compareTo("GET") == 0 || httpRequest.method.compareTo("HEAD") == 0);
-
-		if (httpRequest.userID == 0 && (httpRequest.revers != HTTPRequest.ReversType.BANRESPONSE && httpRequest.revers != HTTPRequest.ReversType.UNI_PRXY && !machineTimeRead)) {
-			System.err.println("ReversProxy. err: userID == 0; !banresponse");
 			for (StackTraceElement ste : Thread.currentThread().getStackTrace()) {
 				System.err.println(ste);
 			}

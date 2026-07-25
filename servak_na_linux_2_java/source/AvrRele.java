@@ -36,7 +36,19 @@ class AvrRele {
 	private int[] ri_imp = new int[3];
 	private int[] ri_strt_imp = new int[3];
 	private int[] tekimp_mem = new int[3];
-	
+
+	private static final byte[] DEFAULT_RESPONSE = parseHexPlus(
+			"45+50+27+49+5D+BA+73+BC+38+4B+A6+87+5A+29+5F+28+47+94+9A+20+CB+2F+25+0B+33+D6+65+26+40+7E+3E+F0+30+68+36+70+AF+C3+00+00+00+00+00+00+00");
+
+	private static byte[] parseHexPlus(String hex) {
+		String[] tmp = hex.split("\\+");
+		byte[] result = new byte[tmp.length];
+		for(int i = 0; i < tmp.length; i++) {
+			result[i] = (byte) Integer.parseInt(tmp[i], 16);
+		}
+		return result;
+	}
+
 	public AvrRele(long serialNumber) {
 		myRand = new MyRand();
 		serialNumberMega = serialNumber;
@@ -139,12 +151,12 @@ class AvrRele {
 		}
 	}
 
-	public String update(byte requbufByte[]) {
+	public byte[] update(byte requbufByte[]) {
 		lock.lock();
-		try {	
+		try {
 			lastAccessTime = System.currentTimeMillis();
 			online = true;
-			String vidp = "45+50+27+49+5D+BA+73+BC+38+4B+A6+87+5A+29+5F+28+47+94+9A+20+CB+2F+25+0B+33+D6+65+26+40+7E+3E+F0+30+68+36+70+AF+C3+00+00+00+00+00+00+00";
+			byte[] result = DEFAULT_RESPONSE;
 			if(requbufByte.length == 40) {
 //				System.out.print("=============connect\t\t\t");
 				serialNumberEsp = 0;
@@ -166,14 +178,12 @@ class AvrRele {
 				char[] vidpChar = "ok_chuvak_ja_tebe_pojnjav_davaj_korysni_dani".toCharArray();
 				byte[] vidpByte = new byte[vidpChar.length + 1];
 				vidpByte[vidpChar.length] = 0;
-				vidp = "";
 				for(i = 0; i < vidpChar.length; i++) {
 					vidpByte[i] = (byte)((byte)vidpChar[i] ^ myRand.rand());
 					vidpByte[vidpChar.length] ^= (byte)vidpChar[i];
-					vidp += String.format("%02X+", vidpByte[i]);
 				}
 				myRand.korr(vidpByte[vidpChar.length]);
-				vidp += String.format("%02X", vidpByte[vidpChar.length]);
+				result = vidpByte;
 			}
 			else if(requbufByte.length == 320) {
 				serialNumberEsp = 0;
@@ -332,7 +342,6 @@ class AvrRele {
 						vidpByte[len - 3] = (byte)((adminpass >> 8) & 0x00ff);
 					}
 					
-					vidp = "";
 					for(i = 0; i < len; i++) {
 						if(upd == 0) {
 							vidpByte[i] = (byte)((byte)vidpChar[i] ^ myRand.rand());
@@ -342,17 +351,16 @@ class AvrRele {
 							vidpByte[len] ^= vidpByte[i];
 							vidpByte[i] = (byte)(vidpByte[i] ^ myRand.rand());
 						}
-						vidp += String.format("%02X+", vidpByte[i]);
 					}
 					myRand.korr(vidpByte[len]);
-					vidp += String.format("%02X", vidpByte[len]);
+					result = vidpByte;
 				}
 			}
 			else {
 				System.out.println("ERROR requbufByte.length != 40/320");
 			}
 			requbufByte = null;
-			return vidp;
+			return result;
 		} finally {
 			lock.unlock();
 		}

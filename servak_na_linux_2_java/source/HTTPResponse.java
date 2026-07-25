@@ -159,17 +159,18 @@ public class HTTPResponse {
 			fl_err_prnt_hdr = true;
 		}
 		this.body = null;
-		close_connect_flag = true;
+		close_connect_flag = false;
 		switch(codeErr) {
 			case 0:
 				this.headers = null;
 				this.body = null;
 				this.msg = "Chunked response end";
-				this.close_connect_flag = httpRequest.close_connect_flag;
+				this.close_connect_flag = true;
 				break;
 			case 200:
 				this.headers = "HTTP/1.1 " + codeErr + " OK\r\nServer: MijServak\r\nConnection: Closed\r\n\r\n";
 				this.msg = "Response OK." + codeErr;
+				this.close_connect_flag = true;
 				break;
 			case 400:
 				this.headers = "HTTP/1.1 " + codeErr + " Bad Request\r\nServer: MijServak\r\nConnection: Closed\r\n\r\n";
@@ -286,13 +287,14 @@ public class HTTPResponse {
 			if(Configs.getBoolean("avr_log"))
 				System.out.println("\r" + formattedDate + "\t\tNew client " + httpRequest.clientAddress + " on port " + String.format("%5d;", httpRequest.port) + (userID == -1 ? "\t\t\t\t\t" : ("\tuserID: " + userID + "\t\t")) + msg);
 			else{
-				if(httpRequest.contentLength == 320)
+				int bodyLength = httpRequest.body == null ? 0 : httpRequest.body.length;
+				if(bodyLength == 320)
 					System.out.print(".");
-				else if(httpRequest.contentLength == 40)
-					System.out.printf("%02X", httpRequest.bodyData[35]);
+				else if(bodyLength == 40)
+					System.out.printf("%02X", httpRequest.body[35]);
 				else {
 					//httpRequest.prnt();
-					System.out.println("\r" + formattedDate + "\tBAN AVR " + httpRequest.clientAddress + ":" + String.format("%d;  ", httpRequest.port) + httpRequest.header.split("\r\n")[0] + " -> " + headers.split("\r\n")[0]);
+					System.out.println("\r" + formattedDate + "\tBAN AVR " + httpRequest.clientAddress + ":" + String.format("%d;  ", httpRequest.port) + httpRequest.getHeaders().split("\r\n")[0] + " -> " + headers.split("\r\n")[0]);
 				}
 			}
 		}
@@ -307,7 +309,7 @@ public class HTTPResponse {
 					System.out.println("$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$");
 				}
 				else {
-					System.out.println("\r" + formattedDate + "\tBANRESPONSE " + httpRequest.clientAddress + ":" + String.format("%d;  ", httpRequest.port) + httpRequest.header.split("\r\n")[0] + " -> " + headers.split("\r\n")[0]);
+					System.out.println("\r" + formattedDate + "\tBANRESPONSE " + httpRequest.clientAddress + ":" + String.format("%d;  ", httpRequest.port) + httpRequest.getHeaders().split("\r\n")[0] + " -> " + headers.split("\r\n")[0]);
 				}
 			}
 			else if(Configs.getBoolean("revers_log"))
@@ -351,7 +353,7 @@ public class HTTPResponse {
 			}
 		}
 		if (headers != null) {
-			if(headers.startsWith("Status: ")) {
+			if(headers.startsWith("Status: ")) {			//відновлення гедера після php-fpm
 				headers = headers.replaceFirst("Status:", httpRequest.protocol);
 			}
 			else if(!headers.startsWith("HTTP")) {
@@ -360,11 +362,18 @@ public class HTTPResponse {
 			
 			headers = headers.replaceAll("Connection: [^\r\n]*\r\n", "");
 			
-			if (!httpRequest.close_connect_flag && !close_connect_flag) {
+			String connectionHeader = httpRequest.getZnach("connection", HTTPRequest.arrType.HEADER);
+			boolean isKeepAlive = httpRequest.protocol.equals("HTTP/1.0") ? false : true;
+			if(connectionHeader != null) {
+				isKeepAlive = "keep-alive".equalsIgnoreCase(connectionHeader);
+			}
+			if (isKeepAlive && !close_connect_flag) {
 				headers = headers.replace("\r\n\r\n", "\r\nConnection: keep-alive\r\n\r\n");
+				close_connect_flag = false;
 			}
 			else {
 				headers = headers.replace("\r\n\r\n", "\r\nConnection: Closed\r\n\r\n");
+				close_connect_flag = true;
 			}
 			
 			DateTimeFormatter customFormatter = DateTimeFormatter.ofPattern("EEE, dd MMM yyyy HH:mm:ss 'GMT'", Locale.ENGLISH);
@@ -374,8 +383,8 @@ public class HTTPResponse {
 			headers = headers.replaceAll("Date: [^\r\n]*\r\n", "");
 			headers = headers.replace("\r\n\r\n", "\r\nDate: " + zonedDateTime.format(customFormatter) + "\r\n\r\n");
 
-			if(httpRequest.header.contains("X-Timezone: ")) {
-				String timezone = httpRequest.header.split("X-Timezone: ")[1].split("\r\n")[0];//"Europe/Kyiv";
+			String timezone = httpRequest.getZnach("x-timezone", HTTPRequest.arrType.HEADER);
+			if(timezone != null && !timezone.isEmpty()) {
 				try {
 					zonedDateTime = instant.atZone(ZoneId.of(timezone));
 					long offset = zonedDateTime.getOffset().getTotalSeconds() - ZoneOffset.UTC.getTotalSeconds();
@@ -401,7 +410,7 @@ public class HTTPResponse {
 		
 			if (httpRequest.revers == HTTPRequest.ReversType.BANRESPONSE && body != null) {
 				String oldPort = Configs.getParam("port_ban_response_server").trim();
-				String newPort = String.valueOf(httpRequest.portTrue).trim();
+				String newPort = String.valueOf(httpRequest.port).trim();
 				body = new String(body).replace(oldPort, newPort).getBytes();
 			}
 			
@@ -434,7 +443,8 @@ public class HTTPResponse {
 			if(headers.contains("Content-Type: ")) {
 				String contentType = headers.split("Content-Type: ")[1].split("\r\n")[0];
 				if(isTextual(contentType)) {
-					if(httpRequest.getZnach("Accept-Encoding", HTTPRequest.arrType.HEADER).contains("gzip")) {
+					String acceptEncoding = httpRequest.getZnach("accept-encoding", HTTPRequest.arrType.HEADER);
+					if(acceptEncoding != null && acceptEncoding.contains("gzip")) {
 						body = gzipCompress(body);
 						if(body != null && body.length > 0)
 							headers = headers.replace("\r\n\r\n", "\r\nContent-Encoding: gzip\r\n\r\n");
@@ -467,7 +477,7 @@ public class HTTPResponse {
 			if (!headers.contains("Server: MijServak")) {
 				headers = headers.replace("\r\n\r\n", "\r\nServer: MijServak\r\n\r\n");
 			}
-			if (httpRequest.portTrue == 443 && Configs.getBoolean("https_run")) {
+			if (httpRequest.port == 443 && Configs.getBoolean("https_run")) {
 				headers = headers.replace("\r\n\r\n", "\r\nStrict-Transport-Security: max-age=31536000; includeSubDomains\r\n\r\n");
 			}
 			/*// Security headers для всіх відповідей

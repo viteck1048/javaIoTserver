@@ -12,37 +12,35 @@ public final class MachineTimeProxyHandler {
 	}
 
 	public static HTTPResponse machineTimeResend(HTTPRequest httpRequest) {
+		boolean machineTimeRead = httpRequest.method.compareTo("GET") == 0 || httpRequest.method.compareTo("HEAD") == 0;
+		if (!machineTimeRead) {
+			boolean autorizUser = httpRequest.userID != 0 && httpRequest.isHttps;
+			if (!autorizUser) {
+				return new HTTPResponse(401);
+			}
+		}
+
+		String contentType = httpRequest.getZnach("content-type", HTTPRequest.arrType.HEADER);
 		int userID = httpRequest.userID;
 
+		// Правимо поля запиту, а перший рядок і заголовки збере getHeaders() нижче
 		if (httpRequest.method.compareTo("GET") == 0) {
-			// Додаємо userID до query string у першому рядку заголовку
-			String[] headerLines = httpRequest.header.split("\r\n", 2);
-			if (headerLines.length > 0) {
-				String firstLine = headerLines[0];
-				int firstSpace = firstLine.indexOf(' ');
-				int secondSpace = firstLine.indexOf(' ', firstSpace + 1);
-				if (firstSpace != -1 && secondSpace != -1) {
-					String method = firstLine.substring(0, firstSpace + 1);
-					String path   = firstLine.substring(firstSpace + 1, secondSpace);
-					String rest   = firstLine.substring(secondSpace);
-					path += (path.contains("?") ? "&" : "?") + "userID=" + userID;
-					firstLine = method + path + rest;
-				}
-				httpRequest.header = firstLine + "\r\n" + (headerLines.length > 1 ? headerLines[1] : "");
-			}
-		} else if (httpRequest.Content_Type.compareTo("application/x-www-form-urlencoded") == 0
+			if(httpRequest.urlQueryString.isEmpty())
+				httpRequest.urlQueryString = "userID=" + userID;
+			else
+				httpRequest.urlQueryString += "&userID=" + userID;
+		} else if (contentType != null && contentType.startsWith("application/x-www-form-urlencoded")
 				&& (httpRequest.method.compareTo("POST") == 0
 					|| httpRequest.method.compareTo("PUT") == 0
 					|| httpRequest.method.compareTo("DELETE") == 0)) {
-			// Додаємо userID до тіла запиту
-			int index = httpRequest.body.indexOf("&");
+			String form = httpRequest.body == null ? "" : new String(httpRequest.body);
+			int index = form.indexOf("&");
 			if (index != -1)
-				httpRequest.body = httpRequest.body.substring(0, index) + "&userID=" + userID + httpRequest.body.substring(index);
+				form = form.substring(0, index) + "&userID=" + userID + form.substring(index);
 			else
-				httpRequest.body += "&userID=" + userID;
-			httpRequest.bodyData = httpRequest.body.getBytes();
-			httpRequest.contentLength = httpRequest.body.length();
-			httpRequest.header = httpRequest.header.replaceFirst("Content-Length: \\d+", "Content-Length: " + httpRequest.contentLength);
+				form += "&userID=" + userID;
+			httpRequest.body = form.getBytes();
+			httpRequest.headers.put("content-length", String.valueOf(httpRequest.body.length));
 		}
 
 		String host = Configs.getParam("mach_time_ip");
@@ -57,7 +55,7 @@ public final class MachineTimeProxyHandler {
 			return new HTTPResponse(503);
 		}
 
-		byte[] buf = nc.sendAndReceive(httpRequest.header.getBytes(), httpRequest.bodyData);
+		byte[] buf = nc.sendAndReceive(httpRequest.getHeaders().getBytes(), httpRequest.body);
 		nc.close();
 
 		return new HTTPResponse(null, buf, "revers to machine time server");

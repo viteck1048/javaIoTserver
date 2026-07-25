@@ -11,9 +11,9 @@ public final class BanResponseHandler {
 	
 	public static HTTPResponse banResponse(HTTPRequest httpRequest) {
 			
-		httpRequest.header = httpRequest.header.replaceFirst("Content-Length: \\d+\r\n", "Content-Length: 0\r\n");
-		httpRequest.body = "";
-		httpRequest.bodyData = "".getBytes();
+		// Тіло забаненого запиту далі не їде: правимо map заголовків, а не готовий рядок
+		httpRequest.body = new byte[0];
+		httpRequest.headers.put("content-length", "0");
 
 		String host = Configs.getParam("ip_ban_response_server");
 		int port = Configs.getInt("port_ban_response_server");
@@ -27,7 +27,7 @@ public final class BanResponseHandler {
 			return new HTTPResponse(503);
 		}
 
-		byte[] buf2 = nc.sendAndReceive(httpRequest.header.getBytes(), null);
+		byte[] buf2 = nc.sendAndReceive(httpRequest.getHeaders().getBytes(), null);
 		nc.close();
 		
 		return new HTTPResponse(null, buf2, "revers to ban response server");

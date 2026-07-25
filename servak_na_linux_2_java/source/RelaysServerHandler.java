@@ -12,38 +12,34 @@ public final class RelaysServerHandler {
 	// TODO: Додати статичні методи для проміжної обробки запитів і відповідей
 
 	public static HTTPResponse relaysServerResend(HTTPRequest httpRequest) {
-		int userID = httpRequest.userID;
-		if (httpRequest.path.startsWith("/relay_servak/") && httpRequest.method.compareTo("GET") == 0) {
-		// Додаємо userID до першого рядка header
-			String[] headerLines = httpRequest.header.split("\r\n", 2);
-			if (headerLines.length > 0) {
-				String firstLine = headerLines[0];
-				int firstSpace = firstLine.indexOf(' ');
-				int secondSpace = firstLine.indexOf(' ', firstSpace + 1);
-				if (firstSpace != -1 && secondSpace != -1) {
-					String method = firstLine.substring(0, firstSpace + 1);
-					String path = firstLine.substring(firstSpace + 1, secondSpace);
-					String rest = firstLine.substring(secondSpace);
-					if (path.contains("?")) {
-						path += "&userID=" + userID;
-					} else {
-						path += "?userID=" + userID;
-					}
-					firstLine = method + path + rest;
-				}
-				httpRequest.header = firstLine + "\r\n" + (headerLines.length > 1 ? headerLines[1] : "");
-			}
+		boolean autorizUser = httpRequest.userID != 0 && httpRequest.isHttps;
+		if (!autorizUser) {
+			return new HTTPResponse(401);
 		}
-		else if(httpRequest.path.startsWith("/relay_servak") && httpRequest.Content_Type.compareTo("application/x-www-form-urlencoded") == 0 && (httpRequest.method.compareTo("POST") == 0 || httpRequest.method.compareTo("PUT") == 0 || httpRequest.method.compareTo("DELETE") == 0)) {
-			int index = httpRequest.body.indexOf("&");
-			if(index != -1)
-				httpRequest.body = httpRequest.body.substring(0, index) + "&userID=" + userID + httpRequest.body.substring(index);
+
+		String espPath = Configs.getParam("esp_path");
+		String contentType = httpRequest.getZnach("content-type", HTTPRequest.arrType.HEADER);
+		int userID = httpRequest.userID;
+
+		// Правимо поля запиту, а перший рядок і заголовки збере getHeaders() нижче
+		if (httpRequest.method.compareTo("GET") == 0) {
+			if(httpRequest.urlQueryString.isEmpty())
+				httpRequest.urlQueryString = "userID=" + userID;
 			else
-				httpRequest.body += "&userID=" + userID;
-			// Оновлюємо content-length
-			httpRequest.bodyData = httpRequest.body.getBytes();
-			httpRequest.contentLength = httpRequest.body.length();
-			httpRequest.header = httpRequest.header.replaceFirst("Content-Length: \\d+", "Content-Length: " + httpRequest.contentLength);
+				httpRequest.urlQueryString += "&userID=" + userID;
+		}
+		else if(contentType != null && contentType.startsWith("application/x-www-form-urlencoded")
+				&& (httpRequest.method.compareTo("POST") == 0
+					|| httpRequest.method.compareTo("PUT") == 0
+					|| httpRequest.method.compareTo("DELETE") == 0)) {
+			String form = httpRequest.body == null ? "" : new String(httpRequest.body);
+			int index = form.indexOf("&");
+			if(index != -1)
+				form = form.substring(0, index) + "&userID=" + userID + form.substring(index);
+			else
+				form += "&userID=" + userID;
+			httpRequest.body = form.getBytes();
+			httpRequest.headers.put("content-length", String.valueOf(httpRequest.body.length));
 		}
 
 		String host = Configs.getParam("ip_relay_server");
@@ -58,7 +54,13 @@ public final class RelaysServerHandler {
 			return new HTTPResponse(503);
 		}
 
-		byte[] buf2 = nc.sendAndReceive(httpRequest.header.getBytes(), httpRequest.bodyData);
+		// Префікс, за яким Router упізнав цей реверс, бекенду не потрібен
+		String requestPath = httpRequest.path;
+		httpRequest.path = ReverseProxy.stripPrefix(requestPath, espPath);
+		byte[] head = httpRequest.getHeaders().getBytes();
+		httpRequest.path = requestPath;
+
+		byte[] buf2 = nc.sendAndReceive(head, httpRequest.body);
 		nc.close();
 		
 		return new HTTPResponse(null, buf2, "revers to old server");	

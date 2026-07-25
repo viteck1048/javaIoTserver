@@ -274,18 +274,18 @@ public class KeyManager {
 	public static ArrayList<SnInfo> getSnMegaList(long key, InetAddress ip) {
 		KeyInfo keyInfo = findKey(key, ip);
 		if(keyInfo == null) {
-			return null;
+			return new ArrayList<>();
 		}
 		return new ArrayList<>(keyInfo.sn_megaList);
 	}
-	
+
 	public static ArrayList<SnInfo> getSnMegaList(int userId) {
 		for (KeyInfo keyInfo : keys.values()) {
 			if (keyInfo.userID == userId) {
 				return new ArrayList<>(keyInfo.sn_megaList);
 			}
 		}
-		return null;
+		return new ArrayList<>();
 	}
 
 	private static boolean equals2(InetAddress ip, InetAddress ip2, int stupin) {

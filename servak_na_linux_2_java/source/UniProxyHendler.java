@@ -70,12 +70,12 @@ public final class UniProxyHendler {
 		// Дебаг запиту
 		if (debugRequestHeaders) {
 			System.out.println("=== UNI PROXY REQUEST HEADERS (" + prxyKey + ") ===");
-			System.out.println(httpRequest.header);
+			System.out.println(httpRequest.getHeaders());
 		}
-		if (debugRequestBody && httpRequest.bodyData != null) {
+		if (debugRequestBody && httpRequest.body != null) {
 			System.out.println("=== UNI PROXY REQUEST BODY (" + prxyKey + ") ===");
-			String bodyStr = new String(httpRequest.bodyData);
-			String contentType = httpRequest.getZnach("Content-Type", HTTPRequest.arrType.HEADER);
+			String bodyStr = new String(httpRequest.body);
+			String contentType = httpRequest.getZnach("content-type", HTTPRequest.arrType.HEADER);
 			if (contentType != null && contentType.toLowerCase().contains("json")) {
 				String formattedJson = formatJson(bodyStr);
 				System.out.println(formattedJson);
@@ -94,10 +94,11 @@ public final class UniProxyHendler {
 		}
 
 		// Перевіряємо userID, якщо для проксі увімкнено авторизацію за ним
+		boolean autorizUser = httpRequest.userID != 0 && httpRequest.isHttps;
 		if (authUserId) {
 			if(httpRequest.chkZnach("authorization", "check")) {
-				HTTPResponse httpResponse; 
-				if(httpRequest.userID == 0) {
+				HTTPResponse httpResponse;
+				if(!autorizUser) {
 					httpResponse = new HTTPResponse(400);
 					httpResponse.set_fl_err_prnt_hdr(false);
 					httpResponse.setMsg("Client " + httpRequest.clientAddress + ". Authorization check failed for Session ID: " + httpRequest.X_Session_ID);
@@ -108,10 +109,7 @@ public final class UniProxyHendler {
 					httpResponse.setMsg("Client " + httpRequest.clientAddress + ". Authorization check passed for user ID: " + httpRequest.userID);
 				}
 				return httpResponse;
-			} else if (httpRequest.chkParam("reestr")) {
-				// Запити до RegistrUsers
-				return RegistrUsers.reestr(httpRequest);
-			} else if (httpRequest.userID == 0) {
+			} else if (!autorizUser) {
 				System.err.println("UniProxyHendler: userID authorization failed for " + prxyKey + " (userID == 0)");
 				return new HTTPResponse(401);
 			}
@@ -130,7 +128,7 @@ public final class UniProxyHendler {
 		
 		try {
 			
-			nc.sendAll(httpRequest.header.getBytes(), httpRequest.bodyData);
+			nc.sendAll(httpRequest.getHeaders().getBytes(), httpRequest.body);
 			
 			byte[] headers = nc.recvChunkHeaders();
 			if (headers == null) {

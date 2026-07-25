@@ -55,6 +55,13 @@ public class ClientHandler extends Thread {
 				}
 
 				if (httpRequest.method == null) {
+					if (httpRequest.ban) {
+						if (!socket.isClosed()) {
+							socket.close();
+						}
+						break;
+					}
+
 					// Якщо користувач не надсилав запити довго - відключаємо
 					if (System.currentTimeMillis() - lastRequestTime > lastRequestTimeOut) {
 						if (!socket.isClosed()) {

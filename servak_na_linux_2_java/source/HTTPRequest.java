@@ -178,7 +178,6 @@ public class HTTPRequest {
 				}
 			}
 		} catch (IOException e) {
-			e.printStackTrace();
 			ban = true;
 			return false;
 		}

@@ -7,7 +7,7 @@ A Java-based server application designed to handle web requests with support for
 - **HTTP/HTTPS Handling**: Processes standard web requests.
 - **IoT Support**: Manages communication with IoT devices.
 - **Embedded Web Server**: Includes support for serving static content and processing PHP scripts.
-- **Reverse Proxy:** Modular handler system — each backend type (`PHP-FPM`, `UniProxy`, `OldServak`, `RelaysServer`, `BanResponse`, `AI_CHAT`) has its own handler class. `ReverseProxy.java` dispatches by request type; handlers are stateless utility classes. See `HANDLERS.md` for details.
+- **Routing:** `HTTPRequest` only parses the wire request; `Router.java` decides what to do with it (static files, PHP, reverse types, AVR gadget protocol); `ReverseProxy.java` does the final dispatch by reverse type to one of the modular handler classes (`PHP-FPM`, `UniProxy`, `OldServak`, `RelaysServer`, `BanResponse`, `AI_CHAT`, `MachineTime`) — stateless utility classes, each doing its own `userID != 0 && isHttps` authorization check. See `HANDLERS.md` for details.
 - **AI Chat:** Proxy to an OpenAI-compatible LLM endpoint (`AiChatHandler`). Supports streaming, system prompt composition, single-flight concurrency guard.
 - **MachineTime Forwarder:** `MachineTimeForwarder` collects runtime data from AVR relay devices and forwards it to the `esp8266_decoder` microservice, emulating the ESP8266 device protocol.
 - **SSL Management**: Automatically handles SSL certificates, including creation and renewal (ACME-like functionality).

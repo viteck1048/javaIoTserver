@@ -136,8 +136,12 @@ line, blank lines and `#` comments skipped. Used for `whitePathList`, `blackPath
 | `www80_directory` | String | Static root served over HTTP (80). |
 | `homepage` | String | Path to the landing page, e.g. `/index.html`. Excluded from the generated page menu. |
 | `https_run` | bool | Bring up port 443. |
-| `test_all_services` | bool | Probe every configured service on startup. |
+| `authoriz_whithout_https` | bool | **Dev/test only.** `ServerTask` passes this as `isHttps` to every plain-socket `ClientHandler` it spawns (port 80, the AVR port, plain `prxy_` ports) — with it `true`, those connections satisfy the `userID != 0 && isHttps` check every handler now runs (see [HANDLERS.md](HANDLERS.md#authorization)) without a real TLS handshake. `SimpleHTTPSServer` (real SSL) always passes `true` regardless of this key. Leave `false` in production. |
 | `dbg_post_message_path` | String | Path used for debug POSTs. |
+
+> **Dead key:** `test_all_services` — used to fake `userID=4` on port 80 in `ClientHandler`
+> directly (a hardcoded backdoor). Replaced by `authoriz_whithout_https` above; **read nowhere**
+> in the current code.
 
 ## `[photo]` — photo upload
 

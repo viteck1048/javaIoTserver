@@ -1,14 +1,22 @@
 # Reverse-Proxy Handlers (Java gateway)
 
-Reference for the handlers in `source/*Handler.java`. Each one serves a single reverse type,
-which the main gateway (`ClientHandler` / `ReverseProxy`) routes the request to. All of them
+Reference for the handlers in `source/*Handler.java`. `ClientHandler` hands the parsed
+`HTTPRequest` to `Router` (`Router.route`), which does the actual dispatch decision — path/port
+matching, `allPortsRoute`/`webRoute`/`specialPortRoute` — and either answers directly or sets
+`httpRequest.revers` to one of the reverse types below. `ReverseProxy.handleReverseRequest`
+then does the final step: it switches on `revers` and calls the matching handler. All handlers
 are utility classes (private constructor) with static methods that forward to a backend whose
 address comes from the config file.
+
+The AVR gadget protocol (base16/base64 relay wire format) is a separate, non-reverse branch —
+`Router.specialPortRoute` calls `DBClass.requestFromGadget` directly on the AVR port, it never
+goes through `ReverseProxy`. See `DBClass.java` / `AvrRele.java`, not covered here.
 
 Config keys referenced below are documented in [CONFIG.md](CONFIG.md).
 
 > Drafted with a local LLM (qwen2.5-coder), then checked and completed by hand against the
-> code on 2026-06-18. Updated 2026-07-13.
+> code on 2026-06-18. Updated 2026-07-13. Updated again 2026-07-26 for the `Router`/`HTTPRequest`
+> split and the per-handler authorization rewrite.
 
 ---
 
@@ -31,20 +39,35 @@ A full **binary FastCGI protocol client** for php-fpm — not a forward at all.
 Every other handler passes HTTP through: HTTP goes in, HTTP comes out, and you can dump the
 bytes and read them. This one **destroys the request and rebuilds it in a foreign
 representation**, then reconstructs an HTTP response out of something that was never HTTP.
-That work is spread across **three places**, and the handler on its own is useless without
-the other two.
+That work is spread across **two places** now (a third, `HTTPRequest`-side pre-processing
+step, existed before the `Router` split and no longer does — see below).
 
-**1. Pre-processing — `HTTPRequest` builds the CGI environment.**
-The reverse type is decided by a path match on `*.php` (also `.php3/.php4/.php5/.phtml`),
-gated by `FirewallPHP.phpFirewall(scriptName)`. On a hit, `phpQueryArr` is filled with the
-19 CGI variables php-fpm expects — HTTP has no such notion, so they are synthesised by hand:
+**1. `sendCgiParams` — builds the CGI environment on the fly, inside the handler.**
+The reverse type is decided in `Router.webRoute` by a path match on `*.php` (also
+`.php3/.php4/.php5/.phtml`). `PhpFpmHandler` itself derives `SCRIPT_NAME`/`PATH_INFO` from
+`httpRequest.path` (split on the first `.php`) and sends the fixed CGI variables one at a time
+via `sendParam`, no intermediate array:
 
 ```
-GATEWAY_INTERFACE  REQUEST_METHOD   REQUEST_URI      REQUEST_SCHEME   QUERY_STRING
-SCRIPT_NAME        SCRIPT_FILENAME  PATH_INFO        DOCUMENT_ROOT    CONTENT_TYPE
-CONTENT_LENGTH     SERVER_NAME      SERVER_ADDR      SERVER_PORT      SERVER_PROTOCOL
-SERVER_SOFTWARE    REMOTE_ADDR      REMOTE_PORT      HTTPS
+GATEWAY_INTERFACE  SERVER_SOFTWARE  SERVER_PROTOCOL  SERVER_PORT      SERVER_NAME
+REQUEST_METHOD     DOCUMENT_ROOT    SCRIPT_FILENAME  SCRIPT_NAME      REQUEST_URI
+QUERY_STRING        REMOTE_ADDR      REMOTE_PORT      SERVER_ADDR      HTTPS (if port 443)
+REQUEST_SCHEME     PATH_INFO (if present)
 ```
+
+Then it loops `httpRequest.headers` (already lower-cased by the parser) and sends every one of
+them translated through `toCGIHeader` (`"HTTP_" + upper-case + "-"/" " → "_"`).
+
+> **Known gap:** that header loop also covers `content-type`/`content-length`, so they arrive
+> as `HTTP_CONTENT_TYPE`/`HTTP_CONTENT_LENGTH` — CGI/RFC 3875 additionally expects them
+> **unprefixed**, as `CONTENT_TYPE`/`CONTENT_LENGTH`, which nothing currently sends. A PHP
+> script reading `$_SERVER['CONTENT_LENGTH']` directly (uncommon — most code goes through
+> `php://input` or `$_POST`, which php-fpm's SAPI fills in independently of this variable) will
+> not find it. Not yet fixed.
+
+Also here: the authorization gate. `php_non_login=true` skips it entirely; otherwise the same
+`autorizUser` check as the other handlers (see "Authorization" below) runs first and returns
+`401` on failure.
 
 **2. The handler — FastCGI framing.**
 - **Backend:** `ip_php_fpm_server` / `port_php_fpm_server`.
@@ -54,7 +77,7 @@ SERVER_SOFTWARE    REMOTE_ADDR      REMOTE_PORT      HTTPS
 - Reads the reply through 8-byte record headers, assembles `FCGI_STDOUT`, logs `FCGI_STDERR`,
   stops on `FCGI_END_REQUEST`.
 - **Public:** `phpFpmResend(HTTPRequest)` → `HTTPResponse`.
-  (private `sendPHPFPMRequest(...)` — builds and sends one record).
+  (private `sendCgiParams(...)`, `sendParam(...)` — build and send the records).
 
 **3. Post-processing — `HTTPResponse.normalizeHeaders(HTTPRequest)`.**
 What comes back is **CGI output, not an HTTP response**: no status line, and the headers are
@@ -104,9 +127,9 @@ Forwards to the ESP8266 decoder that serves MachineTime. Plain forward, **no SSL
   - `POST` / `PUT` / `DELETE` with `application/x-www-form-urlencoded` — injects
     `&userID=<n>` into the body, recomputes `contentLength` and patches the `Content-Length`
     header.
-- **Reads do not require authentication.** `ReverseProxy` exempts `GET` and `HEAD` on this
-  reverse type from the `userID != 0` check. Consequence: an anonymous visitor still reaches
-  the handler, and the injected value is **`userID=0`** — the backend must treat 0 as
+- **Reads do not require authentication.** The handler itself exempts `GET`/`HEAD`
+  (`machineTimeRead`) from the authorization check. Consequence: an anonymous visitor still
+  reaches the handler, and the injected value is **`userID=0`** — the backend must treat 0 as
   "anonymous". Every other method still requires a session.
 - **Public:** `machineTimeResend(HTTPRequest)` → `HTTPResponse`.
 
@@ -149,10 +172,35 @@ config switch rather than a code path.
 - Backends and authorization keys come exclusively from the config file, which is kept out of
   git. See [CONFIG.md](CONFIG.md).
 
-### Who requires an authenticated session
-`ReverseProxy` rejects a request with `userID == 0` **unless** it is one of:
-- `BANRESPONSE` — by design;
-- `UNI_PRXY` — authorization is handled per-proxy inside `UniProxyHendler`;
-- `MACHINE_TIME` with method `GET` or `HEAD` — public reads.
+### Authorization
 
-Everything else needs a session.
+There is no single gate anymore. Until 2026-07, `ReverseProxy` rejected `userID == 0` in one
+place for everything except a hardcoded exception list. That gate is gone; each handler now
+checks for itself, at its own entry point, using the same predicate:
+
+```java
+boolean autorizUser = httpRequest.userID != 0 && httpRequest.isHttps;
+```
+
+The `isHttps` half is new: a session id is no longer enough on its own, the connection must
+also actually be (or convincingly pretend to be) TLS. This matters because `isHttps` is not
+"port 443" — it is whatever `ClientHandler` was constructed with. `SimpleHTTPSServer` (the real
+`SSLServerSocket` listener) always passes `true`; `ServerTask` (every plain-socket port — 80,
+the AVR port, plain `prxy_` ports) passes `Configs.getBoolean("authoriz_whithout_https")`,
+normally `false`. Flipping that one dev/test key to `true` makes every plain port behave as if
+it were HTTPS for authorization purposes, without touching a single handler — see
+[CONFIG.md](CONFIG.md#web--core). It replaces the old `test_all_services` backdoor, which used
+to fake a specific `userID` (`4`) for port 80 in `ClientHandler` directly; the new flag fakes
+only the transport signal; and the real per-user session/`KeyManager` check still runs for real.
+
+Per-handler policy:
+
+| Handler | Check |
+|---|---|
+| `UniProxyHendler` | Unchanged design — per-proxy, gated by `<prxyKey>_authorization_userID` — but now via `autorizUser`, so it also requires `isHttps`. |
+| `PhpFpmHandler` | `autorizUser`, unless `php_non_login=true` (skips the check entirely). |
+| `BanResponseHandler` | None, by design. |
+| `OldServakHandler` | `autorizUser`, `401` on failure. |
+| `RelaysServerHandler` | `autorizUser`, `401` on failure. |
+| `AiChatHandler` | `autorizUser`, `401` on failure. |
+| `MachineTimeProxyHandler` | Exempt on `GET`/`HEAD` (public reads); `autorizUser` on every other method. |

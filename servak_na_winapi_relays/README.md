@@ -13,6 +13,15 @@ A Windows service application built with C++ and WinAPI for managing relay devic
 
 This server works with ESP32-relay devices from the [rvs2](https://github.com/viteck1048/rvs2) repository. It represents the evolution of the original `relay.cpp` component with critical bugs fixed and inherited general structure from the liracalc server. Unlike the liracalc server, this service is not fully functional by itself - the Java proxy server provides SSL encryption and user authorization besides administering parallel connections.
 
+## Header Contract With the Java Reverse Proxy
+
+The Java gateway (`servak_na_linux_2_java`, `RelaysServerHandler`) is the only expected client.
+Since 2026-07 it stores and re-sends header names in lowercase, so `server_relays.cpp` now
+matches header names with a lowercase `strcmp`. The header/body buffer building was also
+tightened to bound itself by the number of bytes actually received, rather than assuming a fixed
+size — same underlying issue that was fixed in `servak_na_linux/server/KM_server.cpp` (this
+server was cloned from the same code body, see above).
+
 ## Building
 
 ### Windows

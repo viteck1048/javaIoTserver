@@ -21,6 +21,10 @@ public class ServerTask implements Runnable {
 				try {
 					Socket socket = serverSocket.accept();
 //					System.out.print("New client connected on port " + port + ";\t");
+					if(FirewallIP.quickBan(socket.getInetAddress())) {
+						socket.close();
+						continue;
+					}
 					new ClientHandler(socket, port, authoriz_whithout_https).start();
 				} catch (IOException e) {
 					System.out.println("Exception caught when trying to listen on port " + port + " or listening for a connection");

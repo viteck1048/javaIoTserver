@@ -1,6 +1,5 @@
 import java.net.InetAddress;                // Для роботи з IP-адресами
 import java.net.URLDecoder;                 // Для декодування URL-даних
-import java.net.UnknownHostException;       // Для обробки винятків, пов'язаних з IP-адресами
 import java.util.ArrayList;                 // Для роботи з динамічними списками
 import java.util.HashMap;
 import java.util.List;
@@ -57,12 +56,10 @@ public class HTTPRequest {
 	
 	public HTTPRequest(int port, InetAddress clientAddress, InputStream inStream, BufferedOutputStream outStream, boolean isHttps) {
 		quickBan = false;
-		this.clientAddress = clientAddress; // до isInSubnet() — воно читає це поле
-		if(!isInSubnet()) {
-			if(FirewallIP.checkBlackList(clientAddress)) {
-				quickBan = true;
-				return;
-			}
+		this.clientAddress = clientAddress;
+		if(FirewallIP.quickBan(clientAddress)) {
+			quickBan = true;
+			return;
 		}
 		this.port = port;
 		this.inStream = inStream;
@@ -547,28 +544,7 @@ public class HTTPRequest {
 	}
 
 	public boolean isInSubnet() {
-		if(!Configs.getBoolean("lanSettings"))
-			return false;
-		try {
-			byte[] subnetBytes = InetAddress.getByName(Configs.getParam("localIP")).getAddress();
-			byte[] maskBytes = InetAddress.getByName(Configs.getParam("localMask")).getAddress();
-			byte[] clientBytes = clientAddress.getAddress();
-
-			if(subnetBytes.length != clientBytes.length || subnetBytes.length != maskBytes.length) {
-				return false; // IPv4 <-> IPv6 конфлікт
-			}
-
-			for(int i = 0; i < subnetBytes.length; i++) {
-				if((subnetBytes[i] & maskBytes[i]) != (clientBytes[i] & maskBytes[i])) {
-					return false;
-				}
-			}
-			return true;
-
-		} catch (UnknownHostException e) {
-			e.printStackTrace();
-			return false;
-		}
+		return FirewallIP.isInSubnet(clientAddress);
 	}
 
 	private boolean firstLineHeaderCheck(String line) {

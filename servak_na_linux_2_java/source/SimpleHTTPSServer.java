@@ -43,6 +43,10 @@ public class SimpleHTTPSServer implements Runnable {
 			
 			while (true) {
 				SSLSocket socket = (SSLSocket) serverSocket.accept();
+				if(FirewallIP.quickBan(socket.getInetAddress())) {
+					socket.close();
+					continue;
+				}
 				new ClientHandler(socket, port, true).start();
 			}
 		} catch (Exception e) {

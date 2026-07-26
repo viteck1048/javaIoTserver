@@ -2,6 +2,7 @@ import java.io.BufferedReader;
 import java.io.FileReader;
 import java.io.IOException;
 import java.net.InetAddress;
+import java.net.UnknownHostException;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
@@ -585,6 +586,45 @@ public class FirewallIP {
 			// Reset statistics after adding to blacklist
 			attackStatistics.remove(request.clientAddress);
 		}
+	}
+
+	/**
+	 * Чи належить адреса локальній підмережі (lanSettings/localIP/localMask) — такі клієнти
+	 * звільнені від перевірки чорного списку.
+	 */
+	public static boolean isInSubnet(InetAddress clientAddress) {
+		if(!Configs.getBoolean("lanSettings"))
+			return false;
+		try {
+			byte[] subnetBytes = InetAddress.getByName(Configs.getParam("localIP")).getAddress();
+			byte[] maskBytes = InetAddress.getByName(Configs.getParam("localMask")).getAddress();
+			byte[] clientBytes = clientAddress.getAddress();
+
+			if(subnetBytes.length != clientBytes.length || subnetBytes.length != maskBytes.length) {
+				return false; // IPv4 <-> IPv6 конфлікт
+			}
+
+			for(int i = 0; i < subnetBytes.length; i++) {
+				if((subnetBytes[i] & maskBytes[i]) != (clientBytes[i] & maskBytes[i])) {
+					return false;
+				}
+			}
+			return true;
+
+		} catch (UnknownHostException e) {
+			e.printStackTrace();
+			return false;
+		}
+	}
+
+	/**
+	 * Швидка перевірка "варто взагалі приймати це з'єднання" — викликається з accept-циклів
+	 * (ServerTask/SimpleHTTPSServer) до породження ClientHandler-потоку, щоб не витрачати
+	 * тред на вже забанений IP.
+	 * @return true, якщо з'єднання варто одразу закрити
+	 */
+	public static boolean quickBan(InetAddress clientAddress) {
+		return !isInSubnet(clientAddress) && checkBlackList(clientAddress);
 	}
 
 	/**

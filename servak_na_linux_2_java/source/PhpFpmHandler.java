@@ -174,6 +174,13 @@ public final class PhpFpmHandler {
 		if(pathInfo.length() > 0)
 			sendParam(nc, "PATH_INFO", pathInfo, requestID);
 
+		String contentType = httpRequest.getZnach("content-type", HTTPRequest.arrType.HEADER);
+		if(httpRequest.body != null && httpRequest.body.length > 0 && contentType != null && contentType.length() > 0
+				&& (httpRequest.method.compareTo("POST") == 0 || httpRequest.method.compareTo("PUT") == 0 || httpRequest.method.compareTo("DELETE") == 0)) {
+			sendParam(nc, "CONTENT_LENGTH", String.valueOf(httpRequest.body.length), requestID);
+			sendParam(nc, "CONTENT_TYPE", contentType, requestID);
+		}
+
 		for(Map.Entry<String, String> header : httpRequest.headers.entrySet()) {
 			sendParam(nc, toCGIHeader(header.getKey()), header.getValue(), requestID);
 		}

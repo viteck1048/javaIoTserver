@@ -53,15 +53,14 @@ QUERY_STRING        REMOTE_ADDR      REMOTE_PORT      SERVER_ADDR      HTTPS (if
 REQUEST_SCHEME     PATH_INFO (if present)
 ```
 
-Then it loops `httpRequest.headers` (already lower-cased by the parser) and sends every one of
-them translated through `toCGIHeader` (`"HTTP_" + upper-case + "-"/" " → "_"`).
+On `POST`/`PUT`/`DELETE` with a non-empty body and a `content-type` header, it also sends
+`CONTENT_LENGTH` and `CONTENT_TYPE` **unprefixed**, as CGI/RFC 3875 requires — this is what
+php-fpm's SAPI uses to decide whether and how to parse the body into `$_POST`; without it the
+script still runs and returns `200`, but the body is never parsed.
 
-> **Known gap:** that header loop also covers `content-type`/`content-length`, so they arrive
-> as `HTTP_CONTENT_TYPE`/`HTTP_CONTENT_LENGTH` — CGI/RFC 3875 additionally expects them
-> **unprefixed**, as `CONTENT_TYPE`/`CONTENT_LENGTH`, which nothing currently sends. A PHP
-> script reading `$_SERVER['CONTENT_LENGTH']` directly (uncommon — most code goes through
-> `php://input` or `$_POST`, which php-fpm's SAPI fills in independently of this variable) will
-> not find it. Not yet fixed.
+Then it loops `httpRequest.headers` (already lower-cased by the parser) and sends every one of
+them translated through `toCGIHeader` (`"HTTP_" + upper-case + "-"/" " → "_"`) — this includes
+`HTTP_CONTENT_TYPE`/`HTTP_CONTENT_LENGTH` too, alongside the unprefixed pair above.
 
 Also here: the authorization gate. `php_non_login=true` skips it entirely; otherwise the same
 `autorizUser` check as the other handlers (see "Authorization" below) runs first and returns

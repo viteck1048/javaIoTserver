@@ -122,13 +122,22 @@ public class HTTPResponse {
 			else if(typeFile.compareTo("apk") == 0) {
 				typeFile = "application/vnd.android.package-archive";
 			}
+			// Свідомо вимкнено, доки не знадобиться. Джерелмапи (.map, їх тягне Chrome
+			// devtools за //# sourceMappingURL=) і сирі .json (не плутати з внутрішнім
+			// "app-json") з vendor-дерева PMA зараз падають у 415 нижче:
+			/*	else if(typeFile.compareTo("map") == 0) {
+					typeFile = "application/json";
+				}
+				else if(typeFile.compareTo("json") == 0) {
+					typeFile = "application/json";
+				} */
 		/*	else if(typeFile.compareTo("") == 0) {
 				typeFile = "";
 			} */
 			else {
 				this.headers = "HTTP/1.1 415 Unsupported Type\r\nServer: MijServak\r\nConnection: Closed\r\n\r\n";
 				this.body = null;
-				this.msg = "Response Err.415";
+				this.msg = "Response Err.415: " + nameFile;
 				close_connect_flag = true;
 				return;
 			}

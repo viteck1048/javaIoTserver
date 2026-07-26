@@ -15,12 +15,14 @@ This server works with ESP32-relay devices from the [rvs2](https://github.com/vi
 
 ## Header Contract With the Java Reverse Proxy
 
-The Java gateway (`servak_na_linux_2_java`, `RelaysServerHandler`) is the only expected client.
-Since 2026-07 it stores and re-sends header names in lowercase, so `server_relays.cpp` now
-matches header names with a lowercase `strcmp`. The header/body buffer building was also
-tightened to bound itself by the number of bytes actually received, rather than assuming a fixed
-size — same underlying issue that was fixed in `servak_na_linux/server/KM_server.cpp` (this
-server was cloned from the same code body, see above).
+The Java gateway (`servak_na_linux_2_java`, `RelaysServerHandler`) is the only expected client,
+and it sends header names in lowercase. `server_relays.cpp` matches header names with a plain
+lowercase `strcmp` against `accept-language`/`host`/`user-agent`/`content-length`. Request bodies
+are read into an initial buffer alongside the headers; if the declared `Content-Length` exceeds
+what already arrived, the buffer is reallocated to fit and the remainder is read until the full
+declared length is received (bounded by `MAX_BODY_LEN`) — the same mechanism as
+`servak_na_linux/server/KM_server.cpp` (this server was cloned from the same code body, see
+above).
 
 ## Building
 

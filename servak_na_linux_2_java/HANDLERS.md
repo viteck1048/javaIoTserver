@@ -15,8 +15,7 @@ goes through `ReverseProxy`. See `DBClass.java` / `AvrRele.java`, not covered he
 Config keys referenced below are documented in [CONFIG.md](CONFIG.md).
 
 > Drafted with a local LLM (qwen2.5-coder), then checked and completed by hand against the
-> code on 2026-06-18. Updated 2026-07-13. Updated again 2026-07-26 for the `Router`/`HTTPRequest`
-> split and the per-handler authorization rewrite.
+> code on 2026-06-18. Updated 2026-07-13 and 2026-07-26.
 
 ---
 
@@ -39,14 +38,13 @@ A full **binary FastCGI protocol client** for php-fpm — not a forward at all.
 Every other handler passes HTTP through: HTTP goes in, HTTP comes out, and you can dump the
 bytes and read them. This one **destroys the request and rebuilds it in a foreign
 representation**, then reconstructs an HTTP response out of something that was never HTTP.
-That work is spread across **two places** now (a third, `HTTPRequest`-side pre-processing
-step, existed before the `Router` split and no longer does — see below).
+That work is spread across two places.
 
-**1. `sendCgiParams` — builds the CGI environment on the fly, inside the handler.**
+**1. `sendCgiParams` — builds the CGI environment inside the handler.**
 The reverse type is decided in `Router.webRoute` by a path match on `*.php` (also
 `.php3/.php4/.php5/.phtml`). `PhpFpmHandler` itself derives `SCRIPT_NAME`/`PATH_INFO` from
-`httpRequest.path` (split on the first `.php`) and sends the fixed CGI variables one at a time
-via `sendParam`, no intermediate array:
+`httpRequest.path` (split on the first `.php`) and sends each fixed CGI variable directly via
+`sendParam`:
 
 ```
 GATEWAY_INTERFACE  SERVER_SOFTWARE  SERVER_PROTOCOL  SERVER_PORT      SERVER_NAME
@@ -174,30 +172,28 @@ config switch rather than a code path.
 
 ### Authorization
 
-There is no single gate anymore. Until 2026-07, `ReverseProxy` rejected `userID == 0` in one
-place for everything except a hardcoded exception list. That gate is gone; each handler now
-checks for itself, at its own entry point, using the same predicate:
+There is no single gate. Each handler checks for itself, at its own entry point, using the same
+predicate:
 
 ```java
 boolean autorizUser = httpRequest.userID != 0 && httpRequest.isHttps;
 ```
 
-The `isHttps` half is new: a session id is no longer enough on its own, the connection must
-also actually be (or convincingly pretend to be) TLS. This matters because `isHttps` is not
-"port 443" — it is whatever `ClientHandler` was constructed with. `SimpleHTTPSServer` (the real
-`SSLServerSocket` listener) always passes `true`; `ServerTask` (every plain-socket port — 80,
-the AVR port, plain `prxy_` ports) passes `Configs.getBoolean("authoriz_whithout_https")`,
-normally `false`. Flipping that one dev/test key to `true` makes every plain port behave as if
-it were HTTPS for authorization purposes, without touching a single handler — see
-[CONFIG.md](CONFIG.md#web--core). It replaces the old `test_all_services` backdoor, which used
-to fake a specific `userID` (`4`) for port 80 in `ClientHandler` directly; the new flag fakes
-only the transport signal; and the real per-user session/`KeyManager` check still runs for real.
+A session id alone is not enough — the connection must also actually be (or convincingly
+pretend to be) TLS. `isHttps` is not derived from the port number; it is whatever value
+`ClientHandler` was constructed with. `SimpleHTTPSServer` (the real `SSLServerSocket` listener)
+always constructs it with `true`; `ServerTask` (every plain-socket port — 80, the AVR port,
+plain `prxy_` ports) constructs it with `Configs.getBoolean("authoriz_whithout_https")`, which
+is `false` unless explicitly set. Setting that one key `true` makes every plain-socket port
+satisfy the `isHttps` half of the check for every handler, without editing any handler — see
+[CONFIG.md](CONFIG.md#web--core). The real per-user session lookup via `KeyManager` still runs
+and still has to pass; only the transport half of the predicate is affected.
 
 Per-handler policy:
 
 | Handler | Check |
 |---|---|
-| `UniProxyHendler` | Unchanged design — per-proxy, gated by `<prxyKey>_authorization_userID` — but now via `autorizUser`, so it also requires `isHttps`. |
+| `UniProxyHendler` | Per-proxy, gated by `<prxyKey>_authorization_userID`; when enabled, requires `autorizUser`. |
 | `PhpFpmHandler` | `autorizUser`, unless `php_non_login=true` (skips the check entirely). |
 | `BanResponseHandler` | None, by design. |
 | `OldServakHandler` | `autorizUser`, `401` on failure. |

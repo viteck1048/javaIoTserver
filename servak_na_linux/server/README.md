@@ -162,15 +162,17 @@ it predates the service units, the build scripts and the tmux windows entirely.
 ## Header Contract With the Java Reverse Proxy
 
 `servak_na_linux_2_java` (`OldServakHandler`) is the only client this server sees in production
-— everything else is stripped and forwarded through it. Since 2026-07 the Java side stores and
-re-sends header **names in lowercase** (`content-length`, not `Content-Length`), so `KM_server.cpp`
-now matches header names with a lowercase `strcmp`, not the original mixed-case one. If you test
-this server directly (bypassing the Java proxy) with a client that sends canonical-case headers,
-match on lowercase yourself or lowercase the incoming header name before comparing.
+— everything else is stripped and forwarded through it, and it sends header **names in
+lowercase** (`content-length`, not `Content-Length`). `KM_server.cpp` (`decod_request` in
+`KM_server.cpp`) matches header names with a plain lowercase `strcmp` against
+`accept-language`/`host`/`user-agent`/`content-length`. If you test this server directly
+(bypassing the Java proxy) with a client that sends canonical-case headers, lowercase the header
+name yourself before comparing, or the field is silently ignored.
 
-The same change fixed how the request body is read: it used to `recv()` straight into a fixed
-2999-byte buffer sized from `Content-Length`, which overflowed the heap on a `PUT` larger than
-that. It now `realloc`s and reads in a loop until the full declared length is received.
+Request bodies are read into an initial 2999-byte buffer alongside the headers; if the declared
+`Content-Length` is larger than what already arrived, the buffer is `realloc`ed to fit and the
+remainder is read in a loop (bounded by `MAX_BODY_LEN`, 64 MB) until the full declared length is
+received.
 
 ## Configuration Management
 

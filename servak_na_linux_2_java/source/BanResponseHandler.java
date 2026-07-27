@@ -12,6 +12,10 @@ public final class BanResponseHandler {
 	public static HTTPResponse banResponse(HTTPRequest httpRequest) {
 			
 		// Тіло забаненого запиту далі не їде: правимо map заголовків, а не готовий рядок
+		if(!Configs.getBoolean("ban_response")) {
+			return new HTTPResponse(403);
+		}
+		
 		httpRequest.body = new byte[0];
 		httpRequest.headers.put("content-length", "0");
 

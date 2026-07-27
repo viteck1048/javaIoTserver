@@ -227,7 +227,7 @@ public class Servak {
 		} catch (Exception e) {
 			System.err.println("Error initializing FirewallIP: " + e.getMessage());
 		}
-
+/*
 		System.out.println("FIREWALL PHP: Explicit initialization...");
 		// Access FirewallPHP class to trigger static initialization
 		try {
@@ -237,7 +237,8 @@ public class Servak {
 		} catch (Exception e) {
 			System.err.println("Error initializing FirewallPHP: " + e.getMessage());
 		}
-
+*/
+		FileCacheManager.scanPhpPath();
 		System.out.println("Firewall components initialized successfully");
 	}
 }

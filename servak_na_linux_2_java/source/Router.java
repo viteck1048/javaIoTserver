@@ -88,7 +88,7 @@ public final class Router {
 		else if(Configs.getBoolean("mach_time_rev") && httpRequest.path.startsWith(Configs.getParam("mach_time_path")))
 			httpRequest.revers = HTTPRequest.ReversType.MACHINE_TIME;
 
-		else if(Configs.getBoolean("php_fpm") && httpRequest.path.matches("(?i).*/[^/]+\\.(php|php3|php4|php5|phtml)([/?#].*)?"))
+		else if(Configs.getBoolean("php_fpm") && PhpFpmHandler.findPhpSubstring(httpRequest.path) != -1)
 			httpRequest.revers = HTTPRequest.ReversType.PHP_FPM;
 
 		else if(Configs.getBoolean("ai_assist") && httpRequest.path.startsWith(Configs.getParam("ai_assist_api_chat")))

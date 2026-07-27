@@ -38,22 +38,26 @@ public final class GetRes80 {
 					} else {
 						if(Configs.getBoolean("ban_response") || Configs.getBoolean("Firewall")) {
 							httpRequest.revers = HTTPRequest.ReversType.BANRESPONSE;
-							return ReverseProxy.handleReverseRequest(httpRequest);
+							return null;
 						}
 						return new HTTPResponse(500);
 					}
 				} catch (Exception e) {
 					if(Configs.getBoolean("ban_response") || Configs.getBoolean("Firewall")) {
 						httpRequest.revers = HTTPRequest.ReversType.BANRESPONSE;
-						return ReverseProxy.handleReverseRequest(httpRequest);
+						return null;
 					}
 					return new HTTPResponse(500);
 				}
 			}
 			else {
+				if(Configs.getBoolean("php_and_static_redirect"))  {
+					httpRequest.revers = HTTPRequest.ReversType.PHP_FPM;
+					return null;
+				}
 				if(Configs.getBoolean("ban_response") || Configs.getBoolean("Firewall")) {
 					httpRequest.revers = HTTPRequest.ReversType.BANRESPONSE;
-					return ReverseProxy.handleReverseRequest(httpRequest);
+					return null;
 				}
 				filePath = Paths.get("res/redirect_log_in.html").normalize();
 				byte[] fileData = FileCacheManager.getFile(filePath.toString());
@@ -71,7 +75,7 @@ public final class GetRes80 {
 		}
 		if(Configs.getBoolean("ban_response") || Configs.getBoolean("Firewall")) {
 			httpRequest.revers = HTTPRequest.ReversType.BANRESPONSE;
-			return ReverseProxy.handleReverseRequest(httpRequest);
+			return null;
 		}
 		return new HTTPResponse(404, httpRequest);
 	}
@@ -99,6 +103,9 @@ public final class GetRes80 {
 				appendLink(links, "old_servak/", "LiraCalc ConfigEditor");
 			if(Configs.getBoolean("download"))
 				appendLink(pages, "download/html/index.html", "Downloads");
+
+			appendLink(links, "/old_liracalc.php", "Old LiraCalc");
+			appendLink(links, "/phpMyAdmin/index.php", "phpMyAdmin");
 		}
 
 		if(Configs.getBoolean("mach_time_rev"))
@@ -125,13 +132,14 @@ public final class GetRes80 {
 	 */
 	private static List<String> scanDirectory() {
 		try {
+			/*
 			String homepage = Configs.getParam("homepage");
 			if(homepage.startsWith("/"))
 				homepage = homepage.substring(1);
 			final String home = homepage;
-
+			*/
 			return FileCacheManager.scanDir(Configs.getParam("www80_directory")).stream()
-					.filter(filename -> filename.toLowerCase().endsWith(".html") && !filename.equals(home))
+					.filter(filename -> filename.toLowerCase().endsWith(".html") && !filename.startsWith("index."))
 					.collect(Collectors.toList());
 		} catch (Exception e) {
 			return new ArrayList<>();

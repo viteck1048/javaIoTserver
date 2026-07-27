@@ -90,8 +90,10 @@ public class Configs {
 			};
 
 			for (String key : requiredKeys) {
-				if (!checkParam(key)) 
+				if (!checkParam(key)) {
+					System.out.println("Missing param: " + key);
 					return false;
+				}
 			}
 		}
 		if(getBoolean("avr")) {
@@ -99,26 +101,42 @@ public class Configs {
 				System.out.println("Missing param: avr_port");
 				return false;
 			}
-			if (!checkParam("avr_path")) 
+			if (!checkParam("avr_path")) {
+				System.out.println("Missing param: avr_path");
 				return false;
-			if (!checkParam("avr_user_agent")) 
+			}
+			if (!checkParam("avr_user_agent")) {
+				System.out.println("Missing param: avr_user_agent");
 				return false;
+			}
 		}
 		if(getBoolean("liraCalc")) {
 			if(getInt("port_liraCalc_server") == 0) {
 				System.out.println("Missing param: port_liraCalc_server");
 				return false;
 			}
-			if (!checkParam("ip_liraCalc_server")) 
+			if (!checkParam("liraCalc_path")) {
+				System.out.println("Missing param: liraCalc_path");
 				return false;
+			}
+			if (!checkParam("ip_liraCalc_server")) {
+				System.out.println("Missing param: ip_liraCalc_server");
+				return false;
+			}
 		}
 		if(getBoolean("esp")) {
 			if(getInt("port_relay_server") == 0) {
 				System.out.println("Missing param: port_relay_server");
 				return false;
 			}
-			if (!checkParam("ip_relay_server"))
+			if (!checkParam("esp_path")) {
+				System.out.println("Missing param: esp_path");
 				return false;
+			}
+			if (!checkParam("ip_relay_server")) {
+				System.out.println("Missing param: ip_relay_server");
+				return false;
+			}
 		}
 
 		String[] requiredKeys = {
@@ -135,13 +153,12 @@ public class Configs {
 		};
 
 		for (String key : requiredKeys) {
-			if (!checkParam(key))
+			if (!checkParam(key)) {
+				System.out.println("Missing param: " + key);
 				return false;
+			}
 		}
 
-		// KeyManager читає key_expiration_time у static final полі, без getDefine і без
-		// дефолту. Тобто без цієї перевірки відсутній або нульовий ключ не зупиняв би
-		// старт — сервер піднімався б із нульовим часом життя сесійних ключів.
 		if(getInt("key_expiration_time") <= 0) {
 			System.out.println("Invalid param: key_expiration_time must be > 0 (minutes)");
 			return false;

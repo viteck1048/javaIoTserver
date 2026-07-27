@@ -47,6 +47,16 @@ public final class PhpFpmHandler {
 			}
 		}
 
+		String redirectPath = httpRequest.path;
+		if(!FileCacheManager.FindPhpPath(httpRequest.path)) {
+			String redirectPath_tmp = Configs.getParam("php_redirect_path");
+			if(Configs.getBoolean("php_redirect") && redirectPath_tmp != null && !redirectPath_tmp.isEmpty()) {
+				redirectPath = redirectPath_tmp;
+			}
+			else 
+				return BanResponseHandler.banResponse(httpRequest);
+		}
+
 		String host = Configs.getParam("ip_php_fpm_server");
 		int port = Configs.getInt("port_php_fpm_server");
 		int timeout = Configs.getInt("php_fpm_timeout_ms");
@@ -66,7 +76,7 @@ public final class PhpFpmHandler {
 		try {
 			int requestID = 1;
 			sendBeginRequest(nc, requestID);
-			sendCgiParams(nc, httpRequest, requestID);
+			sendCgiParams(nc, httpRequest, requestID, redirectPath);
 			sendParam(nc, null, null, requestID);								// кінець потоку FCGI_PARAMS
 
 			byte[] bodyData = httpRequest.body;
@@ -126,20 +136,43 @@ public final class PhpFpmHandler {
 		}
 	}
 
+	public static int findPhpSubstring(String path) {
+		int phpIndex = path.indexOf(".php");
+		if(phpIndex != -1) {
+			if(phpIndex + 4 < path.length()) {
+				char ch = path.charAt(phpIndex + 4);
+				if(ch == '3' || ch == '4' || ch == '5') {
+					return phpIndex + 5;
+				}
+				else
+					return phpIndex + 4;
+			}
+			else
+				return phpIndex + 4;
+		}
+		phpIndex = path.indexOf(".phtml");
+		if(phpIndex != -1) {
+			return phpIndex + 6;
+		}
+		return -1;
+	}
+
 	/**
 	 * Генерує CGI-поля на льоту (fixed-поля запиту + прохід по заголовках) і шле їх як FCGI_PARAMS
 	 */
-	private static void sendCgiParams(NetworkClient nc, HTTPRequest httpRequest, int requestID) {
+	private static void sendCgiParams(NetworkClient nc, HTTPRequest httpRequest, int requestID, String redirectPath) {
 		String path = httpRequest.path;
-		int phpIndex = path.indexOf(".php");
+		int scriptEnd = findPhpSubstring(path);
 		String scriptName = path;
 		String pathInfo = "";
-		if(phpIndex != -1) {
-			int scriptEnd = phpIndex + 4;
+		if(scriptEnd != -1) {
 			scriptName = path.substring(0, scriptEnd);
 			if(path.length() > scriptEnd) {
 				pathInfo = path.substring(scriptEnd);
 			}
+		}
+		if(!path.equals(redirectPath)) {
+			scriptName = redirectPath;
 		}
 
 		sendParam(nc, "GATEWAY_INTERFACE", "CGI/1.1", requestID);

@@ -1,13 +1,23 @@
 import java.io.File;
 import java.io.IOException;
+import java.nio.file.ClosedWatchServiceException;
+import java.nio.file.FileSystems;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.nio.file.StandardWatchEventKinds;
+import java.nio.file.WatchEvent;
+import java.nio.file.WatchKey;
+import java.nio.file.WatchService;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -75,6 +85,25 @@ public class FileCacheManager {
 			this.lastAccess = System.currentTimeMillis();
 		}
 	}
+
+	/**
+	 * Кеш існуючих шляхів під php_directory_abs, для FindPhpPath(). Ідея з
+	 * FirewallPHP (сканування дерева + список відомих шляхів), але як окремий
+	 * компонент: тут потрібна лише відповідь є/нема, без XML-навчання і без
+	 * перевірки параметрів запиту.
+	 *
+	 * На відміну від cashFiles/scanDirectoriesCache — не бере участі в
+	 * evictStale()/clearCache(): резидентний, ніколи не вивантажується. Оновлення
+	 * при зміні дерева — не lazy (перевірка при кожному запиті занулила б сенс
+	 * кешу, він саме для того, щоб FindPhpPath() не чіпав диск), а через
+	 * рекурсивний WatchService: фоновий потік пересканує ціле дерево, тільки
+	 * коли щось справді змінилось. Підміна посилання (volatile) атомарна — старий
+	 * набір лишається чинним для читачів, поки не готовий новий.
+	 */
+	private static volatile Set<String> phpPathCache = Collections.emptySet();
+	private static Path phpRootPath;
+	private static WatchService phpWatchService;
+	private static final Map<WatchKey, Path> phpWatchKeys = new HashMap<>();
 
 	/**
 	 * Отримує файл з кешу або завантажує з диска.
@@ -214,6 +243,138 @@ public class FileCacheManager {
 			scanDirectoriesCache.put(dirPath, new DirectoryMem(dirPath, files, mtime));
 		}
 		return new ArrayList<>(files);
+	}
+
+	/**
+	 * Сканує php_directory_abs і піднімає рекурсивний watcher, що тримає
+	 * кеш шляхів в актуальному стані. Викликати один раз при старті сервера
+	 * (Servak.java, поруч із FirewallIP.initialize()).
+	 */
+	public static void scanPhpPath() {
+		// php_directory (відносний) — для власного доступу яви до диска, як і в
+		// www_directory/www80_directory. php_directory_abs — це окремий конфіг
+		// лише для FastCGI-контракту з php-fpm (DOCUMENT_ROOT/SCRIPT_FILENAME
+		// у PhpFpmHandler), інший процес, необов'язково той самий корінь.
+		String dir = Configs.getParam("php_directory");
+		if (dir == null || dir.isEmpty()) {
+			System.err.println("FileCacheManager: php_directory не задано, кеш PHP-шляхів вимкнено");
+			return;
+		}
+
+		Path root = Paths.get(dir);
+		if (!Files.isDirectory(root)) {
+			System.err.println("FileCacheManager: php_directory не директорія: " + dir);
+			return;
+		}
+
+		phpRootPath = root;
+		phpPathCache = buildPhpPathSet(root);
+		System.out.println("FileCacheManager: PHP path cache: " + phpPathCache.size() + " файлів під " + dir);
+
+		try {
+			phpWatchService = FileSystems.getDefault().newWatchService();
+			registerTree(root);
+		} catch (IOException e) {
+			System.err.println("FileCacheManager: не вдалося підняти watcher для " + dir + " - " + e.getMessage());
+			return;
+		}
+
+		Thread watcher = new Thread(FileCacheManager::watchPhpTree, "php-path-watcher");
+		watcher.setDaemon(true);
+		watcher.start();
+	}
+
+	/**
+	 * @param path шлях запиту (як httpRequest.path, з ведучим "/")
+	 * @return true, якщо під цим шляхом реально є файл під php_directory_abs
+	 */
+	public static boolean FindPhpPath(String path) {
+		return phpPathCache.contains(path);
+	}
+
+	/** Повертає поточний розмір кешу PHP-шляхів */
+	public static int getPhpPathCacheSize() {
+		return phpPathCache.size();
+	}
+
+	private static Set<String> buildPhpPathSet(Path root) {
+		Set<String> paths = new HashSet<>();
+		try (Stream<Path> stream = Files.walk(root)) {
+			stream.filter(Files::isRegularFile)
+				.forEach(file -> paths.add(toRequestPath(root, file)));
+		} catch (IOException e) {
+			System.err.println("FileCacheManager: помилка сканування " + root + " - " + e.getMessage());
+		}
+		return paths;
+	}
+
+	private static String toRequestPath(Path root, Path file) {
+		return "/" + root.relativize(file).toString().replace(File.separatorChar, '/');
+	}
+
+	private static void registerTree(Path start) throws IOException {
+		try (Stream<Path> stream = Files.walk(start)) {
+			stream.filter(Files::isDirectory).forEach(FileCacheManager::registerDir);
+		}
+	}
+
+	private static void registerDir(Path dir) {
+		try {
+			WatchKey key = dir.register(phpWatchService,
+				StandardWatchEventKinds.ENTRY_CREATE,
+				StandardWatchEventKinds.ENTRY_DELETE);
+			phpWatchKeys.put(key, dir);
+		} catch (IOException e) {
+			System.err.println("FileCacheManager: не вдалося watch " + dir + " - " + e.getMessage());
+		}
+	}
+
+	/**
+	 * Фонова петля: чекає подій від WatchService і, якщо в дереві щось з'явилось
+	 * чи зникло, пересканує все дерево цілком і атомарно підміняє phpPathCache.
+	 * ENTRY_MODIFY навмисно не слухаємо — зміна вмісту файлу не впливає на
+	 * список шляхів, а створення/видалення в директорії на Linux (inotify)
+	 * приходить як ENTRY_CREATE/ENTRY_DELETE, не MODIFY.
+	 */
+	private static void watchPhpTree() {
+		while (true) {
+			WatchKey key;
+			try {
+				key = phpWatchService.take();
+			} catch (InterruptedException | ClosedWatchServiceException e) {
+				return;
+			}
+
+			Path dir = phpWatchKeys.get(key);
+			boolean needRescan = false;
+
+			for (WatchEvent<?> event : key.pollEvents()) {
+				WatchEvent.Kind<?> kind = event.kind();
+				if (kind == StandardWatchEventKinds.OVERFLOW) {
+					needRescan = true;
+					continue;
+				}
+				if (dir != null && kind == StandardWatchEventKinds.ENTRY_CREATE) {
+					Path child = dir.resolve((Path) event.context());
+					if (Files.isDirectory(child)) {
+						try {
+							registerTree(child);
+						} catch (IOException e) {
+							System.err.println("FileCacheManager: не вдалося watch нову директорію " + child + " - " + e.getMessage());
+						}
+					}
+				}
+				needRescan = true;
+			}
+
+			if (!key.reset()) {
+				phpWatchKeys.remove(key);
+			}
+
+			if (needRescan) {
+				phpPathCache = buildPhpPathSet(phpRootPath);
+			}
+		}
 	}
 
 	/**

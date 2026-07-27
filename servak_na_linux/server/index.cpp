@@ -24,7 +24,7 @@ std::string index_cpp_get(int method, int m_id, const char* name)
 		buff << "<nav>";
 			buff << "<div class=\"container\">";
 				buff << "<ul class=\"nav-links\">";
-					buff << "<li><a href=\"https://mijservak.pp.ua/\" id=\"nav-home\" class=\"logo\">MijServak</a></li>";
+					buff << "<li><a href=\"/index.html\" id=\"nav-home\" class=\"logo\">MijServak</a></li>";
 				buff << "</ul>";
 			buff << "</div>";
 		buff << "</nav>";

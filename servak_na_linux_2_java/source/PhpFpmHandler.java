@@ -47,13 +47,22 @@ public final class PhpFpmHandler {
 			}
 		}
 
-		String redirectPath = httpRequest.path;
-		if(!FileCacheManager.FindPhpPath(httpRequest.path)) {
-			String redirectPath_tmp = Configs.getParam("php_redirect_path");
-			if(Configs.getBoolean("php_redirect") && redirectPath_tmp != null && !redirectPath_tmp.isEmpty()) {
-				redirectPath = redirectPath_tmp;
+		String path = httpRequest.path;
+		int scriptEnd = findPhpSubstring(path);
+		String scriptName = path;
+		String pathInfo = "";
+		if(scriptEnd != -1) {
+			scriptName = path.substring(0, scriptEnd);
+			if(path.length() > scriptEnd) {
+				pathInfo = path.substring(scriptEnd);
 			}
-			else 
+		}
+		
+		if(!FileCacheManager.FindPhpPath(scriptName)) {
+			if(RewriteEngine(scriptName)) {
+				scriptName = Configs.getParam("php_rewrite_filename");
+			}
+			else
 				return BanResponseHandler.banResponse(httpRequest);
 		}
 
@@ -76,7 +85,7 @@ public final class PhpFpmHandler {
 		try {
 			int requestID = 1;
 			sendBeginRequest(nc, requestID);
-			sendCgiParams(nc, httpRequest, requestID, redirectPath);
+			sendCgiParams(nc, httpRequest, requestID, scriptName, pathInfo);
 			sendParam(nc, null, null, requestID);								// кінець потоку FCGI_PARAMS
 
 			byte[] bodyData = httpRequest.body;
@@ -108,7 +117,16 @@ public final class PhpFpmHandler {
 						String formattedDate = formatter.format(new Date());
 						System.out.println("\r" + formattedDate + " PHP Request from " + httpRequest.clientAddress + "; FCGI_END_REQUEST: " + httpRequest.path);
 						//System.out.println(new String(baos.toByteArray()));
-						return new HTTPResponse(null, baos.toByteArray(), "revers to PHP_FPM");
+						byte[] responseBytes = baos.toByteArray();
+						// Маленька відповідь + маркер від самого PHP: він сам вирішив, що $go
+						// не відповідає жодному реальному маршруту (index.php виходить одразу
+						// через header()+return, тіла нема) - тіло, довше за це, точно валідне,
+						// і в нього не варто заглядати.
+						if(responseBytes.length <= 400 && new String(responseBytes, StandardCharsets.UTF_8).contains("X-Not-Found: banresponse")) {
+							httpRequest.revers = HTTPRequest.ReversType.BANRESPONSE;
+							return ReverseProxy.handleReverseRequest(httpRequest);
+						}
+						return new HTTPResponse(null, responseBytes, "revers to PHP_FPM");
 					case FastCGIRecordType.FCGI_STDOUT:
 						buffer = nc.recvChunk(contentLength);
 						if(buffer == null || !skip(nc, paddingLength))
@@ -157,23 +175,43 @@ public final class PhpFpmHandler {
 		return -1;
 	}
 
+	public static boolean RewriteEngine(String path) {
+		if(!Configs.getBoolean("RewriteEngine")) {
+			return false;
+		}
+		if(path.charAt(path.length() - 1) == '/') {
+			return Configs.getBoolean("directories_rewrite");
+		}
+		else {
+			String lastSegment = path.substring(path.lastIndexOf('/') + 1);
+			int dotIndex = lastSegment.lastIndexOf('.');
+			String ext = dotIndex == -1 ? "" : lastSegment.substring(dotIndex + 1);
+			if(Configs.getBoolean("files_rewrite")) {
+				return !containsExtension(Configs.getParam("files_rewrite_without"), ext);
+			}
+			else {
+				return containsExtension(Configs.getParam("files_rewrite_only"), ext);
+			}
+		}
+	}
+
+	/** csv - розширення через кому (files_rewrite_without/files_rewrite_only), без крапки, порівняння регістронезалежне */
+	private static boolean containsExtension(String csv, String ext) {
+		if(csv == null || csv.isEmpty()) {
+			return false;
+		}
+		for(String entry : csv.split(",")) {
+			if(entry.trim().equalsIgnoreCase(ext)) {
+				return true;
+			}
+		}
+		return false;
+	}
+
 	/**
 	 * Генерує CGI-поля на льоту (fixed-поля запиту + прохід по заголовках) і шле їх як FCGI_PARAMS
 	 */
-	private static void sendCgiParams(NetworkClient nc, HTTPRequest httpRequest, int requestID, String redirectPath) {
-		String path = httpRequest.path;
-		int scriptEnd = findPhpSubstring(path);
-		String scriptName = path;
-		String pathInfo = "";
-		if(scriptEnd != -1) {
-			scriptName = path.substring(0, scriptEnd);
-			if(path.length() > scriptEnd) {
-				pathInfo = path.substring(scriptEnd);
-			}
-		}
-		if(!path.equals(redirectPath)) {
-			scriptName = redirectPath;
-		}
+	private static void sendCgiParams(NetworkClient nc, HTTPRequest httpRequest, int requestID, String scriptName, String pathInfo) {
 
 		sendParam(nc, "GATEWAY_INTERFACE", "CGI/1.1", requestID);
 		sendParam(nc, "SERVER_SOFTWARE", "MijServak/" + Configs.getParam("version"), requestID);
@@ -187,11 +225,11 @@ public final class PhpFpmHandler {
 		// Рядок запиту не залежить від методу: у POST теж буває ?route=...,
 		// і без QUERY_STRING скрипт не побачить його в $_GET.
 		if(httpRequest.urlQueryString != null && httpRequest.urlQueryString.length() > 0) {
-			sendParam(nc, "REQUEST_URI", path + "?" + httpRequest.urlQueryString, requestID);
+			sendParam(nc, "REQUEST_URI", httpRequest.path + "?" + httpRequest.urlQueryString, requestID);
 			sendParam(nc, "QUERY_STRING", httpRequest.urlQueryString, requestID);
 		}
 		else {
-			sendParam(nc, "REQUEST_URI", path, requestID);
+			sendParam(nc, "REQUEST_URI", httpRequest.path, requestID);
 			sendParam(nc, "QUERY_STRING", "", requestID);
 		}
 		sendParam(nc, "REMOTE_ADDR", httpRequest.clientAddress.getHostAddress(), requestID);

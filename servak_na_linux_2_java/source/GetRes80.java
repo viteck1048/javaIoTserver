@@ -51,7 +51,7 @@ public final class GetRes80 {
 				}
 			}
 			else {
-				if(Configs.getBoolean("php_and_static_redirect"))  {
+				if(Configs.getBoolean("RewriteEngine"))  {
 					httpRequest.revers = HTTPRequest.ReversType.PHP_FPM;
 					return null;
 				}

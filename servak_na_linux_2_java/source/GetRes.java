@@ -215,11 +215,7 @@ public final class GetRes {
 				Document doc = Jsoup.parse(new String(templateData, StandardCharsets.UTF_8));
 				Elements tableRows = doc.select("tr.polerele");
 				DBClass dBClass = DBClass.getInstance();
-				AvrRele avrRele = null;
-				avrRele = dBClass.findAvrReleBySerialNumber(sn);
-				if(avrRele == null) {
-					avrRele = dBClass.addToAvrReleList(sn);
-				}
+				AvrRele avrRele = dBClass.findOrCreateAvrRele(sn);
 				String nameStr = new String(avrRele.name).trim();
 				// Додаємо ім'я в заголовок
 				Element namerele = doc.getElementById("namerele");

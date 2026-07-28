@@ -296,11 +296,19 @@ public class HTTPResponse {
 			if(Configs.getBoolean("avr_log"))
 				System.out.println("\r" + formattedDate + "\t\tNew client " + httpRequest.clientAddress + " on port " + String.format("%5d;", httpRequest.port) + (userID == -1 ? "\t\t\t\t\t" : ("\tuserID: " + userID + "\t\t")) + msg);
 			else{
+				// httpRequest.body тут - сирі байти дроту (ще НЕ декодовані base16/base64),
+				// а 40/320 - це довжина вже декодованого пакета (DBClass.handleRequest).
+				// Порівнювати треба з довжиною дроту для тієї самої обгортки: base64
+				// (application/octet-stream) - ceil(N/3)*4+1, hex ("+"-розділювач) - 3*N-1.
 				int bodyLength = httpRequest.body == null ? 0 : httpRequest.body.length;
-				if(bodyLength == 320)
+				String contentType = httpRequest.getZnach("content-type", HTTPRequest.arrType.HEADER);
+				boolean base64Wire = contentType != null && contentType.equals("application/octet-stream");
+				int wire320 = base64Wire ? ((320 + 2) / 3) * 4 + 1 : 3 * 320 - 1;
+				int wire40 = base64Wire ? ((40 + 2) / 3) * 4 + 1 : 3 * 40 - 1;
+				if(bodyLength == wire320)
 					System.out.print(".");
-				else if(bodyLength == 40)
-					System.out.printf("%02X", httpRequest.body[35]);
+				else if(bodyLength == wire40)
+					System.out.print("i");
 				else {
 					//httpRequest.prnt();
 					System.out.println("\r" + formattedDate + "\tBAN AVR " + httpRequest.clientAddress + ":" + String.format("%d;  ", httpRequest.port) + httpRequest.getHeaders().split("\r\n")[0] + " -> " + headers.split("\r\n")[0]);

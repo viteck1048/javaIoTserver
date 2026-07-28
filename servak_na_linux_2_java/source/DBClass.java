@@ -97,10 +97,7 @@ public class DBClass {
 		if (requbufByte.length != 40 && requbufByte.length != 320)
 			return null;
 		long serialNumberReq = getSerialNumberReq(requbufByte, marker);
-		AvrRele avrRele = findAvrReleBySerialNumber(serialNumberReq);
-		if (avrRele == null) {
-			avrRele = addToAvrReleList(serialNumberReq);
-		}
+		AvrRele avrRele = findOrCreateAvrRele(serialNumberReq);
 		if(marker == 101)
 			return avrRele.update(requbufByte);
 		return null;
@@ -169,7 +166,7 @@ public class DBClass {
 		return sb.toString();
 	}
 
-	public AvrRele findAvrReleBySerialNumber(long serialNumberReq) {
+	public synchronized AvrRele findAvrReleBySerialNumber(long serialNumberReq) {
 		cleanupOldEntries();
 		for (AvrRele avrRele : avrReleList) {
 			if (avrRele.getSerialNumber() == serialNumberReq) {
@@ -178,14 +175,23 @@ public class DBClass {
 		}
 		return null;
 	}
-	
-	public AvrRele addToAvrReleList(long serialNumber) {
+
+	public synchronized AvrRele addToAvrReleList(long serialNumber) {
 		AvrRele avrRele = new AvrRele(serialNumber);
 		avrReleList.add(avrRele);
 		return avrRele;
 	}
-	
-	public void cleanupOldEntries() {
+
+	/** Пошук+створення атомарно під одним локом - без цього два потоки можуть одночасно не знайти той самий serialNumber і обидва створити дублікат. */
+	public synchronized AvrRele findOrCreateAvrRele(long serialNumber) {
+		AvrRele avrRele = findAvrReleBySerialNumber(serialNumber);
+		if (avrRele == null) {
+			avrRele = addToAvrReleList(serialNumber);
+		}
+		return avrRele;
+	}
+
+	public synchronized void cleanupOldEntries() {
 		long currentTime = System.currentTimeMillis();
 		Iterator<AvrRele> iterator = avrReleList.iterator();
 		while (iterator.hasNext()) {

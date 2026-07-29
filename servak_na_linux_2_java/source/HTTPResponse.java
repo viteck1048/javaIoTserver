@@ -428,7 +428,9 @@ public class HTTPResponse {
 			if (httpRequest.revers == HTTPRequest.ReversType.BANRESPONSE && body != null) {
 				String oldPort = Configs.getParam("port_ban_response_server").trim();
 				String newPort = String.valueOf(httpRequest.port).trim();
-				body = new String(body).replace(oldPort, newPort).getBytes();
+				String oldHost = Configs.getParam("ip_ban_response_server").trim();
+				String newHost = Configs.getParam("host").trim();
+				body = new String(body).replace(oldPort, newPort).replace(oldHost, newHost).getBytes();
 			}
 			
 	

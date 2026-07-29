@@ -39,6 +39,8 @@ public final class ReverseProxy {
 			return new HTTPResponse(500);
 		}
 
+		httpRequest.headers.put("x-forwarded-for", httpRequest.clientAddress.getHostAddress());
+
 		try {
 			switch (httpRequest.revers) {
 				case BANRESPONSE:

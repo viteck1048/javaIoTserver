@@ -62,8 +62,10 @@ public final class PhpFpmHandler {
 			if(RewriteEngine(scriptName)) {
 				scriptName = Configs.getParam("php_rewrite_filename");
 			}
-			else
-				return BanResponseHandler.banResponse(httpRequest);
+			else {
+				httpRequest.revers = HTTPRequest.ReversType.BANRESPONSE;
+				return ReverseProxy.handleReverseRequest(httpRequest);
+			}
 		}
 
 		String host = Configs.getParam("ip_php_fpm_server");

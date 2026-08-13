@@ -283,16 +283,30 @@ instead, and a small fixed guard-thread pool takes over keep-alive idle waits so
 open-but-silent connection doesn't pin a pooled worker. See `WorkerPool.java` for the
 mechanism.
 
-| Key | Type | Default | Description |
+**All seven tunables below are required when `workerpool=true` — `WorkerPool.java`
+has no code-level fallback for them on purpose** (a default would just mask a bad
+`validate()`; the validator is the one place that's allowed to decide what happens on
+bad input). If any is missing or fails its sanity check, `Configs.validate()` doesn't
+fail startup: it force-disables the flag (`workerpool` gets overwritten to `false` via
+`priorityParam`, logged as "WorkerPool disabled") and the gateway falls back to
+thread-per-connection. `WorkerPool` itself is only ever constructed *after*
+`validate()` has run, so it never sees an unvalidated value.
+
+| Key | Type | Sanity check | Description |
 |---|---|---|---|
-| `workerpool` | bool | `false` | Master switch. `ServerTask`/`SimpleHTTPSServer` route new connections through the pool instead of `new ClientHandler(...).start()`. |
-| `workerPoolMin` | int | `20` | Worker threads kept alive at minimum. |
-| `workerPoolMax` | int | `500` | Ceiling workers can grow to under sustained backlog. |
-| `workerPoolIdleHigh` | long | `50` | Percent of idle workers above which a surplus one retires (once pool size is above `workerPoolMin`). |
-| `workerPoolGrowthDebounceMs` | long | `500` | How long "all workers busy" must hold continuously before a new one spawns — absorbs short bursts without over-spawning. |
-| `workerPoolIdleTimeoutMs` | long | `5000` | How long an idle worker waits for a task before considering retirement. |
-| `workerPoolKeepAliveGuardThreads` | int | `2` | Fixed number of daemon threads that watch keep-alive connections waiting for their next request. |
-| `workerPoolKeepAlivePollTimeoutMs` | int | `5` | Per-connection timeout each guard thread's peek uses before moving to the next one in its round-robin. Tunes a latency/syscall-rate trade-off — see `WorkerPool.java`'s `KEEP_ALIVE_POLL_TIMEOUT_MS` doc comment. |
+| `workerpool` | bool | — | Master switch. `ServerTask`/`SimpleHTTPSServer` route new connections through the pool instead of `new ClientHandler(...).start()`. |
+| `workerPoolMin` | int | `> 0` | Worker threads kept alive at minimum. |
+| `workerPoolMax` | int | `>= workerPoolMin` | Ceiling workers can grow to under sustained backlog. |
+| `workerPoolIdleHigh` | long | `(0, 100]` (percent) | Percent of idle workers above which a surplus one retires (once pool size is above `workerPoolMin`). |
+| `workerPoolGrowthDebounceMs` | long | `>= 0` | How long "all workers busy" must hold continuously before a new one spawns — absorbs short bursts without over-spawning. |
+| `workerPoolIdleTimeoutMs` | long | `> 0` | How long an idle worker waits for a task before considering retirement. |
+| `workerPoolKeepAliveGuardThreads` | int | `> 0` | Fixed number of daemon threads that watch keep-alive connections waiting for their next request. |
+| `workerPoolKeepAlivePollTimeoutMs` | int | `> 0` | Per-connection timeout each guard thread's peek (`Socket.setSoTimeout` + `read()`) uses before moving to the next connection in its round-robin. This is the *entire* per-connection cost of the guard loop — there's no separate polling delay layered on top, and `guardQueue.take()` already blocks for free (no busy-loop) when nothing is waiting. Worst-case wake-up latency for one connection ≈ `(connections guarded / workerPoolKeepAliveGuardThreads) × this value`, so it's the knob to lower for tighter latency; Java's blocking `Socket` API bottoms out at `1` (ms) — `0` means *infinite* block, not non-blocking. |
+
+Starting point that was validated during development (not a code default — must be
+set explicitly): `workerPoolMin=20`, `workerPoolMax=500`, `workerPoolIdleHigh=50`,
+`workerPoolGrowthDebounceMs=500`, `workerPoolIdleTimeoutMs=5000`,
+`workerPoolKeepAliveGuardThreads=2`, `workerPoolKeepAlivePollTimeoutMs=5`.
 
 ## `[Firewall]`
 

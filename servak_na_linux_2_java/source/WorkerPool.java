@@ -57,9 +57,16 @@ public class WorkerPool {
 	/** Кількість вартових потоків keep-alive - фіксована, не росте/не всихає як воркери */
 	private static final int KEEP_ALIVE_GUARD_THREADS =
 		Configs.getDefine("workerPoolKeepAliveGuardThreads") ? Configs.getInt("workerPoolKeepAliveGuardThreads") : 2;
-	/** Скільки мс вартовий чекає відповіді від одного сокета, перш ніж перейти до наступного в черзі */
+	/**
+	 * Скільки мс вартовий чекає відповіді від одного сокета, перш ніж перейти до наступного
+	 * в черзі. Це не швидкість, з якою ОС здатна відповісти "нема даних" (той read() під
+	 * капотом падає на select()/poll(), і там відповідь видно за мікросекунди) - це чисто
+	 * навмисна пауза, щоб не бомбити сисколами. Ціна заниженої межі мала (кожен "порожній"
+	 * read() дешевий), а ціна завищеної - лінійна: за N задач на одного вартового найгірша
+	 * затримка пробудження ~ N * це число.
+	 */
 	private static final int KEEP_ALIVE_POLL_TIMEOUT_MS =
-		Configs.getDefine("workerPoolKeepAlivePollTimeoutMs") ? Configs.getInt("workerPoolKeepAlivePollTimeoutMs") : 25;
+		Configs.getDefine("workerPoolKeepAlivePollTimeoutMs") ? Configs.getInt("workerPoolKeepAlivePollTimeoutMs") : 5;
 
 	private final BlockingQueue<Task> queue = new LinkedBlockingQueue<>();
 	private final BlockingQueue<Task> guardQueue = new LinkedBlockingQueue<>();

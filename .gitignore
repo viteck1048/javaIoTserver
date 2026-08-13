@@ -64,6 +64,7 @@ nppBackup/
 **/www80/download/
 **/www80/downloading
 **/www80/upload
+**/www80/dwnld/
 
 # Third-party throwaway test pages (capability tests, not ours, not a feature)
 **/BlockOut.html

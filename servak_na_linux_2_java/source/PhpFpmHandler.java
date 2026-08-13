@@ -1,9 +1,7 @@
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
-import java.text.SimpleDateFormat;
 import java.util.Arrays;
-import java.util.Date;
 import java.util.Map;
 
 /**
@@ -115,9 +113,7 @@ public final class PhpFpmHandler {
 				byte[] buffer;
 				switch(responseHeader[1]) {
 					case FastCGIRecordType.FCGI_END_REQUEST:
-						SimpleDateFormat formatter = new SimpleDateFormat("EEE, dd MMM yyyy HH:mm:ss z");							//SimpleDateFormat("EEE, dd MMM yyyy HH:mm:ss z", Locale.ENGLISH);
-						String formattedDate = formatter.format(new Date());
-						System.out.println("\r" + formattedDate + " PHP Request from " + httpRequest.clientAddress + "; FCGI_END_REQUEST: " + httpRequest.path);
+						System.out.println("\r PHP Request from " + httpRequest.clientAddress + "; FCGI_END_REQUEST: " + httpRequest.path);
 						//System.out.println(new String(baos.toByteArray()));
 						byte[] responseBytes = baos.toByteArray();
 						// Маленька відповідь + маркер від самого PHP: він сам вирішив, що $go

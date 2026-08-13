@@ -1,5 +1,7 @@
 import java.io.*;
 import java.util.Locale;
+import java.text.SimpleDateFormat;
+import java.util.Date;
 
 public class MyOutClass extends PrintStream {
     private static MyOutClass outInstance;
@@ -176,6 +178,27 @@ public class MyOutClass extends PrintStream {
 			System.setErr(errInstance);
 		}
 	}
+    /**
+     * Єдина точка часової відмітки й імені потоку - раніше кожен виклик логування сам
+     * форматував SimpleDateFormat("EEE, dd MMM yyyy HH:mm:ss z") в місці виклику; тепер
+     * це робиться тут, один раз, для всього, що йде через System.out/System.err.
+     * Повідомлення довжиною <=2 символи (одиночні "тік"-маркери AVR-логування типу "."
+     * чи "i") лишаються недоторканими - той самий поріг, що вже застосовує writeToFile()
+     * до "." (компактний індикатор прогресу, не повноцінний рядок логу).
+     * Провідний '\r' (консольні виклики так повертають курсор на початок рядка) лишається
+     * першим символом результату - інакше він одразу зітре щойно доданий префікс.
+     */
+    private static String decorate(String s) {
+        if (s == null || s.length() <= 2) {
+            return s;
+        }
+        boolean hadCR = s.charAt(0) == '\r';
+        String body = hadCR ? s.substring(1) : s;
+        SimpleDateFormat formatter = new SimpleDateFormat("EEE, dd MMM yyyy HH:mm:ss z");
+        String prefix = "[" + formatter.format(new Date()) + "][" + Thread.currentThread().getName() + "] ";
+        return (hadCR ? "\r" : "") + prefix + body;
+    }
+
     private void writeToConsole(String s) {
         if (printToConsole) {
             try {
@@ -210,32 +233,37 @@ public class MyOutClass extends PrintStream {
 
     @Override
     public void print(String s) {
+		s = decorate(s);
 		writeToConsole(s);
 		writeToFile(s);
     }
-    
+
     @Override
     public void println() {
-        writeToConsole("\n");
-		writeToFile("\n");
+        String s = decorate("\n");
+        writeToConsole(s);
+		writeToFile(s);
     }
 
     @Override
     public void println(String x) {
-        writeToConsole(x + "\n");
-		writeToFile(x + "\n");
+        String s = decorate(x + "\n");
+        writeToConsole(s);
+		writeToFile(s);
     }
 
     @Override
     public void println(Object x) {
-        writeToConsole(x.toString() + "\n");
-		writeToFile(x.toString() + "\n");
+        String s = decorate(x.toString() + "\n");
+        writeToConsole(s);
+		writeToFile(s);
     }
-    
+
     @Override
     public PrintStream printf(String format, Object... args) {
-        writeToConsole(String.format(format, args));
-		writeToFile(String.format(format, args));
+        String s = decorate(String.format(format, args));
+        writeToConsole(s);
+		writeToFile(s);
 		return this;
     }
 /*    

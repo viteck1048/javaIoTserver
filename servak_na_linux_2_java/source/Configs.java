@@ -141,41 +141,46 @@ public class Configs {
 		if(getBoolean("workerpool")) {
 			// Дефолти тут мають лишатись в синхроні з WorkerPool.java - там же
 			// джерело істини для того, що реально застосується під час роботи.
-			int poolMin = getDefine("workerPoolMin") ? getInt("workerPoolMin") : 20;
-			int poolMax = getDefine("workerPoolMax") ? getInt("workerPoolMax") : 500;
-			long idleHigh = getDefine("workerPoolIdleHigh") ? getLong("workerPoolIdleHigh") : 50;
-			long growthDebounceMs = getDefine("workerPoolGrowthDebounceMs") ? getLong("workerPoolGrowthDebounceMs") : 500;
-			long idleTimeoutMs = getDefine("workerPoolIdleTimeoutMs") ? getLong("workerPoolIdleTimeoutMs") : 5000;
-			int guardThreads = getDefine("workerPoolKeepAliveGuardThreads") ? getInt("workerPoolKeepAliveGuardThreads") : 2;
-			int pollTimeoutMs = getDefine("workerPoolKeepAlivePollTimeoutMs") ? getInt("workerPoolKeepAlivePollTimeoutMs") : 5;
+			boolean bwp = true;
+			int poolMin = getInt("workerPoolMin");
+			int poolMax = getInt("workerPoolMax");
+			long idleHigh = getLong("workerPoolIdleHigh");
+			long growthDebounceMs = getLong("workerPoolGrowthDebounceMs");
+			long idleTimeoutMs = getLong("workerPoolIdleTimeoutMs");
+			int guardThreads = getInt("workerPoolKeepAliveGuardThreads");
+			int pollTimeoutMs = getInt("workerPoolKeepAlivePollTimeoutMs");
 
 			if(poolMin <= 0) {
 				System.out.println("Invalid param: workerPoolMin must be > 0");
-				return false;
+				bwp = false;
 			}
 			if(poolMax < poolMin) {
 				System.out.println("Invalid param: workerPoolMax must be >= workerPoolMin");
-				return false;
+				bwp = false;
 			}
 			if(idleHigh <= 0 || idleHigh > 100) {
 				System.out.println("Invalid param: workerPoolIdleHigh must be in (0, 100] (percent)");
-				return false;
+				bwp = false;
 			}
 			if(growthDebounceMs < 0) {
 				System.out.println("Invalid param: workerPoolGrowthDebounceMs must be >= 0");
-				return false;
+				bwp = false;
 			}
 			if(idleTimeoutMs <= 0) {
 				System.out.println("Invalid param: workerPoolIdleTimeoutMs must be > 0");
-				return false;
+				bwp = false;
 			}
 			if(guardThreads <= 0) {
 				System.out.println("Invalid param: workerPoolKeepAliveGuardThreads must be > 0");
-				return false;
+				bwp = false;
 			}
 			if(pollTimeoutMs <= 0) {
 				System.out.println("Invalid param: workerPoolKeepAlivePollTimeoutMs must be > 0");
-				return false;
+				bwp = false;
+			}
+			if(bwp == false) {
+				priorityParam("workerpool", "false");
+				System.out.println("WorkerPool disabled");
 			}
 		}
 

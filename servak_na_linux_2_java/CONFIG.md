@@ -274,6 +274,26 @@ reclaims memory.
 
 Manual flush: `GET /www_scripts/clear_cache` (requires an authenticated session).
 
+## `[WorkerPool]` — pooled connection handling
+
+Off by default: `ServerTask`/`SimpleHTTPSServer` spawn a fresh `ClientHandler` thread
+per accepted connection, as before. With `workerpool` on, a single shared `WorkerPool`
+(created once in `Servak.main()`, passed to every listener) handles connections
+instead, and a small fixed guard-thread pool takes over keep-alive idle waits so an
+open-but-silent connection doesn't pin a pooled worker. See `WorkerPool.java` for the
+mechanism.
+
+| Key | Type | Default | Description |
+|---|---|---|---|
+| `workerpool` | bool | `false` | Master switch. `ServerTask`/`SimpleHTTPSServer` route new connections through the pool instead of `new ClientHandler(...).start()`. |
+| `workerPoolMin` | int | `20` | Worker threads kept alive at minimum. |
+| `workerPoolMax` | int | `500` | Ceiling workers can grow to under sustained backlog. |
+| `workerPoolIdleHigh` | long | `50` | Percent of idle workers above which a surplus one retires (once pool size is above `workerPoolMin`). |
+| `workerPoolGrowthDebounceMs` | long | `500` | How long "all workers busy" must hold continuously before a new one spawns — absorbs short bursts without over-spawning. |
+| `workerPoolIdleTimeoutMs` | long | `5000` | How long an idle worker waits for a task before considering retirement. |
+| `workerPoolKeepAliveGuardThreads` | int | `2` | Fixed number of daemon threads that watch keep-alive connections waiting for their next request. |
+| `workerPoolKeepAlivePollTimeoutMs` | int | `5` | Per-connection timeout each guard thread's peek uses before moving to the next one in its round-robin. Tunes a latency/syscall-rate trade-off — see `WorkerPool.java`'s `KEEP_ALIVE_POLL_TIMEOUT_MS` doc comment. |
+
 ## `[Firewall]`
 
 | Key | Type | Default | Description |

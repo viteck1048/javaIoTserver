@@ -8,10 +8,12 @@ import java.util.Date;
 
 public class SimpleHTTPSServer implements Runnable {
 	private int port;
+	private WorkerPool workerPool;
 	private CertificateManager certificateManager;
 
-	public SimpleHTTPSServer(int port) {
+	public SimpleHTTPSServer(int port, WorkerPool workerPool) {
 		this.port = port;
+		this.workerPool = workerPool;
 		try {
 //			this.certificateManager = new CertificateManager();
 //			this.certificateManager.requestCertificate();
@@ -40,14 +42,20 @@ public class SimpleHTTPSServer implements Runnable {
 			SSLServerSocketFactory ssf = context.getServerSocketFactory();
 			SSLServerSocket serverSocket = (SSLServerSocket) ssf.createServerSocket(port);
 			System.out.println("HTTPS Server is running on port " + port);
-			
+
+			boolean usePool = Configs.getBoolean("workerpool");
 			while (true) {
 				SSLSocket socket = (SSLSocket) serverSocket.accept();
 				if(FirewallIP.quickBan(socket.getInetAddress())) {
 					socket.close();
 					continue;
 				}
-				new ClientHandler(socket, port, true).start();
+				if(!usePool) {
+					new ClientHandler(socket, port, true).start();
+				}
+				else {
+					workerPool.submit(socket, port, true);
+				}
 			}
 		} catch (Exception e) {
 			e.printStackTrace();

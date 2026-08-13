@@ -75,8 +75,13 @@ public class Servak {
 			System.out.println(" AI Path list loaded, elements: " + Configs.getList("ai_assist_path_list").size());
 		}
 
-		new Thread(new ServerTask(80)).start();
-		
+		WorkerPool workerPool = Configs.getBoolean("workerpool") ? new WorkerPool() : null;
+		if(workerPool != null) {
+			System.out.println("WorkerPool enabled");
+		}
+
+		new Thread(new ServerTask(80, workerPool)).start();
+
 		try{
 				// Налаштування SSL
 			String keyStoreFile = Configs.getParam("keyStoreFile");
@@ -139,9 +144,9 @@ public class Servak {
 		
 		
 		if(Configs.getBoolean("https_run"))
-			new Thread(new SimpleHTTPSServer(443)).start();
+			new Thread(new SimpleHTTPSServer(443, workerPool)).start();
 		if(Configs.getBoolean("avr") && (Configs.getInt("avr_port") != 80 || Configs.getInt("avr_port") != 443))
-			new Thread(new ServerTask(Configs.getInt("avr_port"))).start();
+			new Thread(new ServerTask(Configs.getInt("avr_port"), workerPool)).start();
 
 		for(int i = 1; i <= 256; i++) {
 			String prxy = "prxy_" + i;
@@ -167,11 +172,11 @@ public class Servak {
 					
 					if(Configs.getDefine(prxy + "_dial_host") && Configs.getInt(prxy + "_dial_port") != 0) {
 						if(Configs.getBoolean(prxy + "_listen_ssl")) {
-							new Thread(new SimpleHTTPSServer(port)).start();
+							new Thread(new SimpleHTTPSServer(port, workerPool)).start();
 						}
-						
+
 						else{
-							new Thread(new ServerTask(port)).start();
+							new Thread(new ServerTask(port, workerPool)).start();
 						}
 					}
 				} else {

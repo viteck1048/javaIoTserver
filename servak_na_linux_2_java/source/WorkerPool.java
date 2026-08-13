@@ -34,29 +34,45 @@ import java.util.concurrent.atomic.AtomicInteger;
  *
  * Keep-alive не тримається воркером: коли handleConnection() повертає true,
  * задача йде не назад у ClientHandler, а вартовому (guard()/guardLoop()) -
- * малій фіксованій кількості потоків, які по черзі роблять короткий
- * pollForNextRequest() на кожному з'єднанні, що чекає наступного запиту, і
- * повертають задачу в queue лише коли там справді щось з'явилось. Так
- * відкрите-але-мовчазне з'єднання не займає слот із MAX_WORKERS.
+ * малій кількості потоків, які по черзі роблять короткий pollForNextRequest()
+ * на кожному з'єднанні, що чекає наступного запиту, і повертають задачу в
+ * queue лише коли там справді щось з'явилось. Так відкрите-але-мовчазне
+ * з'єднання не займає слот із MAX_WORKERS.
+ *
+ * Вартові теж ростуть/всихають, але не так, як воркери. Ріст - не за
+ * "чи всі зайняті" (вартові технічно завжди "зайняті", коли в guardQueue
+ * щось є), а за розрахунковим, а не виміряним, часом повного обходу черги
+ * одним вартовим: (guardedCount / guardThreadCount) * KEEP_ALIVE_POLL_TIMEOUT_MS.
+ * Перевищив KEEP_ALIVE_GUARD_ROUND_TIME_THRESHOLD_MS - народжується ще один,
+ * аж до KEEP_ALIVE_GUARD_THREADS_MAX (maybeGrowGuards(), викликається з
+ * guard() на кожному новому keep-alive). Всихання - дзеркально до воркерів:
+ * guardQueue.poll(KEEP_ALIVE_GUARD_IDLE_TIMEOUT_MS) повертає null, коли
+ * вартувати нема кого, і вартовий іде на вихід, якщо їх усе ще більше за
+ * KEEP_ALIVE_GUARD_THREADS_MIN.
  */
 public class WorkerPool {
 
-	private static final int MIN_WORKERS =
-		Configs.getDefine("workerPoolMin") ? Configs.getInt("workerPoolMin") : 20;
-	private static final int MAX_WORKERS =
-		Configs.getDefine("workerPoolMax") ? Configs.getInt("workerPoolMax") : 500;
+	private static final int MIN_WORKERS = Configs.getInt("workerPoolMin");
+	private static final int MAX_WORKERS = Configs.getInt("workerPoolMax");
 	/** Верхня межа частки вільних потоків, понад яку зайвий воркер іде на вихід */
-	private static final double IDLE_TARGET_HIGH =
-		Configs.getDefine("workerPoolIdleHigh") ? Configs.getLong("workerPoolIdleHigh") / 100.0 : 0.50;
+	private static final double IDLE_TARGET_HIGH = Configs.getLong("workerPoolIdleHigh") / 100.0;
 	/** Скільки мс стан "усі зайняті" має протриматись безперервно, перш ніж народиться новий воркер */
-	private static final long GROWTH_DEBOUNCE_MS =
-		Configs.getDefine("workerPoolGrowthDebounceMs") ? Configs.getLong("workerPoolGrowthDebounceMs") : 500;
+	private static final long GROWTH_DEBOUNCE_MS = Configs.getLong("workerPoolGrowthDebounceMs");
 	/** Скільки мс воркер чекає на чергове завдання, перш ніж розглянути власний вихід */
-	private static final long WORKER_IDLE_TIMEOUT_MS =
-		Configs.getDefine("workerPoolIdleTimeoutMs") ? Configs.getLong("workerPoolIdleTimeoutMs") : 5000;
-	/** Кількість вартових потоків keep-alive - фіксована, не росте/не всихає як воркери */
-	private static final int KEEP_ALIVE_GUARD_THREADS =
-		Configs.getDefine("workerPoolKeepAliveGuardThreads") ? Configs.getInt("workerPoolKeepAliveGuardThreads") : 2;
+	private static final long WORKER_IDLE_TIMEOUT_MS = Configs.getLong("workerPoolIdleTimeoutMs");
+	/** Мінімум вартових потоків keep-alive - стільки тримається завжди, навіть без жодного guarded-сокета */
+	private static final int KEEP_ALIVE_GUARD_THREADS_MIN = Configs.getInt("workerPoolKeepAliveGuardThreadsMin");
+	/** Стеля, вище якої вартові не ростуть, хай там скільки сокетів чекає */
+	private static final int KEEP_ALIVE_GUARD_THREADS_MAX = Configs.getInt("workerPoolKeepAliveGuardThreadsMax");
+	/**
+	 * Поріг очікуваного часу повного обходу guardQueue одним вартовим (мс), понад який
+	 * народжується ще один вартовий потік. Не вимірюється емпірично - рахується напряму
+	 * (guardedCount / поточна к-ть вартових) * KEEP_ALIVE_POLL_TIMEOUT_MS, бо ці три числа
+	 * й так відомі пулу в кожен момент.
+	 */
+	private static final long KEEP_ALIVE_GUARD_ROUND_TIME_THRESHOLD_MS = Configs.getLong("workerPoolKeepAliveGuardRoundTimeThresholdMs");
+	/** Скільки мс вартовий чекає на guardQueue.poll(), перш ніж розглянути власний вихід (симетрично WORKER_IDLE_TIMEOUT_MS) */
+	private static final long KEEP_ALIVE_GUARD_IDLE_TIMEOUT_MS = Configs.getLong("workerPoolKeepAliveGuardIdleTimeoutMs");
 	/**
 	 * Скільки мс вартовий чекає відповіді від одного сокета, перш ніж перейти до наступного
 	 * в черзі. Це не швидкість, з якою ОС здатна відповісти "нема даних" (той read() під
@@ -65,13 +81,15 @@ public class WorkerPool {
 	 * read() дешевий), а ціна завищеної - лінійна: за N задач на одного вартового найгірша
 	 * затримка пробудження ~ N * це число.
 	 */
-	private static final int KEEP_ALIVE_POLL_TIMEOUT_MS =
-		Configs.getDefine("workerPoolKeepAlivePollTimeoutMs") ? Configs.getInt("workerPoolKeepAlivePollTimeoutMs") : 5;
+	private static final int KEEP_ALIVE_POLL_TIMEOUT_MS = Configs.getInt("workerPoolKeepAlivePollTimeoutMs");
 
 	private final BlockingQueue<Task> queue = new LinkedBlockingQueue<>();
 	private final BlockingQueue<Task> guardQueue = new LinkedBlockingQueue<>();
 	private final AtomicInteger totalWorkers = new AtomicInteger(0);
 	private final AtomicInteger idleWorkers = new AtomicInteger(0);
+	private final AtomicInteger guardThreadCount = new AtomicInteger(0);
+	/** К-ть задач, що зараз під вартою (в guardQueue або якраз перевіряються) - основа для розрахунку часу обходу */
+	private final AtomicInteger guardedCount = new AtomicInteger(0);
 	/** 0 = зараз немає безперервного бекложу; інакше - System.currentTimeMillis() моменту, коли всі стали зайняті */
 	private volatile long backlogStartTime = 0;
 
@@ -93,10 +111,8 @@ public class WorkerPool {
 		for (int i = 0; i < MIN_WORKERS; i++) {
 			spawnWorker();
 		}
-		for (int i = 0; i < KEEP_ALIVE_GUARD_THREADS; i++) {
-			Thread t = new Thread(this::guardLoop, "worker-pool-keepalive-guard-" + i);
-			t.setDaemon(true);
-			t.start();
+		for (int i = 0; i < KEEP_ALIVE_GUARD_THREADS_MIN; i++) {
+			spawnGuardThread();
 		}
 	}
 
@@ -203,40 +219,82 @@ public class WorkerPool {
 
 	/** Задача жива (keep-alive), але зараз нема чого робити - віддаємо вартовому замість воркера */
 	private void guard(Task task) {
+		guardedCount.incrementAndGet();
 		guardQueue.add(task);
+		maybeGrowGuards();
+	}
+
+	private void spawnGuardThread() {
+		int id = guardThreadCount.incrementAndGet();
+		Thread t = new Thread(this::guardLoop, "worker-pool-keepalive-guard-" + id);
+		t.setDaemon(true);
+		t.start();
+	}
+
+	/**
+	 * Менеджер тут - сам пул: guardedCount (скільки задач під вартою),
+	 * guardThreadCount (скільки вартових зараз) і KEEP_ALIVE_POLL_TIMEOUT_MS
+	 * (ціна перевірки одного сокета) уже відомі, тож очікуваний час повного
+	 * обходу guardQueue одним вартовим не вимірюється емпірично, а рахується
+	 * напряму. Перевищив поріг - росте ще один вартовий, аж до стелі.
+	 */
+	private void maybeGrowGuards() {
+		int threads = guardThreadCount.get();
+		if (threads <= 0 || threads >= KEEP_ALIVE_GUARD_THREADS_MAX) {
+			return;
+		}
+		long estimatedRoundMs = ((long) guardedCount.get() / threads) * KEEP_ALIVE_POLL_TIMEOUT_MS;
+		if (estimatedRoundMs > KEEP_ALIVE_GUARD_ROUND_TIME_THRESHOLD_MS) {
+			spawnGuardThread();
+		}
 	}
 
 	/**
 	 * Тіло вартового потоку: по черзі бере задачі з guardQueue, коротко
 	 * перевіряє кожну (pollForNextRequest) і або повертає в основну queue
 	 * (з'явились дані - хай забирає воркер), або кладе назад у guardQueue
-	 * чекати далі. guardQueue.take() блокується, коли вартувати нема кого -
-	 * жодного busy-loop, коли активних keep-alive з'єднань немає.
+	 * чекати далі. guardQueue.poll(timeout) блокується без busy-loop, коли
+	 * вартувати нема кого; а якщо це триває довше KEEP_ALIVE_GUARD_IDLE_TIMEOUT_MS
+	 * і вартових уже більше за мінімум - цей потік сам іде на вихід (симетрично
+	 * shouldRetire() у workerLoop()).
 	 */
 	private void guardLoop() {
-		while (true) {
-			Task task;
-			try {
-				task = guardQueue.take();
-			} catch (InterruptedException e) {
-				Thread.currentThread().interrupt();
-				return;
-			}
+		try {
+			while (true) {
+				Task task;
+				try {
+					task = guardQueue.poll(KEEP_ALIVE_GUARD_IDLE_TIMEOUT_MS, TimeUnit.MILLISECONDS);
+				} catch (InterruptedException e) {
+					Thread.currentThread().interrupt();
+					return;
+				}
 
-			boolean ready;
-			try {
-				ready = task.handler.pollForNextRequest(KEEP_ALIVE_POLL_TIMEOUT_MS);
-			} catch (IOException e) {
-				// з'єднання розірване чи впало під час підгляду - handler сам закрив сокет
-				continue;
-			}
+				if (task == null) {
+					if (guardThreadCount.get() > KEEP_ALIVE_GUARD_THREADS_MIN) {
+						return;
+					}
+					continue;
+				}
 
-			if (ready) {
-				queue.add(task);
-				maybeGrow();
-			} else {
-				guardQueue.add(task);
+				boolean ready;
+				try {
+					ready = task.handler.pollForNextRequest(KEEP_ALIVE_POLL_TIMEOUT_MS);
+				} catch (IOException e) {
+					// з'єднання розірване чи впало під час підгляду - handler сам закрив сокет
+					guardedCount.decrementAndGet();
+					continue;
+				}
+
+				if (ready) {
+					guardedCount.decrementAndGet();
+					queue.add(task);
+					maybeGrow();
+				} else {
+					guardQueue.add(task);
+				}
 			}
+		} finally {
+			guardThreadCount.decrementAndGet();
 		}
 	}
 }

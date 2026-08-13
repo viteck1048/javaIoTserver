@@ -147,7 +147,10 @@ public class Configs {
 			long idleHigh = getLong("workerPoolIdleHigh");
 			long growthDebounceMs = getLong("workerPoolGrowthDebounceMs");
 			long idleTimeoutMs = getLong("workerPoolIdleTimeoutMs");
-			int guardThreads = getInt("workerPoolKeepAliveGuardThreads");
+			int guardThreadsMin = getInt("workerPoolKeepAliveGuardThreadsMin");
+			int guardThreadsMax = getInt("workerPoolKeepAliveGuardThreadsMax");
+			long guardRoundTimeThresholdMs = getLong("workerPoolKeepAliveGuardRoundTimeThresholdMs");
+			long guardIdleTimeoutMs = getLong("workerPoolKeepAliveGuardIdleTimeoutMs");
 			int pollTimeoutMs = getInt("workerPoolKeepAlivePollTimeoutMs");
 
 			if(poolMin <= 0) {
@@ -170,8 +173,20 @@ public class Configs {
 				System.out.println("Invalid param: workerPoolIdleTimeoutMs must be > 0");
 				bwp = false;
 			}
-			if(guardThreads <= 0) {
-				System.out.println("Invalid param: workerPoolKeepAliveGuardThreads must be > 0");
+			if(guardThreadsMin <= 0) {
+				System.out.println("Invalid param: workerPoolKeepAliveGuardThreadsMin must be > 0");
+				bwp = false;
+			}
+			if(guardThreadsMax < guardThreadsMin) {
+				System.out.println("Invalid param: workerPoolKeepAliveGuardThreadsMax must be >= workerPoolKeepAliveGuardThreadsMin");
+				bwp = false;
+			}
+			if(guardRoundTimeThresholdMs <= 0) {
+				System.out.println("Invalid param: workerPoolKeepAliveGuardRoundTimeThresholdMs must be > 0");
+				bwp = false;
+			}
+			if(guardIdleTimeoutMs <= 0) {
+				System.out.println("Invalid param: workerPoolKeepAliveGuardIdleTimeoutMs must be > 0");
 				bwp = false;
 			}
 			if(pollTimeoutMs <= 0) {

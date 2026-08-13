@@ -279,11 +279,11 @@ Manual flush: `GET /www_scripts/clear_cache` (requires an authenticated session)
 Off by default: `ServerTask`/`SimpleHTTPSServer` spawn a fresh `ClientHandler` thread
 per accepted connection, as before. With `workerpool` on, a single shared `WorkerPool`
 (created once in `Servak.main()`, passed to every listener) handles connections
-instead, and a small fixed guard-thread pool takes over keep-alive idle waits so an
-open-but-silent connection doesn't pin a pooled worker. See `WorkerPool.java` for the
-mechanism.
+instead. Keep-alive idle waits are handled by a separate, independently elastic pool
+of guard threads instead of a pooled worker, so an open-but-silent connection doesn't
+pin one. See `WorkerPool.java` for the mechanism.
 
-**All seven tunables below are required when `workerpool=true` — `WorkerPool.java`
+**All nine tunables below are required when `workerpool=true` — `WorkerPool.java`
 has no code-level fallback for them on purpose** (a default would just mask a bad
 `validate()`; the validator is the one place that's allowed to decide what happens on
 bad input). If any is missing or fails its sanity check, `Configs.validate()` doesn't
@@ -300,13 +300,18 @@ thread-per-connection. `WorkerPool` itself is only ever constructed *after*
 | `workerPoolIdleHigh` | long | `(0, 100]` (percent) | Percent of idle workers above which a surplus one retires (once pool size is above `workerPoolMin`). |
 | `workerPoolGrowthDebounceMs` | long | `>= 0` | How long "all workers busy" must hold continuously before a new one spawns — absorbs short bursts without over-spawning. |
 | `workerPoolIdleTimeoutMs` | long | `> 0` | How long an idle worker waits for a task before considering retirement. |
-| `workerPoolKeepAliveGuardThreads` | int | `> 0` | Fixed number of daemon threads that watch keep-alive connections waiting for their next request. |
-| `workerPoolKeepAlivePollTimeoutMs` | int | `> 0` | Per-connection timeout each guard thread's peek (`Socket.setSoTimeout` + `read()`) uses before moving to the next connection in its round-robin. This is the *entire* per-connection cost of the guard loop — there's no separate polling delay layered on top, and `guardQueue.take()` already blocks for free (no busy-loop) when nothing is waiting. Worst-case wake-up latency for one connection ≈ `(connections guarded / workerPoolKeepAliveGuardThreads) × this value`, so it's the knob to lower for tighter latency; Java's blocking `Socket` API bottoms out at `1` (ms) — `0` means *infinite* block, not non-blocking. |
+| `workerPoolKeepAliveGuardThreadsMin` | int | `> 0` | Guard threads kept alive at minimum, even with zero keep-alive connections to watch. |
+| `workerPoolKeepAliveGuardThreadsMax` | int | `>= workerPoolKeepAliveGuardThreadsMin` | Ceiling guard threads can grow to. Set equal to `Min` for the old fixed-count behavior. |
+| `workerPoolKeepAliveGuardRoundTimeThresholdMs` | long | `> 0` | Guard threads grow past `Min` when the *estimated* time for one guard thread to sweep every watched connection once exceeds this — computed directly as `(guardedCount / guardThreadCount) × workerPoolKeepAlivePollTimeoutMs` on each new keep-alive handoff, not measured empirically (the pool already knows all three numbers). |
+| `workerPoolKeepAliveGuardIdleTimeoutMs` | long | `> 0` | Symmetric to `workerPoolIdleTimeoutMs`: how long `guardQueue.poll()` waits before a guard thread (above `Min`) retires itself. |
+| `workerPoolKeepAlivePollTimeoutMs` | int | `> 0` | Per-connection timeout each guard thread's peek (`Socket.setSoTimeout` + `read()`) uses before moving to the next connection in its round-robin. This is the *entire* per-connection cost of the guard loop — there's no separate polling delay layered on top, and `guardQueue.poll()` already blocks for free (no busy-loop) when nothing is waiting. Java's blocking `Socket` API bottoms out at `1` (ms) — `0` means *infinite* block, not non-blocking. |
 
 Starting point that was validated during development (not a code default — must be
 set explicitly): `workerPoolMin=20`, `workerPoolMax=500`, `workerPoolIdleHigh=50`,
 `workerPoolGrowthDebounceMs=500`, `workerPoolIdleTimeoutMs=5000`,
-`workerPoolKeepAliveGuardThreads=2`, `workerPoolKeepAlivePollTimeoutMs=5`.
+`workerPoolKeepAliveGuardThreadsMin=2`, `workerPoolKeepAliveGuardThreadsMax=16`,
+`workerPoolKeepAliveGuardRoundTimeThresholdMs=200`,
+`workerPoolKeepAliveGuardIdleTimeoutMs=5000`, `workerPoolKeepAlivePollTimeoutMs=5`.
 
 ## `[Firewall]`
 

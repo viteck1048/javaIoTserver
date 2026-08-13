@@ -290,6 +290,7 @@ public class HTTPResponse {
 	public void prntMsg(HTTPRequest httpRequest) {
 		SimpleDateFormat formatter = new SimpleDateFormat("EEE, dd MMM yyyy HH:mm:ss z");		//SimpleDateFormat("EEE, dd MMM yyyy HH:mm:ss z", Locale.ENGLISH);
 		String formattedDate = formatter.format(new Date());
+		String workerName = Thread.currentThread().getName();
 		int userID = 0;
 		if(httpRequest.port == Configs.getInt("avr_port"))
 			userID = -1;
@@ -297,7 +298,7 @@ public class HTTPResponse {
 			userID = httpRequest.userID;
 		if(httpRequest.port == Configs.getInt("avr_port")) {
 			if(Configs.getBoolean("avr_log"))
-				System.out.println("\r" + formattedDate + "\t\tNew client " + httpRequest.clientAddress + " on port " + String.format("%5d;", httpRequest.port) + (userID == -1 ? "\t\t\t\t\t" : ("\tuserID: " + userID + "\t\t")) + msg);
+				System.out.println("\r" + formattedDate + "\t[" + workerName + "]\t\tNew client " + httpRequest.clientAddress + " on port " + String.format("%5d;", httpRequest.port) + (userID == -1 ? "\t\t\t\t\t" : ("\tuserID: " + userID + "\t\t")) + msg);
 			else{
 				// httpRequest.body тут - сирі байти дроту (ще НЕ декодовані base16/base64),
 				// а 40/320 - це довжина вже декодованого пакета (DBClass.handleRequest).
@@ -314,7 +315,7 @@ public class HTTPResponse {
 					System.out.print("i");
 				else {
 					//httpRequest.prnt();
-					System.out.println("\r" + formattedDate + "\tBAN AVR " + httpRequest.clientAddress + ":" + String.format("%d;  ", httpRequest.port) + httpRequest.getHeaders().split("\r\n")[0] + " -> " + headers.split("\r\n")[0]);
+					System.out.println("\r" + formattedDate + "\t[" + workerName + "]\tBAN AVR " + httpRequest.clientAddress + ":" + String.format("%d;  ", httpRequest.port) + httpRequest.getHeaders().split("\r\n")[0] + " -> " + headers.split("\r\n")[0]);
 				}
 			}
 		}
@@ -329,14 +330,14 @@ public class HTTPResponse {
 					System.out.println("$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$");
 				}
 				else {
-					System.out.println("\r" + formattedDate + "\tBANRESPONSE " + httpRequest.clientAddress + ":" + String.format("%d;  ", httpRequest.port) + httpRequest.getHeaders().split("\r\n")[0] + " -> " + headers.split("\r\n")[0]);
+					System.out.println("\r" + formattedDate + "\t[" + workerName + "]\tBANRESPONSE " + httpRequest.clientAddress + ":" + String.format("%d;  ", httpRequest.port) + httpRequest.getHeaders().split("\r\n")[0] + " -> " + headers.split("\r\n")[0]);
 				}
 			}
 			else if(Configs.getBoolean("revers_log"))
-				System.out.println("\r" + formattedDate + "\t\tNew client " + httpRequest.clientAddress + " on port " + String.format("%5d;", httpRequest.port) + (userID == -1 ? "\t\t\t\t\t" : ("\tuserID: " + userID + "\t\t")) + msg);
+				System.out.println("\r" + formattedDate + "\t[" + workerName + "]\t\tNew client " + httpRequest.clientAddress + " on port " + String.format("%5d;", httpRequest.port) + (userID == -1 ? "\t\t\t\t\t" : ("\tuserID: " + userID + "\t\t")) + msg);
 		}
 		else
-			System.out.println("\r" + formattedDate + "\t\tNew client " + httpRequest.clientAddress + " on port " + String.format("%5d;", httpRequest.port) + (userID == -1 ? "\t\t\t\t\t" : ("\tuserID: " + userID + "\t\t")) + msg);
+			System.out.println("\r" + formattedDate + "\t[" + workerName + "]\t\tNew client " + httpRequest.clientAddress + " on port " + String.format("%5d;", httpRequest.port) + (userID == -1 ? "\t\t\t\t\t" : ("\tuserID: " + userID + "\t\t")) + msg);
 		
 		if((fl_err_prnt_hdr == true && Configs.getBoolean("log_err_prnt_header")) || (Configs.getBoolean("log_banresp_prnt_header") && httpRequest.revers == HTTPRequest.ReversType.BANRESPONSE))
 			httpRequest.prnt();

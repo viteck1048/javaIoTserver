@@ -26,9 +26,18 @@ import java.util.concurrent.atomic.AtomicInteger;
  * вільних потоків усе ще вища за IDLE_TARGET_HIGH (і пул не впав нижче
  * MIN_WORKERS) - сам завершує цикл.
  *
- * ClientHandler не змінений: тут викликається САМЕ .run(), а не .start() -
- * ClientHandler extends Thread, тому run() виконується прямо на потоці-
- * воркері, що його викликав, без народження ще одного потоку.
+ * ClientHandler не змінений по суті: тут викликається handleConnection()
+ * замість .start() - ClientHandler extends Thread, але run()/.start() лишається
+ * для прямого використання (ServerTask/SimpleHTTPSServer), яке пул не чіпає.
+ * handleConnection() обробляє ОДИН цикл (запит-відповідь або "поки нічого
+ * нема") і повертає true, якщо з'єднання варто тримати відкритим далі.
+ *
+ * Keep-alive не тримається воркером: коли handleConnection() повертає true,
+ * задача йде не назад у ClientHandler, а вартовому (guard()/guardLoop()) -
+ * малій фіксованій кількості потоків, які по черзі роблять короткий
+ * pollForNextRequest() на кожному з'єднанні, що чекає наступного запиту, і
+ * повертають задачу в queue лише коли там справді щось з'явилось. Так
+ * відкрите-але-мовчазне з'єднання не займає слот із MAX_WORKERS.
  */
 public class WorkerPool {
 
@@ -45,8 +54,15 @@ public class WorkerPool {
 	/** Скільки мс воркер чекає на чергове завдання, перш ніж розглянути власний вихід */
 	private static final long WORKER_IDLE_TIMEOUT_MS =
 		Configs.getDefine("workerPoolIdleTimeoutMs") ? Configs.getLong("workerPoolIdleTimeoutMs") : 5000;
+	/** Кількість вартових потоків keep-alive - фіксована, не росте/не всихає як воркери */
+	private static final int KEEP_ALIVE_GUARD_THREADS =
+		Configs.getDefine("workerPoolKeepAliveGuardThreads") ? Configs.getInt("workerPoolKeepAliveGuardThreads") : 2;
+	/** Скільки мс вартовий чекає відповіді від одного сокета, перш ніж перейти до наступного в черзі */
+	private static final int KEEP_ALIVE_POLL_TIMEOUT_MS =
+		Configs.getDefine("workerPoolKeepAlivePollTimeoutMs") ? Configs.getInt("workerPoolKeepAlivePollTimeoutMs") : 25;
 
 	private final BlockingQueue<Task> queue = new LinkedBlockingQueue<>();
+	private final BlockingQueue<Task> guardQueue = new LinkedBlockingQueue<>();
 	private final AtomicInteger totalWorkers = new AtomicInteger(0);
 	private final AtomicInteger idleWorkers = new AtomicInteger(0);
 	/** 0 = зараз немає безперервного бекложу; інакше - System.currentTimeMillis() моменту, коли всі стали зайняті */
@@ -56,6 +72,8 @@ public class WorkerPool {
 		final Socket socket;
 		final int port;
 		final boolean isHttps;
+		/** null до першого handleTask(); далі той самий екземпляр переживає всі keep-alive цикли задачі */
+		ClientHandler handler;
 
 		Task(Socket socket, int port, boolean isHttps) {
 			this.socket = socket;
@@ -67,6 +85,11 @@ public class WorkerPool {
 	public WorkerPool() {
 		for (int i = 0; i < MIN_WORKERS; i++) {
 			spawnWorker();
+		}
+		for (int i = 0; i < KEEP_ALIVE_GUARD_THREADS; i++) {
+			Thread t = new Thread(this::guardLoop, "worker-pool-keepalive-guard-" + i);
+			t.setDaemon(true);
+			t.start();
 		}
 	}
 
@@ -151,6 +174,8 @@ public class WorkerPool {
 		// поки сокет чекав у черзі. Рання перевірка (в accept-циклі, до submit())
 		// лишається - вона дешевша й відсікає більшість флуду ще до появи в черзі;
 		// ця - друга лінія, закриває вікно між accept() і фактичною видачею воркеру.
+		// Спрацьовує і для keep-alive продовжень (task повертається сюди з guard()),
+		// тож бан, що настав посеред з'єднання, теж підхоплюється.
 		if (FirewallIP.quickBan(task.socket.getInetAddress())) {
 			try {
 				task.socket.close();
@@ -159,6 +184,52 @@ public class WorkerPool {
 			}
 			return;
 		}
-		new ClientHandler(task.socket, task.port, task.isHttps).run();
+
+		if (task.handler == null) {
+			task.handler = new ClientHandler(task.socket, task.port, task.isHttps);
+		}
+
+		if (task.handler.handleConnection()) {
+			guard(task);
+		}
+	}
+
+	/** Задача жива (keep-alive), але зараз нема чого робити - віддаємо вартовому замість воркера */
+	private void guard(Task task) {
+		guardQueue.add(task);
+	}
+
+	/**
+	 * Тіло вартового потоку: по черзі бере задачі з guardQueue, коротко
+	 * перевіряє кожну (pollForNextRequest) і або повертає в основну queue
+	 * (з'явились дані - хай забирає воркер), або кладе назад у guardQueue
+	 * чекати далі. guardQueue.take() блокується, коли вартувати нема кого -
+	 * жодного busy-loop, коли активних keep-alive з'єднань немає.
+	 */
+	private void guardLoop() {
+		while (true) {
+			Task task;
+			try {
+				task = guardQueue.take();
+			} catch (InterruptedException e) {
+				Thread.currentThread().interrupt();
+				return;
+			}
+
+			boolean ready;
+			try {
+				ready = task.handler.pollForNextRequest(KEEP_ALIVE_POLL_TIMEOUT_MS);
+			} catch (IOException e) {
+				// з'єднання розірване чи впало під час підгляду - handler сам закрив сокет
+				continue;
+			}
+
+			if (ready) {
+				queue.add(task);
+				maybeGrow();
+			} else {
+				guardQueue.add(task);
+			}
+		}
 	}
 }

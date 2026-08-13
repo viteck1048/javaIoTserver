@@ -257,6 +257,7 @@ line, blank lines and `#` comments skipped. Used for `whitePathList`, `blackPath
 | `log_err_prnt_header` | bool | Print headers on errors. |
 | `maxLogFileSize` | long | *(optional)* Rotate the log once it exceeds this many **bytes**. Without the key there is no size-based rotation. `Servak.java:65` |
 | `maxLogBackupIndex` | int | *(optional)* How many rotated log files to keep. `Servak.java:67` |
+| `logDateLocale` | String | *(optional)* BCP-47 tag (e.g. `en`, `uk`, `en-US`) for the `[timestamp][thread]` prefix `MyOutClass` stamps on every log line longer than 2 characters. Without it, `SimpleDateFormat` falls back to the JVM's default locale — day-of-week/month names come out in whatever language the OS is set to. `MyOutClass.java` |
 
 ## `[Cache Agent]` — in-RAM file cache
 

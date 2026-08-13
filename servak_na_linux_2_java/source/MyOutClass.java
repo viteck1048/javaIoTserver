@@ -194,7 +194,11 @@ public class MyOutClass extends PrintStream {
         }
         boolean hadCR = s.charAt(0) == '\r';
         String body = hadCR ? s.substring(1) : s;
-        SimpleDateFormat formatter = new SimpleDateFormat("EEE, dd MMM yyyy HH:mm:ss z");
+        // Без logDateLocale - системна локаль (як і було). Ключ, не хардкод: щоб змінити
+        // мову дати/дня тижня в логах, достатньо .ini, не перекомпіляції.
+        SimpleDateFormat formatter = Configs.getDefine("logDateLocale")
+            ? new SimpleDateFormat("EEE, dd MMM yyyy HH:mm:ss z", Locale.forLanguageTag(Configs.getParam("logDateLocale")))
+            : new SimpleDateFormat("EEE, dd MMM yyyy HH:mm:ss z");
         String prefix = "[" + formatter.format(new Date()) + "][" + Thread.currentThread().getName() + "] ";
         return (hadCR ? "\r" : "") + prefix + body;
     }

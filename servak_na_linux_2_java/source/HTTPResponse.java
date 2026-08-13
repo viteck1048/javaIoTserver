@@ -122,6 +122,9 @@ public class HTTPResponse {
 			else if(typeFile.compareTo("apk") == 0) {
 				typeFile = "application/vnd.android.package-archive";
 			}
+			else if(typeFile.compareTo("exe") == 0) {
+				typeFile = "application/octet-stream";
+			}
 			// Свідомо вимкнено, доки не знадобиться. Джерелмапи (.map, їх тягне Chrome
 			// devtools за //# sourceMappingURL=) і сирі .json (не плутати з внутрішнім
 			// "app-json") з vendor-дерева PMA зараз падають у 415 нижче:

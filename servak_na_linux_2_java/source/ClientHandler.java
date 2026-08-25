@@ -145,7 +145,19 @@ public class ClientHandler extends Thread {
 			if (httpResponse.getBody() != null)
 				out.write(httpResponse.getBody());
 			if (httpResponse.streamResponse) {
-				httpResponse.streamResponseTo(out);
+				try {
+					httpResponse.streamResponseTo(out);
+				} catch (IOException e) {
+					// Клієнт обірвав з'єднання посеред стріму (типово - перемотка
+					// відео: Chrome кидає застарілий Range-запит і одразу шле
+					// новий). Заголовки вже пішли, повторний запис 500 у той
+					// самий сокет сенсу не має - лишається лиш відзвітувати,
+					// що сталось, і вийти, замість мовчки провалюватись у
+					// зовнішній catch нижче.
+					httpResponse.addMsg("перервано клієнтом");
+					httpResponse.prntMsg(httpRequest);
+					return terminate();
+				}
 			}
 			httpResponse.prntMsg(httpRequest);
 			out.flush();

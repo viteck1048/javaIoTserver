@@ -21,8 +21,11 @@ public class HTTPResponse {
 	public boolean close_connect_flag;
 	private File file;
 	public boolean streamResponse;
-	private int streamResponseLength;
+	private long streamResponseLength;
 	private boolean head;
+	/** Межі фактичної віддачі для streamResponse - завжди заповнені в normalizeHeaders(): [0; length-1] без Range, звужені - з ним */
+	private long byteBegin;
+	private long byteEnd;
 	
 	public HTTPResponse(String headers, byte[] body) {
 		this.headers = headers;
@@ -44,7 +47,7 @@ public class HTTPResponse {
 		this(length, body, nameFile, false);
 	}
 
-	public HTTPResponse(File file, String nameFile, int length, boolean head) {
+	public HTTPResponse(File file, String nameFile, long length, boolean head) {
 		// Виклик this(...) мусить бути першим оператором конструктора - решту
 		// стрім-специфічних полів ставимо вже після нього.
 		this(length, null, nameFile, head);
@@ -66,15 +69,26 @@ public class HTTPResponse {
 			return;
 		}
 		try (FileInputStream fis = new FileInputStream(file)) {
+			fis.getChannel().position(byteBegin);
+			long remaining = byteEnd - byteBegin + 1;
 			byte[] buffer = new byte[8192];
-			int bytesRead;
-			while ((bytesRead = fis.read(buffer)) != -1) {
+			while (remaining > 0) {
+				int toRead = (int) Math.min(buffer.length, remaining);
+				int bytesRead = fis.read(buffer, 0, toRead);
+				if (bytesRead == -1) {
+					// Межі вважались коректними на момент normalizeHeaders() -
+					// якщо файл усе ж скоротився між тим і цим моментом,
+					// це не "кінець потоку", а розбіжність, яку далі
+					// замовчувати не можна.
+					throw new IOException("streamResponseTo: unexpected EOF in " + file + ", " + remaining + " byte(s) still expected");
+				}
 				out.write(buffer, 0, bytesRead);
+				remaining -= bytesRead;
 			}
 		}
 	}
 	
-	public HTTPResponse(int length, byte[] body, String nameFile, boolean head) {
+	public HTTPResponse(long length, byte[] body, String nameFile, boolean head) {
 		String[] tmp = nameFile.split("\\.");
 		String typeFile;
 		if(tmp.length >= 2) {
@@ -136,6 +150,9 @@ public class HTTPResponse {
 			}
 			else if(typeFile.compareTo("mp3") == 0) {
 				typeFile = "audio/mpeg";
+			}
+			else if(typeFile.compareTo("mp4") == 0) {
+				typeFile = "video/mp4";
 			}
 			else if(typeFile.compareTo("ico") == 0) {
 				typeFile = "image/x-icon";
@@ -504,12 +521,74 @@ public class HTTPResponse {
 					}
 				}
 			}
-			int contentLength = 0;
+			long contentLength = 0;
 			if (streamResponse) {
-				// body тут завжди null (тіло йде окремо, streamResponseTo() в
-				// ClientHandler) - справжній розмір рахувати нема з чого, крім
-				// як зі значення, вже відомого на момент конструювання.
-				contentLength = streamResponseLength;
+				// За замовчуванням - весь файл як один "діапазон" [0; length-1].
+				// Range-заголовок (якщо є) звужує ці межі й перемикає статус на
+				// 206/416 - в обох випадках streamResponseTo() далі просто читає
+				// byteBegin..byteEnd, без окремої гілки "весь файл чи шматок".
+				byteBegin = 0;
+				byteEnd = streamResponseLength - 1;
+				// msg тут нижче ще підміниться на 206/416, якщо Range це
+				// виправдає - інакше лишається як маркер "це був стрім
+				// цілого файлу", щоб відрізняти в логах від кешованої
+				// віддачі (той самий формат "200 OK\t\tResponse file X").
+				String kind = head ? "header " : "file ";
+				msg = "200 OK\t\tResponse " + kind + httpRequest.path + " (stream, " + streamResponseLength + " bytes)";
+
+				String rangeHeader = httpRequest.getZnach("range", HTTPRequest.arrType.HEADER);
+				if (rangeHeader != null && rangeHeader.startsWith("bytes=")) {
+					String spec = rangeHeader.substring("bytes=".length());
+					int dash = spec.indexOf('-');
+					long requestedBegin = -1;
+					long requestedEnd = -1;
+					if (dash >= 0) {
+						String startStr = spec.substring(0, dash);
+						String endStr = spec.substring(dash + 1);
+						try {
+							if (startStr.isEmpty()) {
+								// bytes=-500 - суфікс: останні 500 байт файлу
+								long suffixLength = Long.parseLong(endStr);
+								requestedBegin = streamResponseLength - suffixLength;
+								requestedEnd = streamResponseLength - 1;
+							}
+							else {
+								requestedBegin = Long.parseLong(startStr);
+								// bytes=500- - кінець опущений: до кінця файлу
+								requestedEnd = endStr.isEmpty() ? streamResponseLength - 1 : Long.parseLong(endStr);
+							}
+						}
+						catch (NumberFormatException e) {
+							requestedBegin = -1;  // впаде в 416 нижче
+						}
+					}
+
+					if (requestedBegin < 0 || requestedEnd < requestedBegin || requestedEnd >= streamResponseLength) {
+						// Незадовольний діапазон - 416, і однозначно НЕ віддаємо
+						// тіло: знімаємо streamResponse, щоб ClientHandler навіть
+						// не спробував його стрімити.
+						streamResponse = false;
+						fl_err_prnt_hdr = true;  // помилка, не штатний 200 - як і решта кодів помилок у файлі
+						headers = headers.replaceFirst("HTTP/1\\.1 200 OK", "HTTP/1.1 416 Range Not Satisfiable");
+						headers = headers.replace("\r\n\r\n", "\r\nContent-Range: bytes */" + streamResponseLength + "\r\n\r\n");
+						msg = "416 Range Not Satisfiable\t\tResponse " + kind + httpRequest.path
+							+ " (rejected Range: " + rangeHeader + ", size " + streamResponseLength + ")";
+					}
+					else {
+						byteBegin = requestedBegin;
+						byteEnd = requestedEnd;
+						headers = headers.replaceFirst("HTTP/1\\.1 200 OK", "HTTP/1.1 206 Partial Content");
+						headers = headers.replace("\r\n\r\n", "\r\nContent-Range: bytes " + byteBegin + "-" + byteEnd + "/" + streamResponseLength + "\r\n\r\n");
+						msg = "206 Partial\t\tResponse " + kind + httpRequest.path
+							+ " [" + byteBegin + "-" + byteEnd + "/" + streamResponseLength + "]";
+					}
+				}
+
+				if (streamResponse) {
+					headers = headers.replace("\r\n\r\n", "\r\nAccept-Ranges: bytes\r\n\r\n");
+					contentLength = byteEnd - byteBegin + 1;
+				}
+				// 416: contentLength лишається 0 - тіла нема.
 			}
 			else if(body != null && body.length > 0) {
 				contentLength = body.length;

@@ -480,18 +480,18 @@ public class FileCacheManager {
 	 *         (перевищує {@link #MAX_ENTRY_BYTES}); -1, якщо файлу нема,
 	 *         або він під лімітом - тоді правильний шлях це звичайний getFile()
 	 */
-	public static int isStreamResponse(String path) {
+	public static long isStreamResponse(String path) {
 		File file = new File(path);
 		if (!file.isFile()) {
 			return -1;
 		}
 
 		long size = file.length();
-		if (size <= MAX_ENTRY_BYTES || size > Integer.MAX_VALUE) {
+		if (size <= MAX_ENTRY_BYTES) {
 			return -1;
 		}
 
-		return (int) size;
+		return size;
 	}
 
 	/**

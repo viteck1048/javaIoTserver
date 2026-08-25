@@ -1,0 +1,734 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Bending Force Calculator</title>
+<style>
+  :root{
+    --red:#c8102e; --ink:#16181d; --mut:#6b7280; --line:#d8dade; --bg:#eef0f2; --card:#fff;
+    --green:#2f8f4e; --greenbg:#dcf1e0; --amber:#a86a00; --amberbg:#fdf1cf; --redbg:#ffdcd6;
+    --blue:#1c4f80; --bluebg:#e9f1fa;
+    --radius:14px;
+  }
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+  [hidden]{display:none!important}
+  html,body{margin:0;padding:0}
+  body{
+    background:var(--bg); color:var(--ink);
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;
+    font-size:16px; line-height:1.45;
+    padding:0 12px calc(28px + env(safe-area-inset-bottom));
+  }
+  .wrap{max-width:720px;margin:0 auto}
+
+  header{display:flex;align-items:flex-start;gap:12px;padding:18px 2px 14px}
+  header h1{margin:0;font-size:19px;line-height:1.15;color:var(--red);font-weight:800;letter-spacing:-.2px}
+  header p{margin:3px 0 0;font-size:12.5px;color:var(--mut)}
+  .langs{margin-left:auto;display:flex;gap:4px;flex:none}
+  .langs button{
+    border:1px solid var(--line);background:var(--card);color:var(--mut);
+    font:600 12px/1 inherit;padding:7px 9px;border-radius:8px;cursor:pointer
+  }
+  .langs button[aria-pressed="true"]{background:var(--ink);border-color:var(--ink);color:#fff}
+
+  .card{background:var(--card);border-radius:var(--radius);padding:16px;margin-bottom:12px;
+        box-shadow:0 1px 2px rgba(16,24,40,.06),0 1px 12px rgba(16,24,40,.04)}
+
+  label.fld{display:block;margin-bottom:14px}
+  label.fld:last-child{margin-bottom:0}
+  .lbl{display:block;font-size:12.5px;font-weight:700;text-transform:uppercase;letter-spacing:.4px;
+       color:var(--mut);margin-bottom:6px}
+  .hint{font-size:12px;color:var(--mut);margin-top:5px;line-height:1.35}
+  select,input[type=number]{
+    width:100%;font:inherit;font-size:16px;padding:12px 12px;border:1.5px solid var(--line);
+    border-radius:10px;background:#fff;color:var(--ink);appearance:none;-webkit-appearance:none
+  }
+  select{background-image:url("data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%236b7280' stroke-width='2' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");
+          background-repeat:no-repeat;background-position:right 13px center;padding-right:34px}
+  input[type=number]:focus,select:focus{outline:none;border-color:var(--red)}
+  input[type=number]::-webkit-outer-spin-button,input[type=number]::-webkit-inner-spin-button{
+    -webkit-appearance:none;margin:0}
+  input[type=number]{-moz-appearance:textfield}
+  .row{display:flex;gap:10px}
+  .row > *{flex:1;min-width:0}
+  .suffix{position:relative}
+  .suffix input{padding-right:44px}
+  .suffix span{position:absolute;right:12px;top:50%;transform:translateY(-50%);
+               font-size:13px;color:var(--mut);pointer-events:none}
+
+  /* ---- V/ir combobox ---- */
+  .combo{position:relative}
+  .comboBtn{
+    width:100%;display:flex;align-items:center;gap:10px;text-align:left;cursor:pointer;
+    font:inherit;color:var(--ink);background:#fff;border:1.5px solid var(--line);
+    border-radius:10px;padding:10px 12px
+  }
+  .comboBtn:focus{outline:none;border-color:var(--red)}
+  .comboBtn.z-green{background:var(--greenbg);border-color:#8ecfa2}
+  .comboBtn.z-amber{background:var(--amberbg);border-color:#e3c569}
+  .comboBtn.z-red{background:var(--redbg);border-color:#e8a294}
+  .cbMain{flex:1;min-width:0}
+  .cbMain b{display:block;font-size:17px;font-weight:800;line-height:1.15}
+  .cbMain small{display:block;font-size:12px;color:var(--mut);margin-top:1px}
+  .cbRatio{font-size:12px;font-weight:700;color:var(--mut);white-space:nowrap;
+           font-variant-numeric:tabular-nums}
+  .cbCaret{flex:none;width:12px;height:8px}
+  .comboBtn[aria-expanded="true"] .cbCaret{transform:rotate(180deg)}
+
+  .comboList{
+    position:absolute;left:0;right:0;top:calc(100% + 6px);z-index:30;
+    max-height:min(56vh,420px);overflow-y:auto;-webkit-overflow-scrolling:touch;
+    background:#fff;border:1.5px solid var(--line);border-radius:12px;
+    box-shadow:0 12px 32px rgba(16,24,40,.18)
+  }
+  .opt{display:flex;align-items:center;gap:9px;padding:11px 12px;cursor:pointer;
+       border-bottom:1px solid rgba(0,0,0,.06)}
+  .opt:last-child{border-bottom:none}
+  .opt.z-green{background:var(--greenbg)}
+  .opt.z-amber{background:var(--amberbg)}
+  .opt.z-red{background:var(--redbg)}
+  .opt[aria-selected="true"]{box-shadow:inset 4px 0 0 var(--ink)}
+  .opt.cur{filter:brightness(.96)}
+  .oV{font-size:15px;font-weight:800;width:52px;flex:none;font-variant-numeric:tabular-nums}
+  .oGeo{flex:1;min-width:0;font-size:12.5px;color:#4b5563}
+  .oRatio{font-size:12px;font-weight:700;color:var(--mut);white-space:nowrap;
+          font-variant-numeric:tabular-nums}
+  .recTag{font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:.4px;
+          background:var(--green);color:#fff;border-radius:99px;padding:3px 7px;white-space:nowrap}
+
+  .winInfo{margin-top:9px;font-size:12px;color:#374151;line-height:1.4;
+           font-variant-numeric:tabular-nums}
+  .winInfo b{font-weight:700}
+  .warnTag{color:var(--amber);font-weight:700}
+  .kvTag{color:var(--blue);font-weight:700}
+  .legend{display:flex;flex-wrap:wrap;gap:4px 14px;margin-top:10px;font-size:11.5px;color:var(--mut)}
+  .legend i{width:11px;height:11px;border-radius:3px;display:inline-block;vertical-align:-1px;
+            margin-right:5px;border:1px solid rgba(0,0,0,.15)}
+
+  button.go{
+    width:100%;border:none;background:var(--red);color:#fff;font:800 17px/1 inherit;
+    padding:16px;border-radius:12px;cursor:pointer;letter-spacing:.2px
+  }
+  button.go:active{background:#a30d25}
+
+  /* ---- result ---- */
+  #out{display:none}
+  #out.show{display:block}
+  .ctrlLab{font-size:11.5px;font-weight:800;text-transform:uppercase;letter-spacing:.5px;
+           color:var(--red);line-height:1.25;margin-bottom:6px}
+  .hero{display:flex;align-items:baseline;gap:8px;flex-wrap:wrap}
+  .big{font-size:44px;font-weight:800;line-height:1;letter-spacing:-1.4px;
+       font-variant-numeric:tabular-nums}
+  .hero .u{font-size:19px;font-weight:700;color:var(--mut)}
+  .hero .tn{font-size:22px;font-weight:800;color:var(--ink);white-space:nowrap;
+            font-variant-numeric:tabular-nums}
+  .ctrl{padding:13px 14px;border:2.5px solid var(--red);border-radius:12px;background:#fff5f6}
+  .ctrlHint{margin-top:7px;font-size:12px;color:#8a2230;line-height:1.4}
+  .perm{margin-top:10px;font-size:12.5px;color:var(--mut);line-height:1.4;
+        font-variant-numeric:tabular-nums}
+  .perm b{color:var(--ink);font-weight:700}
+  .facts{display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:8px;margin-top:14px}
+  .fact{background:#f4f5f7;border-radius:10px;padding:8px 10px}
+  .fact em{display:block;font-style:normal;font-size:11px;text-transform:uppercase;letter-spacing:.4px;color:var(--mut)}
+  .fact b{font-size:15px}
+  .badge{display:inline-block;font:800 11px/1 inherit;text-transform:uppercase;letter-spacing:.6px;
+         padding:7px 11px;border-radius:99px;margin-top:16px}
+  .badge small{font-weight:600;opacity:.7;letter-spacing:.2px;text-transform:none;margin-left:6px}
+  .badge.green{background:var(--green);color:#fff}
+  .badge.amber{background:var(--amber);color:#fff}
+  .badge.red{background:var(--red);color:#fff}
+  .note.hasBadge{margin-top:7px}
+  .note{border-radius:10px;padding:11px 13px;margin-top:12px;font-size:13.5px;line-height:1.45}
+  .note.green{background:var(--greenbg);color:#1c5c33}
+  .note.amber{background:var(--amberbg);color:#7a4d00}
+  .note.red{background:var(--redbg);color:#8f1d0c}
+  .note.blue{background:var(--bluebg);color:var(--blue)}
+  .note b{font-weight:800}
+  .formula{margin-top:12px;font-size:12px;color:var(--mut);font-variant-numeric:tabular-nums;
+           word-break:break-word}
+  .err{background:var(--redbg);color:#8f1d0c;border-radius:10px;padding:12px;font-size:14px}
+
+  footer{font-size:11.5px;color:var(--mut);text-align:center;padding:4px 6px 0;line-height:1.5}
+
+  @media (max-width:380px){
+    .big{font-size:36px}
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header>
+    <div>
+      <h1 data-i18n="title">Bending force calculator</h1>
+      <p data-i18n="subtitle">Air bending, 90° · press brake</p>
+    </div>
+    <div class="langs">
+      <button type="button" data-lang="uk">UA</button>
+      <button type="button" data-lang="bg">BG</button>
+      <button type="button" data-lang="en">EN</button>
+    </div>
+  </header>
+
+  <div class="card">
+    <label class="fld">
+      <span class="lbl" data-i18n="material">Material</span>
+      <select id="mat"></select>
+    </label>
+
+    <label class="fld" id="rmWrap" hidden>
+      <span class="lbl" data-i18n="rmLabel">Tensile strength Rm</span>
+      <span class="suffix"><input type="number" id="rm" value="140" min="10" max="1500" step="5"><span>MPa</span></span>
+    </label>
+
+    <div class="row">
+      <label class="fld" style="margin-bottom:0">
+        <span class="lbl" data-i18n="thickness">Thickness t</span>
+        <span class="suffix"><input type="number" id="t" value="2" min="0.1" max="60" step="0.1" inputmode="decimal"><span>mm</span></span>
+      </label>
+      <label class="fld" style="margin-bottom:0">
+        <span class="lbl" data-i18n="length">Bend length</span>
+        <span class="suffix"><input type="number" id="len" value="1" min="0.01" max="20" step="0.1" inputmode="decimal"><span>m</span></span>
+      </label>
+    </div>
+  </div>
+
+  <div class="card">
+    <span class="lbl" data-i18n="dieLabel">Die opening V / inside radius ir</span>
+    <div class="combo" id="combo">
+      <button type="button" class="comboBtn" id="comboBtn" aria-haspopup="listbox" aria-expanded="false">
+        <span class="cbMain" id="cbMain"></span>
+        <span class="cbRatio" id="cbRatio"></span>
+        <svg class="cbCaret" viewBox="0 0 12 8" aria-hidden="true"><path d="M1 1l5 5 5-5"
+          stroke="#6b7280" stroke-width="2" fill="none" stroke-linecap="round"/></svg>
+      </button>
+      <div class="comboList" id="comboList" role="listbox" hidden></div>
+    </div>
+    <div class="winInfo" id="winInfo"></div>
+    <div class="legend">
+      <span><i style="background:var(--greenbg);border-color:#8ecfa2"></i><span data-i18n="lgGreen">optimal</span></span>
+      <span><i style="background:var(--amberbg);border-color:#e3c569"></i><span data-i18n="lgAmber">acceptable</span></span>
+      <span><i style="background:var(--redbg);border-color:#e8a294"></i><span data-i18n="lgRed">theoretical only</span></span>
+    </div>
+    <div class="hint" data-i18n="dieHint">b = minimum flange length. Any option can be selected — red ones are still calculated.</div>
+  </div>
+
+  <button class="go" id="go" data-i18n="calc">Calculate force</button>
+
+  <div class="card" id="out" style="margin-top:12px"></div>
+
+  <footer>
+    <span data-i18n="foot">Air bending to 90°. Bottoming/coining needs 3–5× more force. Values are guidance, not a machine limit.</span>
+  </footer>
+</div>
+
+<script>
+"use strict";
+
+/* ============ dies: V / min flange b / inside radius ir (machine chart) ============ */
+var DIES = [
+  {v:4,b:2.8,ir:0.7},{v:6,b:4,ir:1},{v:7,b:5,ir:1.1},{v:8,b:5.5,ir:1.3},
+  {v:10,b:7,ir:1.6},{v:12,b:8.5,ir:2},{v:14,b:10,ir:2.3},{v:16,b:11,ir:2.6},
+  {v:18,b:13,ir:3},{v:20,b:14,ir:3.3},{v:25,b:17.5,ir:4},{v:32,b:22,ir:5},
+  {v:40,b:28,ir:6.5},{v:50,b:35,ir:8},{v:63,b:45,ir:10},{v:80,b:55,ir:13},
+  {v:100,b:71,ir:16},{v:125,b:89,ir:20},{v:160,b:113,ir:24},{v:200,b:140,ir:33},
+  {v:250,b:175,ir:41}
+];
+
+/* ============ materials ============
+   rm   - tensile strength, MPa            pct  - air-formed radius as a share of V ("20 % rule")
+   kmin - minimum inside radius / t        sb   - typical springback, degrees
+   kv   - per-alloy correction of the die window: >1 pushes it wider (springback,
+          work hardening, tonnage), <1 tighter. 1.0 = nothing beyond Rm and kmin.
+          Calibration values - safe to edit, one number per row. ==================== */
+var MATS = [
+  {id:"al1050o", g:"al", rm:75,  kmin:0.3, pct:0.15, kv:1.0, sb:1,   n:{uk:"1050 / 1060-O — відпалений", bg:"1050 / 1060-O — отгрят", en:"1050 / 1060-O — annealed"}},
+  {id:"al1050h", g:"al", rm:105, kmin:0.5, pct:0.15, kv:1.0, sb:1.5, n:{uk:"1050 / 1060-H14 — м'який", bg:"1050 / 1060-H14 — мек", en:"1050 / 1060-H14 — soft"}},
+  {id:"al3003",  g:"al", rm:145, kmin:0.5, pct:0.15, kv:1.0, sb:2,   n:{uk:"3003-H14", bg:"3003-H14", en:"3003-H14"}},
+  {id:"al5754",  g:"al", rm:220, kmin:1.0, pct:0.15, kv:1.0, sb:3,   n:{uk:"5754 / 5052-H111", bg:"5754 / 5052-H111", en:"5754 / 5052-H111"}},
+  {id:"al5083",  g:"al", rm:290, kmin:1.5, pct:0.155, kv:1.05, sb:4,   n:{uk:"5083-H111", bg:"5083-H111", en:"5083-H111"}},
+  {id:"al6082",  g:"al", rm:310, kmin:2.5, pct:0.16, kv:1.0, sb:7,   n:{uk:"6082-T6 / 6061-T6 — термозміцнений", bg:"6082-T6 / 6061-T6 — закален", en:"6082-T6 / 6061-T6 — heat treated"}},
+
+  {id:"stDC01",  g:"st", rm:350, kmin:0.6, pct:0.155, kv:1.0, sb:1.5, n:{uk:"DC01 — холоднокатана", bg:"DC01 — студеновалцувана", en:"DC01 — cold rolled"}},
+  {id:"stS235",  g:"st", rm:450, kmin:1.0, pct:0.165, kv:1.0, sb:2,   n:{uk:"S235 / Ст3 — за таблицею верстата", bg:"S235 / стомана — по таблицата на машината", en:"S235 / mild steel — machine chart"}},
+  {id:"stS355",  g:"st", rm:550, kmin:1.5, pct:0.19, kv:1.1, sb:3,   n:{uk:"S355", bg:"S355", en:"S355"}},
+
+  {id:"ss304",   g:"ss", rm:600, kmin:1.0, pct:0.21, kv:1.2, sb:5,   n:{uk:"AISI 304 / 1.4301", bg:"AISI 304 / 1.4301", en:"AISI 304 / 1.4301"}},
+  {id:"ss430",   g:"ss", rm:500, kmin:1.0, pct:0.195, kv:1.1, sb:4,   n:{uk:"AISI 430 / 1.4016", bg:"AISI 430 / 1.4016", en:"AISI 430 / 1.4016"}},
+
+  {id:"cu",      g:"cu", rm:220, kmin:0.4, pct:0.14, kv:1.0, sb:1.5, n:{uk:"Мідь М1 / Cu-DHP", bg:"Мед Cu-DHP", en:"Copper Cu-DHP"}},
+  {id:"brass",   g:"cu", rm:340, kmin:0.6, pct:0.15, kv:1.0, sb:3,   n:{uk:"Латунь CuZn37", bg:"Месинг CuZn37", en:"Brass CuZn37"}},
+
+  {id:"custom",  g:"x",  rm:140, kmin:1.0, pct:0.165, kv:1.0, sb:2,   n:{uk:"Інший — ввести Rm вручну", bg:"Друг — ръчно въвеждане на Rm", en:"Other — enter Rm manually"}}
+];
+
+var GROUPS = {
+  al:{uk:"Алюміній",bg:"Алуминий",en:"Aluminium"},
+  st:{uk:"Сталь",bg:"Стомана",en:"Steel"},
+  ss:{uk:"Нержавіюча сталь",bg:"Неръждаема стомана",en:"Stainless steel"},
+  cu:{uk:"Мідь, латунь",bg:"Мед, месинг",en:"Copper, brass"},
+  x: {uk:"Інше",bg:"Друго",en:"Other"}
+};
+
+/* ============ i18n ============ */
+var T = {
+  uk:{
+    title:"Калькулятор зусилля згинання",
+    subtitle:"Вільне (повітряне) згинання на 90° · листозгинальний прес",
+    material:"Матеріал",
+    rmLabel:"Межа міцності Rm",
+    thickness:"Товщина t",
+    length:"Довжина згину",
+    dieLabel:"Паз матриці V / внутрішній радіус ir",
+    dieHint:"Повний набір оснастки з таблиці верстата. Вікно рахується від товщини й Rm матеріалу, вибір не обмежується: червоні теж рахуються. ir — радіус, який дасть цей паз саме на цьому матеріалі; b — мінімальна довжина полиці.",
+    recBadge:"рекомендовано",
+    lgGreen:"ідеальне вікно", lgAmber:"допустимо", lgRed:"тільки теоретично",
+    calc:"Розрахувати зусилля",
+    foot:"Вільне згинання на 90°. Калібрування (bottoming) потребує у 3–5 разів більшого зусилля. Значення — орієнтир, а не межа міцності верстата.",
+    perM:"кН на метр згину",
+    enterCtrl:"Це число вводиться у контролер як тиск/зусилля (кН/м).",
+    ctrlLabel:"У контролер — повне зусилля",
+    ctrlHint:"Уже з урахуванням довжини згину {len} м. Якщо контролер приймає тонни — вводити {tons}.",
+    permLabel:"Табличне значення × довжина",
+    total:"Загальне зусилля",
+    forLen:"при довжині",
+    fRadius:"Внутрішній радіус", fFlange:"Мін. полиця", fSpring:"Пружний відскок", fRatio:"Співвідношення V/t",
+    tons:"т", kn:"кН", mm:"мм", m:"м", deg:"°",
+    errT:"Вкажіть товщину більше 0.",
+    errL:"Вкажіть довжину згину більше 0.",
+    errRm:"Вкажіть Rm у діапазоні 10–1500 МПа.",
+    errV:"Оберіть паз матриці.",
+    zn:{redNarrow:"Критично вузький паз", narrow:"Вузький паз", green:"Оптимально", wide:"Широкий паз", redWide:"Критично широкий паз"},
+    zGreen:"<b>Оптимальне поєднання.</b> V/t = {r} — усередині розрахункового вікна {lo}–{hi} для цього матеріалу й товщини. Згин вийде стабільним, слідів від матриці не буде.",
+    zWide:"<b>Паз ширший за вікно</b> (V/t = {r} проти {lo}–{hi}). Працює, але радіус {ir} мм на товщині {t} мм — це «завалений» згин, більший пружний відскок і мінімальна полиця {b} мм. Бажано перейти на вужчий паз — V{rec}.",
+    zNarrow:"<b>Паз вужчий за вікно</b> (V/t = {r} проти {lo}–{hi}). Зусилля завищене, матриця залишає глибокі сліди, оснастка зношується швидше. Бажано перейти на ширший паз — V{rec}.",
+    zRedWide:"<b>Паз надто широкий для цієї товщини.</b> V/t = {r} при вікні {lo}–{hi}. Формула порахувала, але кут буде нестабільним, деталь може провалитись у паз, а полиця коротша за {b} мм просто зісковзне. Значення вище — суто теоретичне. Необхідно перейти на вужчий паз — V{rec}.",
+    zRedNarrow:"<b>Калібрування, а не вільне згинання.</b> V/t = {r} при вікні {lo}–{hi} — лист майже заповнює паз. Реальне зусилля буде в рази більшим за пораховане, матриця й ніж під загрозою. Значення вище — суто теоретичне. Необхідно перейти на ширший паз — V{rec}.",
+    crack:"<b>Ризик тріщин.</b> Для {mat} мінімальний внутрішній радіус ≈ {rmin} мм ({k}·t), а цей паз дає {ir} мм. Потрібен ширший паз — від V{vmin}.",
+    springNote:"Очікуваний пружний відскок ≈ {sb}°: догинати кутом, а не збільшенням тиску.",
+    recNote:"Рекомендований паз для цієї товщини — <b>V{rec}</b> ({y} кН/м).",
+    winLabel:"Ідеальне вікно",
+    winShort:"вікно V/t",
+    winKv:"поправка на метал",
+    winRaised:"підняте через мін. радіус",
+    winRaisedNote:"Вікно підняте вгору: {mat} не тримає радіус менший за {rmin} мм ({k}·t), тому вузькі пази виключені незалежно від зусилля.",
+    lgAmber:"допустимо",
+    lgRed:"тільки теоретично"
+  },
+  bg:{
+    title:"Калкулатор за усилие при огъване",
+    subtitle:"Свободно (въздушно) огъване на 90° · абкант преса",
+    material:"Материал",
+    rmLabel:"Якост на опън Rm",
+    thickness:"Дебелина t",
+    length:"Дължина на огъването",
+    dieLabel:"Отвор на матрицата V / вътрешен радиус ir",
+    dieHint:"Пълният набор инструменти от таблицата на машината. Прозорецът се смята от дебелината и Rm на материала, изборът не се ограничава: червените също се изчисляват. ir — радиусът, който този отвор дава точно на този материал; b — минимална дължина на фланеца.",
+    recBadge:"препоръчано",
+    lgGreen:"идеален прозорец", lgAmber:"допустимо", lgRed:"само теоретично",
+    calc:"Изчисли усилието",
+    foot:"Свободно огъване на 90°. Калиброването (bottoming) изисква 3–5 пъти по-голямо усилие. Стойностите са ориентир, а не граница на машината.",
+    perM:"kN на метър огъване",
+    enterCtrl:"Това число се въвежда в контролера като натиск/усилие (kN/m).",
+    ctrlLabel:"В контролера — пълно усилие",
+    ctrlHint:"Вече с отчетена дължина на огъването {len} m. Ако контролерът е в тонове — въведете {tons}.",
+    permLabel:"Стойност от таблицата × дължина",
+    total:"Общо усилие",
+    forLen:"при дължина",
+    fRadius:"Вътрешен радиус", fFlange:"Мин. фланец", fSpring:"Пружиниране", fRatio:"Съотношение V/t",
+    tons:"т", kn:"kN", mm:"mm", m:"m", deg:"°",
+    errT:"Въведете дебелина по-голяма от 0.",
+    errL:"Въведете дължина на огъването по-голяма от 0.",
+    errRm:"Въведете Rm в диапазона 10–1500 MPa.",
+    errV:"Изберете отвор на матрицата.",
+    zn:{redNarrow:"Критично тесен отвор", narrow:"Тесен отвор", green:"Оптимално", wide:"Широк отвор", redWide:"Критично широк отвор"},
+    zGreen:"<b>Оптимална комбинация.</b> V/t = {r} — вътре в изчисления прозорец {lo}–{hi} за този материал и дебелина. Огъването ще е стабилно, без следи от матрицата.",
+    zWide:"<b>Отворът е по-широк от прозореца</b> (V/t = {r} срещу {lo}–{hi}). Работи, но радиус {ir} mm при дебелина {t} mm означава «завален» ъгъл, по-силно пружиниране и минимален фланец {b} mm. Желателно е да се премине към по-тесен отвор — V{rec}.",
+    zNarrow:"<b>Отворът е по-тесен от прозореца</b> (V/t = {r} срещу {lo}–{hi}). Усилието е завишено, матрицата оставя дълбоки следи, инструментът се износва по-бързо. Желателно е да се премине към по-широк отвор — V{rec}.",
+    zRedWide:"<b>Отворът е твърде широк за тази дебелина.</b> V/t = {r} при прозорец {lo}–{hi}. Формулата смята, но ъгълът ще е нестабилен, детайлът може да пропадне в отвора, а фланец по-къс от {b} mm ще се изплъзне. Стойността по-горе е чисто теоретична. Необходимо е да се премине към по-тесен отвор — V{rec}.",
+    zRedNarrow:"<b>Калиброване, а не свободно огъване.</b> V/t = {r} при прозорец {lo}–{hi} — листът почти запълва отвора. Реалното усилие ще е в пъти по-високо от изчисленото, матрицата и ножът са застрашени. Стойността по-горе е чисто теоретична. Необходимо е да се премине към по-широк отвор — V{rec}.",
+    crack:"<b>Риск от пукнатини.</b> За {mat} минималният вътрешен радиус е ≈ {rmin} mm ({k}·t), а този отвор дава {ir} mm. Нужен е по-широк отвор — от V{vmin}.",
+    springNote:"Очаквано пружиниране ≈ {sb}°: доогъвайте с ъгъла, а не с повече натиск.",
+    recNote:"Препоръчан отвор за тази дебелина — <b>V{rec}</b> ({y} kN/m).",
+    winLabel:"Идеален прозорец",
+    winShort:"прозорец V/t",
+    winKv:"корекция за метала",
+    winRaised:"вдигнат заради мин. радиус",
+    winRaisedNote:"Прозорецът е вдигнат нагоре: {mat} не понася радиус под {rmin} mm ({k}·t), затова тесните отвори отпадат независимо от усилието.",
+    lgAmber:"допустимо",
+    lgRed:"само теоретично"
+  },
+  en:{
+    title:"Bending force calculator",
+    subtitle:"Air bending to 90° · press brake",
+    material:"Material",
+    rmLabel:"Tensile strength Rm",
+    thickness:"Thickness t",
+    length:"Bend length",
+    dieLabel:"Die opening V / inside radius ir",
+    dieHint:"The full tool set from the machine chart. The window is computed from thickness and the material's Rm; the choice is not restricted — red ones are still calculated. ir = the radius this die gives in this particular material; b = minimum flange length.",
+    recBadge:"recommended",
+    lgGreen:"sweet spot", lgAmber:"acceptable", lgRed:"theoretical only",
+    calc:"Calculate force",
+    foot:"Air bending to 90°. Bottoming/coining needs 3–5× more force. Values are guidance, not a machine limit.",
+    perM:"kN per metre of bend",
+    enterCtrl:"Enter this number in the controller as pressure/force (kN/m).",
+    ctrlLabel:"Into the controller — total force",
+    ctrlHint:"Already includes the {len} m bend length. If the controller reads in tonnes, enter {tons}.",
+    permLabel:"Chart value × length",
+    total:"Total force",
+    forLen:"over",
+    fRadius:"Inside radius", fFlange:"Min. flange", fSpring:"Springback", fRatio:"Ratio V/t",
+    tons:"t", kn:"kN", mm:"mm", m:"m", deg:"°",
+    errT:"Enter a thickness greater than 0.",
+    errL:"Enter a bend length greater than 0.",
+    errRm:"Enter Rm between 10 and 1500 MPa.",
+    errV:"Select a die opening.",
+    winLabel:"Sweet spot",
+    winShort:"window V/t",
+    winKv:"alloy factor",
+    winRaised:"raised by min. radius",
+    winRaisedNote:"The window has been pushed up: {mat} will not hold a radius below {rmin} mm ({k}·t), so narrow dies are out regardless of force.",
+    zn:{redNarrow:"Critically narrow die", narrow:"Narrow die", green:"Optimal", wide:"Wide die", redWide:"Critically wide die"},
+    zGreen:"<b>Good combination.</b> V/t = {r}, inside the computed window {lo}–{hi} for this material and thickness. The bend will be repeatable and free of die marks.",
+    zWide:"<b>Die wider than the window</b> (V/t = {r} vs {lo}–{hi}). It works, but a {ir} mm radius on {t} mm material gives a soft, rounded bend, more springback and a {b} mm minimum flange. Better move to a narrower die — V{rec}.",
+    zNarrow:"<b>Die narrower than the window</b> (V/t = {r} vs {lo}–{hi}). Force is inflated, the die leaves deep marks and tooling wears faster. Better move to a wider die — V{rec}.",
+    zRedWide:"<b>The die is far too wide for this thickness.</b> V/t = {r} against a window of {lo}–{hi}. The formula still returns a number, but the angle will be unstable, the part can drop into the opening and any flange shorter than {b} mm will slip. Treat the figure above as purely theoretical. Move to a narrower die — V{rec}.",
+    zRedNarrow:"<b>This is coining, not air bending.</b> V/t = {r} against a window of {lo}–{hi} — the sheet nearly fills the opening. Real force will be several times higher than calculated, and both die and punch are at risk. Treat the figure above as purely theoretical. Move to a wider die — V{rec}.",
+    crack:"<b>Cracking risk.</b> {mat} needs a minimum inside radius of about {rmin} mm ({k}·t), this die gives {ir} mm. Use a wider die — V{vmin} or more.",
+    springNote:"Expect about {sb}° of springback: correct with the angle, not with more pressure.",
+    recNote:"Recommended die for this thickness: <b>V{rec}</b> ({y} kN/m)."
+  }
+};
+
+/* ============ state ============ */
+var lang = "en", selV = null, userPicked = false;
+
+function pickLang(){
+  var list = (navigator.languages && navigator.languages.length) ? navigator.languages
+             : [navigator.language || "en"];
+  for (var i=0;i<list.length;i++){
+    var code = String(list[i]||"").toLowerCase();
+    if (code.indexOf("uk")===0) return "uk";
+    if (code.indexOf("bg")===0) return "bg";
+  }
+  return "en";
+}
+
+function nf(x, dec){
+  var s = Number(x).toFixed(dec == null ? 0 : dec);
+  if (lang !== "en") s = s.replace(".", ",");
+  return s;
+}
+function fill(str, obj){
+  return str.replace(/\{(\w+)\}/g, function(_,k){ return obj[k] != null ? obj[k] : ""; });
+}
+
+/* ============ physics ============ */
+function force(rm, t, v){ return 1.42 * rm * t * t / v; }          // kN/m
+function ratio(v, t){ return v / t; }
+function dieOf(v){
+  for (var i=0;i<DIES.length;i++) if (DIES[i].v === v) return DIES[i];
+  return null;
+}
+function smoothstep(a, b, x){
+  var u = (x - a) / (b - a);
+  u = u < 0 ? 0 : (u > 1 ? 1 : u);
+  return u * u * (3 - 2 * u);
+}
+
+/* Air-formed inside radius is a fixed percentage of the die opening
+   ("20 % rule"): 15-17 % cold-rolled steel, 14-16 % soft aluminium,
+   20-22 % 304 stainless. The plate's own ir column is exactly 16.5 % of V. */
+function irOf(v, mat){ return mat.pct * v; }
+
+/* ---- ideal window, expressed in V/t ----
+   Base 8-12 t = the plate's rule for t > 3 mm.
+   A shift factor slides it towards 6-8 t when the material is strong AND thin,
+   fading out smoothly: by thickness between 2.6 and 3.4 mm,
+   by strength between Rm 150 and 300 MPa.
+   The alloy's minimum inside radius can then push the whole window up. */
+function idealWindow(t, mat){
+  var s = (1 - smoothstep(2.6, 3.4, t)) * smoothstep(150, 300, mat.rm);
+  var kv = mat.kv || 1;
+  var lo = (8 - 2 * s) * kv, hi = (12 - 4 * s) * kv, raised = false;
+  var vFloor = mat.kmin * t / mat.pct;
+  if (vFloor > lo * t * 1.02){          // ignore a marginal, cosmetic raise
+    lo = vFloor / t;
+    hi = Math.max(hi, lo * 1.35);
+    raised = true;
+  }
+  return {lo: lo, hi: hi, shift: s, kv: kv, raised: raised};
+}
+
+var ZMSG = {redNarrow:"zRedNarrow", narrow:"zNarrow", green:"zGreen",
+            wide:"zWide", redWide:"zRedWide"};
+
+var SNAP = 0.05,   // snap to the nearest die on each edge of the window
+    DOWN = 1.25,   // permitted: about one die step below
+    UP   = 1.60;   // permitted: about two die steps above
+
+/* five zones by V/t against that window, three colours */
+function zoneKey(v, t, mat){
+  var r = ratio(v, t), w = idealWindow(t, mat);
+  var gLo = w.lo * (1 - SNAP), gHi = w.hi * (1 + SNAP);
+  if (r >= gLo && r <= gHi) return "green";
+  if (r < gLo) return (r >= gLo / DOWN) ? "narrow" : "redNarrow";
+  return (r <= gHi * UP) ? "wide" : "redWide";
+}
+function colorOf(key){
+  return (key === "green") ? "green"
+       : (key === "narrow" || key === "wide") ? "amber" : "red";
+}
+function zoneOf(v, t, mat){ return colorOf(zoneKey(v, t, mat)); }
+
+// die whose formed radius is tighter than the alloy tolerates
+function radiusRisk(v, t, mat){ return irOf(v, mat) < mat.kmin * t - 1e-9; }
+
+function greenDies(t, mat){
+  return DIES.filter(function(d){ return zoneKey(d.v, t, mat) === "green"; });
+}
+function recommendedDie(t, mat){
+  var w = idealWindow(t, mat), target = Math.sqrt(w.lo * w.hi) * t;
+  var pool = greenDies(t, mat);
+  if (!pool.length) pool = DIES;
+  var best = pool[0], bs = Infinity;
+  pool.forEach(function(d){
+    var sc = Math.abs(Math.log(d.v / target));
+    if (sc < bs){ bs = sc; best = d; }
+  });
+  return best;
+}
+
+/* ============ dom ============ */
+var $ = function(id){ return document.getElementById(id); };
+var matSel = $("mat"), tIn = $("t"), lenIn = $("len"), rmIn = $("rm"),
+    rmWrap = $("rmWrap"), out = $("out"),
+    combo = $("combo"), comboBtn = $("comboBtn"), comboList = $("comboList"),
+    cbMain = $("cbMain"), cbRatio = $("cbRatio"), winInfo = $("winInfo");
+
+function currentMat(){
+  var m = MATS.filter(function(x){ return x.id === matSel.value; })[0] || MATS[0];
+  if (m.id === "custom"){
+    var rmv = parseFloat(rmIn.value);
+    return { id:"custom", rm: rmv, kmin: 1.0, sb: 2, kv: 1.0, n: m.n, g:"x",
+             pct: 0.155 * Math.max(1, (rmv || 0) / 414) };
+  }
+  return m;
+}
+
+function buildMaterials(){
+  var keep = matSel.value;
+  matSel.innerHTML = "";
+  var order = ["al","st","ss","cu","x"];
+  order.forEach(function(g){
+    var og = document.createElement("optgroup");
+    og.label = GROUPS[g][lang];
+    MATS.filter(function(m){ return m.g === g; }).forEach(function(m){
+      var o = document.createElement("option");
+      o.value = m.id;
+      o.textContent = m.n[lang] + (m.id === "custom" ? "" : "  ·  Rm " + m.rm);
+      og.appendChild(o);
+    });
+    matSel.appendChild(og);
+  });
+  matSel.value = keep || "al1050h";
+  if (!matSel.value) matSel.value = "al1050h";
+  rmWrap.hidden = matSel.value !== "custom";
+}
+
+function fmt(x){ return nf(x, x % 1 ? 1 : 0); }
+
+function buildCombo(){
+  var t = parseFloat(tIn.value), mat = currentMat(), d = T[lang];
+  var rec = (t > 0) ? recommendedDie(t, mat) : null;
+  if (!userPicked || !dieOf(selV)) selV = rec ? rec.v : 20;
+
+  // full die list, always — only the colours and the auto-pick follow thickness
+  comboList.innerHTML = "";
+  DIES.forEach(function(die){
+    var row = document.createElement("div");
+    row.className = "opt" + (t > 0 ? " z-" + zoneOf(die.v, t, mat) : "");
+    row.id = "opt-" + die.v;
+    row.setAttribute("role", "option");
+    row.setAttribute("aria-selected", die.v === selV ? "true" : "false");
+    row.innerHTML =
+      '<span class="oV">V' + die.v + "</span>" +
+      '<span class="oGeo">ir ' + nf(irOf(die.v, mat), 1) + " · b " + fmt(die.b) + "</span>" +
+      (rec && rec.v === die.v ? '<span class="recTag">' + d.recBadge + "</span>" : "") +
+      (t > 0 ? '<span class="oRatio">V/t ' + nf(die.v / t, 1) + "</span>" : "");
+    row.addEventListener("click", function(){
+      selV = die.v; userPicked = true; clearOut(); closeCombo(); buildCombo(); comboBtn.focus();
+    });
+    comboList.appendChild(row);
+  });
+
+  var cur = dieOf(selV);
+  cbMain.innerHTML = "<b>V" + selV + "</b><small>ir " + nf(irOf(selV, mat), 1) +
+                     " · b " + fmt(cur.b) + " " + d.mm + "</small>";
+  cbRatio.textContent = (t > 0) ? "V/t " + nf(selV / t, 1) : "";
+  comboBtn.className = "comboBtn" + (t > 0 ? " z-" + zoneOf(selV, t, mat) : "");
+  comboBtn.setAttribute("aria-activedescendant", "opt-" + selV);
+
+  if (t > 0){
+    var w = idealWindow(t, mat), g = greenDies(t, mat);
+    winInfo.innerHTML = "<b>" + d.winLabel + ":</b> V/t " + nf(w.lo,1) + "–" + nf(w.hi,1) +
+      (g.length ? " → V" + g[0].v + (g.length > 1 ? "…V" + g[g.length-1].v : "") : "") +
+      (w.kv !== 1 ? ' <span class="kvTag">· ' + d.winKv + " ×" + nf(w.kv, 2) + "</span>" : "") +
+      (w.raised ? ' <span class="warnTag">· ' + d.winRaised + "</span>" : "");
+  } else winInfo.textContent = "";
+  if (!comboList.hidden) scrollToSelected();
+}
+
+function clearOut(){ out.classList.remove("show"); out.innerHTML = ""; }
+
+function scrollToSelected(){
+  var el = comboList.querySelector('[aria-selected="true"]');
+  if (el) el.scrollIntoView({block:"center"});
+}
+function openCombo(){
+  comboList.hidden = false;
+  comboBtn.setAttribute("aria-expanded", "true");
+  scrollToSelected();
+}
+function closeCombo(){
+  comboList.hidden = true;
+  comboBtn.setAttribute("aria-expanded", "false");
+}
+function stepDie(dir){
+  var i = DIES.map(function(x){ return x.v; }).indexOf(selV) + dir;
+  if (i < 0 || i >= DIES.length) return;
+  selV = DIES[i].v; userPicked = true; clearOut(); buildCombo();
+}
+
+function applyLang(){
+  document.documentElement.lang = lang;
+  var d = T[lang];
+  document.querySelectorAll("[data-i18n]").forEach(function(el){
+    var k = el.getAttribute("data-i18n");
+    if (d[k]) el.textContent = d[k];
+  });
+  document.title = d.title;
+  document.querySelectorAll(".langs button").forEach(function(b){
+    b.setAttribute("aria-pressed", b.getAttribute("data-lang") === lang ? "true" : "false");
+  });
+  buildMaterials();
+  buildCombo();
+  out.classList.remove("show");
+  out.innerHTML = "";
+}
+
+/* ============ calculate ============ */
+function calculate(){
+  var d = T[lang], mat = currentMat();
+  var t = parseFloat(tIn.value), L = parseFloat(lenIn.value);
+  var err = null;
+  if (!(t > 0)) err = d.errT;
+  else if (!(L > 0)) err = d.errL;
+  else if (!(mat.rm >= 10 && mat.rm <= 1500)) err = d.errRm;
+  else if (!selV) err = d.errV;
+  if (err){
+    out.innerHTML = '<div class="err">' + err + "</div>";
+    out.classList.add("show");
+    out.scrollIntoView({behavior:"smooth", block:"nearest"});
+    return;
+  }
+
+  var die = dieOf(selV), r = ratio(selV, t), w = idealWindow(t, mat);
+  var zkey = zoneKey(selV, t, mat), risk = radiusRisk(selV, t, mat), cls = colorOf(zkey);
+  var y = force(mat.rm, t, selV), total = y * L, tons = total / 9.81;
+  var rec = recommendedDie(t, mat), recY = force(mat.rm, t, rec.v);
+  var ir = irOf(selV, mat), rmin = mat.kmin * t;
+  var vmin = null;
+  for (var i=0;i<DIES.length;i++){ if (irOf(DIES[i].v, mat) >= rmin){ vmin = DIES[i].v; break; } }
+
+  var vars = {
+    r: nf(r, 1), ir: nf(ir, 1), b: nf(die.b, die.b % 1 ? 1 : 0),
+    lo: nf(w.lo, 1), hi: nf(w.hi, 1),
+    len: nf(L, L % 1 ? 1 : 0), tons: nf(tons, tons < 10 ? 1 : 0),
+    t: nf(t, t % 1 ? 1 : 0), rec: rec.v, y: nf(recY, 0),
+    mat: (mat.id === "custom" ? "Rm " + nf(mat.rm) : mat.n[lang].split(" — ")[0]),
+    rmin: nf(rmin, 1), k: nf(mat.kmin, mat.kmin % 1 ? 1 : 0), vmin: vmin, sb: nf(mat.sb, mat.sb % 1 ? 1 : 0)
+  };
+
+  var msg = d[ZMSG[zkey]];
+
+  var html = "";
+  html += '<div class="ctrl"><div class="ctrlLab">' + d.ctrlLabel + "</div>" +
+          '<div class="hero"><span class="big">' + nf(total, total < 10 ? 1 : 0) +
+          '</span><span class="u">' + d.kn + '</span><span class="tn">≈ ' +
+          nf(tons, tons < 10 ? 1 : 0) + " " + d.tons + "</span></div>" +
+          '<div class="ctrlHint">' + fill(d.ctrlHint, vars) + "</div></div>";
+  html += '<div class="perm">' + d.permLabel + ": <b>" + nf(y, y < 10 ? 1 : 0) + " " +
+          d.kn + "/" + d.m + "</b> × " + nf(L, L % 1 ? 1 : 0) + " " + d.m + " = <b>" +
+          nf(total, total < 10 ? 1 : 0) + " " + d.kn + "</b></div>";
+
+  html += '<div class="facts">';
+  html += '<div class="fact"><em>' + d.fRadius + "</em><b>≈ " + vars.ir + " " + d.mm + "</b></div>";
+  html += '<div class="fact"><em>' + d.fFlange + "</em><b>" + vars.b + " " + d.mm + "</b></div>";
+  html += '<div class="fact"><em>' + d.fSpring + "</em><b>≈ " + vars.sb + d.deg + "</b></div>";
+  html += '<div class="fact"><em>' + d.fRatio + "</em><b>" + vars.r + "</b></div>";
+  html += "</div>";
+
+  html += '<div class="badge ' + cls + '">' + d.zn[zkey] +
+          "<small>" + d.winShort + " " + vars.lo + "–" + vars.hi + "</small></div>";
+  html += '<div class="note hasBadge ' + cls + '">' + fill(msg, vars) + "</div>";
+
+  if (risk && vmin){
+    html += '<div class="note red">' + fill(d.crack, vars) + "</div>";
+  }
+  if (w.raised){
+    html += '<div class="note blue">' + fill(d.winRaisedNote, vars) + "</div>";
+  }
+  html += '<div class="note blue">' + fill(d.springNote, vars) + "</div>";
+
+  html += '<div class="formula">Y = 1,42 × ' + nf(mat.rm) + " × " + nf(t, t % 1 ? 1 : 0) +
+          "² ÷ " + selV + " = " + nf(y, y < 10 ? 1 : 0) + " " + d.kn + "/" + d.m + "</div>";
+
+  out.innerHTML = html;
+  out.classList.add("show");
+  out.scrollIntoView({behavior:"smooth", block:"nearest"});
+}
+
+/* ============ wiring ============ */
+matSel.addEventListener("change", function(){
+  rmWrap.hidden = matSel.value !== "custom";
+  userPicked = false; clearOut(); buildCombo();
+});
+rmIn.addEventListener("input", function(){ clearOut(); buildCombo(); });
+tIn.addEventListener("input", function(){ userPicked = false; clearOut(); buildCombo(); });
+lenIn.addEventListener("input", clearOut);
+$("go").addEventListener("click", calculate);
+
+comboBtn.addEventListener("click", function(e){
+  e.stopPropagation();
+  if (comboList.hidden) openCombo(); else closeCombo();
+});
+comboBtn.addEventListener("keydown", function(e){
+  var k = e.key;
+  if (k === "ArrowDown" || k === "ArrowUp"){
+    e.preventDefault();
+    if (comboList.hidden) openCombo(); else stepDie(k === "ArrowDown" ? 1 : -1);
+  } else if (k === "Home" || k === "End"){
+    if (!comboList.hidden){ e.preventDefault();
+      selV = (k === "Home" ? DIES[0] : DIES[DIES.length-1]).v; userPicked = true; clearOut(); buildCombo(); }
+  } else if (k === "Enter" || k === " "){
+    if (!comboList.hidden){ e.preventDefault(); closeCombo(); }
+  } else if (k === "Escape"){ closeCombo(); }
+});
+document.addEventListener("click", function(e){ if (!combo.contains(e.target)) closeCombo(); });
+document.addEventListener("keydown", function(e){ if (e.key === "Escape") closeCombo(); });
+document.querySelectorAll(".langs button").forEach(function(b){
+  b.addEventListener("click", function(){ lang = b.getAttribute("data-lang"); applyLang(); });
+});
+[tIn, lenIn, rmIn].forEach(function(el){
+  el.addEventListener("keydown", function(e){ if (e.key === "Enter") calculate(); });
+});
+
+lang = pickLang();
+matSel.value = "al1050h";
+applyLang();
+</script>
+</body>
+</html>

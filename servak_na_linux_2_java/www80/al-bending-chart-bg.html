@@ -1,0 +1,300 @@
+<!DOCTYPE html>
+<html lang="bg">
+<head>
+<meta charset="utf-8">
+<title>Таблица за усилие при огъване — алуминий</title>
+<style>
+  @page { size: A4 landscape; margin: 5mm; }
+  * { box-sizing: border-box; }
+  html, body { margin:0; padding:0; background:#e9e9e6; }
+  body { font-family: "DejaVu Sans", Arial, Helvetica, sans-serif; color:#111; }
+
+  .plate {
+    width: 287mm; height: 198mm; margin:0 auto; background:#fff;
+    border: 1.1mm solid #1a1a1a; border-radius: 3mm; padding: 4mm 5mm;
+    display:flex; flex-direction:column; gap:3mm;
+  }
+
+  /* ---------- header ---------- */
+  .head { display:flex; align-items:center; gap:6mm; border-bottom:0.6mm solid #1a1a1a; padding-bottom:2mm; }
+  .head h1 { margin:0; font-size:15.5pt; line-height:1; color:#c8102e; font-weight:800; white-space:nowrap; }
+  .head .en { font-size:7.6pt; color:#c8102e; font-weight:700; letter-spacing:.4px; margin-top:0.8mm; }
+  .head h2 { margin:1mm 0 0; font-size:9pt; color:#222; font-weight:600; }
+  .alert { margin-left:auto; border:0.8mm solid #c8102e; background:#fff3f4; border-radius:2mm;
+           padding:1.8mm 3mm; width:104mm; flex:none; }
+  .alert b { color:#c8102e; font-size:10.5pt; display:block; margin-bottom:0.8mm; line-height:1.1; }
+  .alert span { font-size:8pt; line-height:1.35; display:block; }
+  .alert .en2 { font-size:7pt; color:#8a2230; margin-top:0.8mm; font-style:italic; }
+
+  /* ---------- middle ---------- */
+  .body { display:flex; gap:4mm; flex:1; min-height:0; }
+  .left { width:76mm; flex:none; display:flex; flex-direction:column; gap:2mm; }
+  .right { flex:1; display:flex; flex-direction:column; gap:1.8mm; min-width:0; }
+  .svgwrap { flex:1; min-height:0; display:flex; align-items:center; }
+  .svgwrap svg { width:100%; height:100%; }
+  .tablewrap { flex:1; min-height:0; display:flex; }
+  .tablewrap table { height:100%; }
+
+  .box { border:0.4mm solid #999; border-radius:1.5mm; padding:1.8mm 2.5mm; }
+  .box h3 { margin:0 0 1.2mm; font-size:8pt; text-transform:uppercase; letter-spacing:.5px; color:#c8102e; }
+  .box p { font-size:7.5pt; line-height:1.4; margin:0.6mm 0; }
+
+  .formula { text-align:center; font-size:11pt; padding:0.5mm 0; }
+  .formula .frac { display:inline-block; vertical-align:middle; text-align:center; margin:0 1mm; }
+  .formula .frac .num { border-bottom:0.35mm solid #111; padding:0 1.5mm 0.4mm; display:block; }
+  .formula .frac .den { padding-top:0.4mm; display:block; }
+  .formula i { font-style:italic; }
+  .fnote { font-size:6.8pt; color:#555; text-align:center; margin-top:0.8mm; line-height:1.3; }
+
+  /* ---------- tables ---------- */
+  table { border-collapse:collapse; width:100%; }
+  th, td { border:0.25mm solid #8a8a8a; text-align:center; font-size:10pt; padding:1.1mm 0.4mm; }
+  thead th { background:#1a1a1a; color:#fff; font-weight:700; }
+  .tcap { background:#1a1a1a; color:#fff; font-size:7.4pt; font-weight:700; padding:1mm; letter-spacing:.3px; }
+  tbody th { background:#1a1a1a; color:#fff; font-weight:700; }
+  tbody th.sub { background:#3f3f3f; color:#ddd; font-weight:500; font-size:8.6pt; }
+  td.na { background:#1a1a1a; }
+  td.ok   { background:#d7efd2; font-weight:700; }
+  td.warn { background:#fdf0c4; }
+  td.bad  { background:#ffd6d0; }
+  tr.main th, tr.main td { font-size:15pt; padding:2.1mm 0.4mm; font-weight:700; }
+  tr.main { outline:0.7mm solid #c8102e; }
+  tr.main th { background:#c8102e; }
+  tr.main th.sub { background:#dd5568; color:#fff; font-size:10pt; }
+
+  .legend { display:flex; gap:4mm; align-items:center; flex-wrap:wrap; font-size:7pt; }
+  .legend i { width:4mm; height:2.6mm; display:inline-block; border:0.25mm solid #888; vertical-align:-0.3mm; margin-right:1mm; }
+
+  /* ---------- bottom band ---------- */
+  .band { display:flex; gap:3mm; margin-top:auto; }
+  .band > div { flex:1; }
+  .band .wide { flex:1.35; }
+  table.mini th, table.mini td { font-size:7.1pt; padding:0.9mm 1mm; }
+  table.mini td.l { text-align:left; }
+  table.mini td.r { width:13mm; font-weight:700; }
+  table.mini td.rm { width:9mm; color:#555; font-size:6.9pt; }
+
+  .example { background:#eef4fb; border:0.5mm solid #4a7fb5; border-radius:1.5mm; padding:1.8mm 2.5mm; flex:0.85; }
+  .example h3 { color:#1c4f80; margin:0 0 1mm; font-size:8pt; text-transform:uppercase; letter-spacing:.5px; }
+  .example p { font-size:7.4pt; margin:0.7mm 0; line-height:1.35; }
+  .example .big { font-size:10pt; font-weight:700; color:#1c4f80; }
+
+  .foot { border-top:0.4mm solid #999; padding-top:1.2mm; font-size:6.7pt; color:#666;
+          display:flex; justify-content:space-between; }
+</style>
+</head>
+<body>
+<div class="plate">
+
+  <div class="head">
+    <div>
+      <h1>ТАБЛИЦА ЗА УСИЛИЕ ПРИ ОГЪВАНЕ · АЛУМИНИЙ</h1>
+      <div class="en">ALUMINIUM BENDING PRESSURE CHART · kN/m · kN/Metre</div>
+      <h2>1050 / 3003 — мек алуминий (Rm ≈ 140 MPa) · свободно (въздушно) огъване на 90°</h2>
+<h2>
+Download
+<a href="/dwnld/Tablica_ogavane_aluminij_V20_BG.pdf" download
+   type="application/pdf"> BG</a>
+<a href="/dwnld/Таблиця_зусиль_алюміній_V20.pdf" download
+   type="application/pdf"> UA</a>
+</h2>
+    </div>
+    <div class="alert">
+      <b>Числото от таблицата е kN на МЕТЪР — умножете го по дължината!</b>
+      <span>Таблица × дължина на огъването в метри = пълното усилие, и <u>то</u> се въвежда в контролера. Това не е височина на спиране на ножа и не е разстояние.</span>
+      <span class="en2">Chart value is kN per METRE — multiply by bend length; the product is what the controller takes.</span>
+</div>
+  </div>
+
+  <div class="body">
+
+    <!-- ================= LEFT ================= -->
+    <div class="left">
+
+      <div class="svgwrap">
+      <svg viewBox="0 0 268 158" preserveAspectRatio="xMidYMid meet">
+        <defs>
+          <marker id="ar" markerWidth="7" markerHeight="7" refX="6" refY="3" orient="auto">
+            <path d="M0 0 L6 3 L0 6 Z" fill="#1a1a1a"/></marker>
+          <marker id="arr" markerWidth="7" markerHeight="7" refX="1" refY="3" orient="auto">
+            <path d="M7 0 L1 3 L7 6 Z" fill="#1a1a1a"/></marker>
+          <marker id="ard" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto">
+            <path d="M0 0 L6 3 L0 6 Z" fill="#c8102e"/></marker>
+        </defs>
+        <g transform="translate(14,0)">
+          <!-- flat sheet before bending (red) -->
+          <line x1="52" y1="75" x2="188" y2="75" stroke="#c8102e" stroke-width="6" stroke-linecap="round" opacity="0.85"/>
+          <!-- punch -->
+          <path d="M107 4 L107 81 L120 95 L133 81 L133 4 Z" fill="#2b2b2b"/>
+          <!-- bent sheet (black), over the punch tip so the radius stays visible -->
+          <path d="M58 39 L112 93 Q120 100 128 93 L182 39"
+                fill="none" stroke="#1a1a1a" stroke-width="6" stroke-linecap="round" stroke-linejoin="round"/>
+          <!-- die -->
+          <path d="M40 81 L100 81 L120 111 L140 81 L200 81 L200 146 L40 146 Z"
+                fill="none" stroke="#1a1a1a" stroke-width="2.6" stroke-linejoin="round"/>
+          <!-- V dimension -->
+          <line x1="100" y1="130" x2="140" y2="130" stroke="#1a1a1a" stroke-width="1.1"
+                marker-start="url(#arr)" marker-end="url(#ar)"/>
+          <text x="120" y="127" font-size="11" text-anchor="middle" font-weight="700">V</text>
+          <text x="120" y="141" font-size="8" text-anchor="middle">отвор на матрицата</text>
+
+          <!-- labels -->
+          <text x="-12" y="22" font-size="9">t — дебелина</text>
+          <line x1="20" y1="26" x2="62" y2="46" stroke="#1a1a1a" stroke-width="0.9" stroke-dasharray="3 2"/>
+          <text x="150" y="14" font-size="10" font-weight="700" fill="#c8102e">Y, kN/m</text>
+          <line x1="151" y1="18" x2="137" y2="32" stroke="#c8102e" stroke-width="1.2" stroke-dasharray="3 2" marker-end="url(#ard)"/>
+          <text x="206" y="104" font-size="9">ir — вътр.</text>
+          <text x="206" y="114" font-size="9">радиус</text>
+          <line x1="205" y1="101" x2="131" y2="97" stroke="#1a1a1a" stroke-width="0.9" stroke-dasharray="3 2"/>
+          <text x="204" y="44" font-size="9">b — мин.</text>
+          <text x="204" y="54" font-size="9">фланец</text>
+          <line x1="203" y1="41" x2="172" y2="50" stroke="#1a1a1a" stroke-width="0.9" stroke-dasharray="3 2"/>
+        </g>
+      </svg>
+      </div>
+
+      <div class="box">
+        <h3>Формула</h3>
+        <div class="formula">
+          <b>Y</b> = 1,42 ·
+          <span class="frac"><span class="num"><i>Rm</i> · <i>t</i>²</span><span class="den"><i>V</i></span></span>
+          , kN/m
+        </div>
+        <div class="fnote">Rm — якост на опън, MPa · t, V — mm<br>
+        Същата формула дава китайската таблица за стомана при Rm = 450 MPa</div>
+      </div>
+
+      <div class="box">
+        <h3>Избор на отвор V</h3>
+        <p><b>V = 8–12 · t</b> за мек алуминий.</p>
+        <p>За стомана прозорецът слиза до <b>6–8 · t</b> (правилото под схемата на китайската табела) — колкото по-як е металът и по-тънък листът, толкова по-тесен отвор.</p>
+        <p>Радиусът се определя от <b>матрицата, а не от ножа</b>: ir ≈ 15 % от V за алуминий, ≈ 16,5 % за стомана.</p>
+      </div>
+
+    </div>
+
+    <!-- ================= RIGHT ================= -->
+    <div class="right">
+
+      <div class="tablewrap">
+      <table>
+        <thead>
+          <tr>
+            <th colspan="3" style="font-size:7.4pt">инструмент</th>
+            <th colspan="10">t — ДЕБЕЛИНА НА АЛУМИНИЕВИЯ ЛИСТ, mm</th>
+          </tr>
+          <tr>
+            <th style="width:11mm">V</th><th class="sub" style="width:10mm">b</th><th class="sub" style="width:10mm">ir</th>
+            <th>1,0</th><th>1,2</th><th>1,5</th><th>2,0</th><th>2,5</th><th>3,0</th><th>3,5</th><th>4,0</th><th>4,5</th><th>5,0</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <th>12</th><th class="sub">8,5</th><th class="sub">1,8</th>
+            <td class="ok">20</td><td class="ok">25</td><td class="ok">40</td><td class="bad">70</td><td class="bad">110</td><td class="na"></td><td class="na"></td><td class="na"></td><td class="na"></td><td class="na"></td>
+          </tr>
+          <tr>
+            <th>16</th><th class="sub">11</th><th class="sub">2,4</th>
+            <td class="warn">15</td><td class="warn">20</td><td class="ok">30</td><td class="ok">50</td><td class="warn">80</td><td class="bad">120</td><td class="na"></td><td class="na"></td><td class="na"></td><td class="na"></td>
+          </tr>
+          <tr class="main">
+            <th>20</th><th class="sub">14</th><th class="sub">3</th>
+            <td class="warn">10</td><td class="warn">15</td><td class="warn">25</td><td class="ok">40</td><td class="ok">65</td><td class="warn">90</td><td class="bad">130</td><td class="bad">160</td><td class="bad">210</td><td class="bad">250</td>
+          </tr>
+          <tr>
+            <th>25</th><th class="sub">17,5</th><th class="sub">3,8</th>
+            <td class="na"></td><td class="bad">15</td><td class="warn">20</td><td class="ok">35</td><td class="ok">50</td><td class="ok">75</td><td class="warn">100</td><td class="warn">130</td><td class="bad">170</td><td class="bad">200</td>
+          </tr>
+          <tr>
+            <th>32</th><th class="sub">22</th><th class="sub">4,8</th>
+            <td class="na"></td><td class="na"></td><td class="bad">15</td><td class="warn">25</td><td class="warn">40</td><td class="ok">60</td><td class="ok">80</td><td class="ok">100</td><td class="warn">130</td><td class="warn">160</td>
+          </tr>
+          <tr>
+            <th>40</th><th class="sub">28</th><th class="sub">6</th>
+            <td class="na"></td><td class="na"></td><td class="na"></td><td class="warn">20</td><td class="warn">35</td><td class="warn">45</td><td class="ok">65</td><td class="ok">80</td><td class="ok">110</td><td class="ok">130</td>
+          </tr>
+        </tbody>
+      </table>
+      </div>
+
+      <div class="legend">
+        <span><i style="background:#d7efd2"></i><b>идеален прозорец</b> V = 8–12·t (мек алуминий)</span>
+        <span><i style="background:#fdf0c4"></i>допустимо: около една стъпка по-тесен или две по-широк отвор</span>
+        <span><i style="background:#ffd6d0"></i>само теоретично: сметката работи, но така не се огъва</span>
+        <span><i style="background:#1a1a1a"></i>не се прилага</span>
+      </div>
+
+      <table class="mini" style="margin-top:0.5mm">
+        <thead><tr><th class="tcap" colspan="9">ОСОБЕНОСТИ НА АЛУМИНИЯ</th></tr></thead>
+        <tbody>
+          <tr>
+            <td class="l">Огъвайте <b>напречно на посоката на валцуване</b> — надлъжно се напуква</td>
+            <td class="l">Мин. вътрешен радиус: <b>1050/3003 — 0,5·t</b>, 5754 — 1,0·t, <b>6082-T6 — 2,5·t</b></td>
+          </tr>
+          <tr>
+            <td class="l">Фланец, по-къс от <b>b</b>, се изплъзва в отвора — не се огъва</td>
+            <td class="l">Пружинирането е по-голямо от стоманата: мек Al ≈ 1–2°, 5754 ≈ 3°, 6082-T6 ≈ 5–8°</td>
+          </tr>
+          <tr>
+            <td class="l">Не сваляйте защитното фолио — пази от следи от матрицата</td>
+            <td class="l">Доогъвайте с <b>ъгъла</b>, а не с натиск: повече усилие не добавя градуси</td>
+          </tr>
+        </tbody>
+      </table>
+
+    </div>
+  </div>
+
+  <!-- ================= BOTTOM BAND ================= -->
+  <div class="band">
+
+    <div class="example">
+      <h3>Пример</h3>
+      <p>Лист 2,0 mm · огъване 1,5 m · отвор V=20</p>
+      <p class="big">40 kN/m × 1,5 m = 60 kN ≈ 6 тона</p>
+      <p style="color:#555">В контролера въвеждаме <b>60 kN</b> (≈ 6 тона) — вече умножено по дължината.</p>
+      <p style="border-top:0.3mm solid #9bb7d4;padding-top:1.2mm;margin-top:1.5mm">
+        Същият лист <b>4,0 mm</b> при V=20 е вече <b>160</b> kN/m и дълбоки следи.
+        При V=32 — <b>100</b> kN/m. Над 3 mm се огъва по-изгодно с по-широк отвор.</p>
+    </div>
+
+    <div class="wide">
+      <table class="mini">
+        <thead>
+          <tr><th class="tcap" colspan="6">ДРУГ МЕТАЛ — УМНОЖЕТЕ ЧИСЛОТО ОТ ТАБЛИЦАТА</th></tr>
+          <tr><th style="font-size:6.6pt">сплав</th><th style="font-size:6.6pt">Rm</th><th style="font-size:6.6pt">×</th>
+              <th style="font-size:6.6pt">сплав</th><th style="font-size:6.6pt">Rm</th><th style="font-size:6.6pt">×</th></tr>
+        </thead>
+        <tbody>
+          <tr><td class="l">1050-O, отгрят</td><td class="rm">75</td><td class="r">× 0,55</td>
+              <td class="l">5083</td><td class="rm">290</td><td class="r">× 2,1</td></tr>
+          <tr><td class="l">1050 / 1060-H14</td><td class="rm">105</td><td class="r">× 0,75</td>
+              <td class="l">6082-T6 / 6061-T6</td><td class="rm">310</td><td class="r">× 2,2</td></tr>
+          <tr><td class="l">3003-H14</td><td class="rm">145</td><td class="r">× 1,0</td>
+              <td class="l">Неръждаема 304</td><td class="rm">600</td><td class="r">× 4,3</td></tr>
+          <tr><td class="l">5754 / 5052-H111</td><td class="rm">220</td><td class="r">× 1,6</td>
+              <td class="l" style="background:#eee"><b>S235 / стомана — стара табл.</b></td><td class="rm" style="background:#eee">450</td><td class="r" style="background:#eee">× 3,2</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div>
+      <table class="mini">
+        <thead><tr><th class="tcap" colspan="2">ЗА КОНТРОЛЕРА: ОБЩО УСИЛИЕ, тона = (Y × L) ÷ 10</th></tr></thead>
+        <tbody>
+          <tr><td class="l" style="line-height:1.35">L — дължина на огъването в метри. Ако контролерът иска тона, а не kN — разделете на 10.</td></tr>
+          <tr><td class="l" style="line-height:1.35">Не е задължително да се огъва по цялата дължина на ножа, но къс детайл отстрани изкривява траверсата — поставяйте го в средата.</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+  </div>
+
+  <div class="foot">
+    <span>Стойностите са закръглени нагоре · свободно (въздушно) огъване на 90° · при калиброване (bottoming) усилието е 3–5 пъти по-голямо</span>
+    <span>Изчислено по формулата от оригиналната таблица на машината</span>
+  </div>
+
+</div>
+</body>
+</html>

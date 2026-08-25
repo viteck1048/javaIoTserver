@@ -144,6 +144,9 @@ public class ClientHandler extends Thread {
 				out.write(httpResponse.getHeaders());
 			if (httpResponse.getBody() != null)
 				out.write(httpResponse.getBody());
+			if (httpResponse.streamResponse) {
+				httpResponse.streamResponseTo(out);
+			}
 			httpResponse.prntMsg(httpRequest);
 			out.flush();
 

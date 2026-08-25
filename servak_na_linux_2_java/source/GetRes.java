@@ -74,6 +74,13 @@ public final class GetRes {
 			if (!filePath.toFile().isDirectory()) {
 				if (filePath.toFile().exists()) {
 					try {
+						int isStreamResponse = FileCacheManager.isStreamResponse(filePath.toString());
+						if (isStreamResponse > 0) {
+							if (httpRequest.method.compareTo("HEAD") == 0)
+								return new HTTPResponse(FileCacheManager.getFileStreamResponse(filePath.toString()), requestedFile, isStreamResponse, true);
+							else
+								return new HTTPResponse(FileCacheManager.getFileStreamResponse(filePath.toString()), requestedFile, isStreamResponse, false);
+						}
 						byte[] fileData = FileCacheManager.getFile(filePath.toString());
 						if(fileData != null) {
 							if(httpRequest.method.compareTo("HEAD") == 0)

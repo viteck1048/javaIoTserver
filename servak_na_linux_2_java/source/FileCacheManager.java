@@ -469,4 +469,37 @@ public class FileCacheManager {
 			return cacheBytes;
 		}
 	}
+
+	/**
+	 * Єдина точка рішення: кешувати файл чи віддати потоково. Диска не
+	 * торкається понад один stat (file.length()) - лока не потребує, бо
+	 * cashFiles/cacheBytes тут не чіпаються.
+	 *
+	 * @param path шлях до файлу
+	 * @return розмір файлу в байтах, якщо його слід віддати потоково
+	 *         (перевищує {@link #MAX_ENTRY_BYTES}); -1, якщо файлу нема,
+	 *         або він під лімітом - тоді правильний шлях це звичайний getFile()
+	 */
+	public static int isStreamResponse(String path) {
+		File file = new File(path);
+		if (!file.isFile()) {
+			return -1;
+		}
+
+		long size = file.length();
+		if (size <= MAX_ENTRY_BYTES || size > Integer.MAX_VALUE) {
+			return -1;
+		}
+
+		return (int) size;
+	}
+
+	/**
+	 * File-дескриптор для потокової віддачі. Викликати лише після
+	 * isStreamResponse(path) > 0 - рішення вже ухвалене там, тут диск
+	 * повторно не статиться (new File() сам по собі І/О не робить).
+	 */
+	public static File getFileStreamResponse(String path) {
+		return new File(path);
+	}
 }

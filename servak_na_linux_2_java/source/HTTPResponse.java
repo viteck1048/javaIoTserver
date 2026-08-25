@@ -19,6 +19,10 @@ public class HTTPResponse {
 	private String msg;
 	private boolean fl_err_prnt_hdr;
 	public boolean close_connect_flag;
+	private File file;
+	public boolean streamResponse;
+	private int streamResponseLength;
+	private boolean head;
 	
 	public HTTPResponse(String headers, byte[] body) {
 		this.headers = headers;
@@ -38,6 +42,36 @@ public class HTTPResponse {
 	
 	public HTTPResponse(int length, byte[] body, String nameFile) {
 		this(length, body, nameFile, false);
+	}
+
+	public HTTPResponse(File file, String nameFile, int length, boolean head) {
+		// Виклик this(...) мусить бути першим оператором конструктора - решту
+		// стрім-специфічних полів ставимо вже після нього.
+		this(length, null, nameFile, head);
+		this.file = file;
+		this.streamResponse = true;
+		this.streamResponseLength = length;
+		this.head = head;
+		// Content-Length уже виставлений делегованим конструктором коректно
+		// (з переданого length, а не з body.length) - справжній розмір файлу
+		// відомий наперед, тож chunked-framing не потрібен: "Content-Encoding:
+		// chunked" - взагалі не існуюче значення (це Transfer-Encoding, не
+		// Content-Encoding), і одночасно з Content-Length його й не можна
+		// слати. Звичайний Content-Length + кілька write() замість одного -
+		// саме стільки й треба.
+	}
+
+	public void streamResponseTo(OutputStream out) throws IOException {
+		if (head) {
+			return;
+		}
+		try (FileInputStream fis = new FileInputStream(file)) {
+			byte[] buffer = new byte[8192];
+			int bytesRead;
+			while ((bytesRead = fis.read(buffer)) != -1) {
+				out.write(buffer, 0, bytesRead);
+			}
+		}
 	}
 	
 	public HTTPResponse(int length, byte[] body, String nameFile, boolean head) {
@@ -471,7 +505,13 @@ public class HTTPResponse {
 				}
 			}
 			int contentLength = 0;
-			if(body != null && body.length > 0) {
+			if (streamResponse) {
+				// body тут завжди null (тіло йде окремо, streamResponseTo() в
+				// ClientHandler) - справжній розмір рахувати нема з чого, крім
+				// як зі значення, вже відомого на момент конструювання.
+				contentLength = streamResponseLength;
+			}
+			else if(body != null && body.length > 0) {
 				contentLength = body.length;
 			}
 			String contentLengthPattern = "Content-Length: \\d+\r\n";

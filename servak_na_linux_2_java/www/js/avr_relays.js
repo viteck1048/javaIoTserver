@@ -62,12 +62,29 @@ $(document).ready(function() {
 	
 });
 
+let isRedirecting = false;
+
 function update_det_gad() {
+	if (isRedirecting) return; // Якщо вже редиректимо, нічого не шлемо
 	if(gad != null && autoupdate_storinka != 0) {
-		$.get(gad, function(data) {
-			$('#field2').html(data);
-			get_perelik_prystrojiv();
-		});
+		$.ajax({
+			url: gad,
+			method: 'GET',
+			success: function(data, textStatus, xhr) {
+				if (xhr.status !== 200) {
+					isRedirecting = true;
+					window.location.href = '/index.html';
+					return;
+				}
+				$('#field2').html(data);
+				get_perelik_prystrojiv();
+			},
+			error: function(xhr) {
+				// Будь-яка помилка від Апача (не 200) теж ловиться тут
+				isRedirecting = true;
+				window.location.href = '/index.html';
+			}
+	    });
 	}
 	else {
 		get_perelik_prystrojiv();
@@ -76,13 +93,19 @@ function update_det_gad() {
 }
 
 function get_perelik_prystrojiv() {
+	if (isRedirecting) return;
 //	gad = null;
 //	autoupdate_storinka = 1;
 	$.ajax({
 		url:'get_perelik_prystrojiv', // URL до якого виконується запит
 		method: 'GET', // Метод запиту (GET, POST і т.д.)
-		success: function(data) {
+		success: function(data, textStatus, xhr) {
 			//const data = JSON.parse(response);
+			if (xhr.status !== 200) {
+				isRedirecting = true;
+				window.location.href = '/index.html';
+				return;
+			}
 			$('#perelik_prystrojiv').empty(); // Очищаємо контейнер перед додаванням нових елементів
 			
 			data.gadgets.forEach(gadget => {
@@ -98,8 +121,14 @@ function get_perelik_prystrojiv() {
 			}
 		},
 		error: function(xhr, status, error) {
-			// Обробка помилок
-			console.error('Помилка запиту:', error);
+			// ОБОВ'ЯЗКОВО перевіряємо статус тут, бо jQuery при 401/403 падає в error
+			if (xhr.status === 401 || xhr.status === 403) {
+				console.log("Сесію втрачено, редирект...");
+				window.location.href = '/index.html';
+				return;
+			}
+			// Обробка інших помилок мережі (сервер перезапускається)
+			console.error("Помилка запиту: ", error);
 		}
 	});
 }

@@ -213,6 +213,7 @@ public class Servak {
 
 		// Запускаємо агент очистки кешу
 		CacheAgent cacheAgentInstance = new CacheAgent();
+		cacheAgentInstance.setWorkerPool(workerPool);
 		cacheAgentInstance.initFromConfig();
 		Thread cacheAgent = new Thread(cacheAgentInstance);
 		cacheAgent.setDaemon(true);

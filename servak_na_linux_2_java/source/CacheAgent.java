@@ -9,6 +9,12 @@ public class CacheAgent implements Runnable {
     private volatile boolean running = true;
     private long cacheTimeoutMs = 10 * 60 * 1000; // 10 хвилин дефолтно
     private boolean enabled = true;
+    /** null, коли workerpool=false - тоді reconcile-крок просто пропускається */
+    private WorkerPool workerPool;
+
+    public void setWorkerPool(WorkerPool workerPool) {
+        this.workerPool = workerPool;
+    }
 
     /**
      * Ініціалізація налаштувань агента з конфігурації
@@ -50,6 +56,9 @@ public class CacheAgent implements Runnable {
             runQuietly("FileCacheManager.evictStale", FileCacheManager::evictStale);
             runQuietly("KeyManager.cleanUpExpiredKeys", KeyManager::cleanUpExpiredKeys);
             runQuietly("FirewallIP.cleanupBlackList", FirewallIP::cleanupBlackList);
+            if (workerPool != null) {
+                runQuietly("WorkerPool.reconcile", workerPool::reconcile);
+            }
         }
     }
 

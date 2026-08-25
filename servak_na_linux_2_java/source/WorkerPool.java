@@ -1,6 +1,8 @@
 import java.io.IOException;
 import java.net.Socket;
+import java.util.Set;
 import java.util.concurrent.BlockingQueue;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -85,6 +87,8 @@ public class WorkerPool {
 
 	private final BlockingQueue<Task> queue = new LinkedBlockingQueue<>();
 	private final BlockingQueue<Task> guardQueue = new LinkedBlockingQueue<>();
+	/** Реальні посилання на воркер-потоки - опора для reconcile(); totalWorkers/idleWorkers самі по собі можуть розійтись з дійсністю */
+	private final Set<Thread> workers = ConcurrentHashMap.newKeySet();
 	private final AtomicInteger totalWorkers = new AtomicInteger(0);
 	private final AtomicInteger idleWorkers = new AtomicInteger(0);
 	private final AtomicInteger guardThreadCount = new AtomicInteger(0);
@@ -149,6 +153,7 @@ public class WorkerPool {
 		idleWorkers.incrementAndGet();
 		Thread t = new Thread(this::workerLoop, "worker-pool-" + totalWorkers.get());
 		t.setDaemon(true);
+		workers.add(t);
 		t.start();
 	}
 
@@ -173,12 +178,50 @@ public class WorkerPool {
 				idleWorkers.decrementAndGet();
 				try {
 					handleTask(task);
-				} finally {
 					idleWorkers.incrementAndGet();
+				} catch (Throwable t) {
+					// Стан ClientHandler/потоку після цього не довіряємо - воркер
+					// свідомо йде на вихід замість повернення в чергу вільних.
+					// idleWorkers НЕ повертаємо: цей потік уже ніколи не стане
+					// вільним, а лише привидом у лічильнику (саме так виникав
+					// баг: idleWorkers лишався інкрементованим за потік, що
+					// щойно загинув, і maybeGrow() вважав пул вільним, коли він
+					// насправді усихав).
+					//
+					// Завершення потоку в Java не закриває ресурси само по собі
+					// (на відміну від завершення процесу) - сокет закриваємо явно.
+					System.err.println("WorkerPool: " + Thread.currentThread().getName()
+						+ " crashed on task from " + safeRemote(task) + ", closing socket and retiring worker");
+					t.printStackTrace();
+					closeQuietly(task.socket);
+					// Компенсуємо втрату потужності негайно нового воркера,
+					// а не через maybeGrow(): totalWorkers тут вже +1 (spawnWorker),
+					// нижче в finally поточний потік відніме своє -1 - сумарно 0,
+					// заміна один-на-один, а не безконтрольний ріст під флудом
+					// крах-запитів.
+					spawnWorker();
+					return;
 				}
 			}
 		} finally {
+			workers.remove(Thread.currentThread());
 			totalWorkers.decrementAndGet();
+		}
+	}
+
+	private static void closeQuietly(Socket socket) {
+		try {
+			socket.close();
+		} catch (IOException ignored) {
+			// сокет однаково викидаємо, помилка закриття тут не критична
+		}
+	}
+
+	private static String safeRemote(Task task) {
+		try {
+			return String.valueOf(task.socket.getInetAddress());
+		} catch (Exception e) {
+			return "unknown";
 		}
 	}
 
@@ -190,6 +233,36 @@ public class WorkerPool {
 		}
 		double idleRatio = (double) idleWorkers.get() / total;
 		return idleRatio > IDLE_TARGET_HIGH;
+	}
+
+	/**
+	 * Періодична страховка (кличеться з CacheAgent): звіряє реальну живучість
+	 * воркер-потоків із власним обліком (totalWorkers/idleWorkers) і доганяє
+	 * пул до MIN_WORKERS, якщо десь потік загинув в обхід штатного шляху вище
+	 * (наприклад, spawnWorker() під час аварійної заміни сам упав через
+	 * нестачу ресурсів - реалістично саме під час OutOfMemoryError). Для
+	 * штатного краху ця перевірка не потрібна - catch() у workerLoop() уже сам
+	 * все прибирає й заміняє синхронно, це саме страховка на випадок, коли
+	 * той шлях сам не спрацював.
+	 */
+	public void reconcile() {
+		int deadRemoved = 0;
+		for (Thread t : workers) {
+			if (!t.isAlive()) {
+				workers.remove(t);
+				deadRemoved++;
+			}
+		}
+		int alive = workers.size();
+		int reported = totalWorkers.get();
+		if (deadRemoved > 0 || alive != reported) {
+			System.err.println("WorkerPool: reconcile - " + deadRemoved + " dead thread(s) found, "
+				+ alive + " alive vs " + reported + " tracked - correcting");
+			totalWorkers.set(alive);
+		}
+		while (workers.size() < MIN_WORKERS) {
+			spawnWorker();
+		}
 	}
 
 	private void handleTask(Task task) {

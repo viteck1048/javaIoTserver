@@ -149,9 +149,21 @@ public class WorkerPool {
 	}
 
 	private void spawnWorker() {
-		totalWorkers.incrementAndGet();
+		spawnWorker(null);
+	}
+
+	/**
+	 * inheritName != null - нова нитка бере ім'я загиблого воркера (аварійна заміна
+	 * з workerLoop()): номери в логах не повзуть угору з кожним крахом, "worker-pool-7"
+	 * лишається "worker-pool-7". inheritName == null - штатний ріст пулу, ім'я за
+	 * поточним розміром (значення, яке повернув incrementAndGet(), а не окремий get() -
+	 * щоб паралельні spawn під флудом не давали двом ниткам однакове ім'я).
+	 */
+	private void spawnWorker(String inheritName) {
+		int size = totalWorkers.incrementAndGet();
 		idleWorkers.incrementAndGet();
-		Thread t = new Thread(this::workerLoop, "worker-pool-" + totalWorkers.get());
+		String name = inheritName != null ? inheritName : "worker-pool-" + size;
+		Thread t = new Thread(this::workerLoop, name);
 		t.setDaemon(true);
 		workers.add(t);
 		t.start();
@@ -190,16 +202,18 @@ public class WorkerPool {
 					//
 					// Завершення потоку в Java не закриває ресурси само по собі
 					// (на відміну від завершення процесу) - сокет закриваємо явно.
-					System.err.println("WorkerPool: " + Thread.currentThread().getName()
+					String name = Thread.currentThread().getName();
+					System.err.println("WorkerPool: " + name
 						+ " crashed on task from " + safeRemote(task) + ", closing socket and retiring worker");
 					t.printStackTrace();
 					closeQuietly(task.socket);
-					// Компенсуємо втрату потужності негайно нового воркера,
+					// Компенсуємо втрату потужності негайно нового воркера під тим самим іменем,
 					// а не через maybeGrow(): totalWorkers тут вже +1 (spawnWorker),
 					// нижче в finally поточний потік відніме своє -1 - сумарно 0,
 					// заміна один-на-один, а не безконтрольний ріст під флудом
 					// крах-запитів.
-					spawnWorker();
+					spawnWorker(name);
+					System.err.println("WorkerPool: " + name + " respawned to replace crashed worker");
 					return;
 				}
 			}

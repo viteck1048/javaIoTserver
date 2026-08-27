@@ -25,8 +25,7 @@ public final class OldServakHandler {
 		try {
 			nc = new NetworkClient(host, port, false);
 		} catch (IOException e) {
-			System.out.println("OldServakHandler error: " + e.getMessage());
-			e.printStackTrace();
+			ReverseProxy.logBackendDown("OLD_SERVAK", httpRequest, e);
 			return new HTTPResponse(503);
 		}
 

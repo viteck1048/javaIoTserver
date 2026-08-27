@@ -84,10 +84,21 @@ public final class ReverseProxy {
 			}
 			throw new IOException("Reverse type " + httpRequest.revers + " is disabled in the configuration");
 		} catch (Exception e) {
-			System.out.println("Error in reverse proxy: " + e.getMessage());
-			e.printStackTrace();
+			logBackendDown(String.valueOf(httpRequest.revers), httpRequest, e);
 			return new HTTPResponse(503);
 		}
+	}
+
+	/**
+	 * Компактний замінник e.printStackTrace() у catch-блоках реверс-хендлерів:
+	 * один рядок - який реверс, від кого, який запит, і суть збою. Без стектрейсу
+	 * (бек лежить - це очікувана подія, не баг сервера).
+	 */
+	static void logBackendDown(String rev, HTTPRequest r, Throwable e) {
+		String m = e.getMessage();
+		System.out.println("REVERS " + rev + " недоступний: "
+			+ r.clientAddress.getHostAddress() + " " + r.method + " " + r.path
+			+ " — " + e.getClass().getSimpleName() + (m != null ? ": " + m : ""));
 	}
 
 }

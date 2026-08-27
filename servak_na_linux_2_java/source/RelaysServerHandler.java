@@ -49,8 +49,7 @@ public final class RelaysServerHandler {
 		try {
 			nc = new NetworkClient(host, port, false);
 		} catch (IOException e) {
-			System.out.println("RelaysServerHandler error: " + e.getMessage());
-			e.printStackTrace();
+			ReverseProxy.logBackendDown("RELAYS_SERVER", httpRequest, e);
 			return new HTTPResponse(503);
 		}
 

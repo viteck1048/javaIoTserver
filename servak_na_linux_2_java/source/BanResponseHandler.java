@@ -26,8 +26,7 @@ public final class BanResponseHandler {
 		try {
 			nc = new NetworkClient(host, port, false);
 		} catch (IOException e) {
-			System.out.println("BanResponseHandler error: " + e.getMessage());
-			e.printStackTrace();
+			ReverseProxy.logBackendDown("BANRESPONSE", httpRequest, e);
 			return new HTTPResponse(503);
 		}
 

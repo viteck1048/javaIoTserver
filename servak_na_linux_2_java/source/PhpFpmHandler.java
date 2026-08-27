@@ -77,8 +77,7 @@ public final class PhpFpmHandler {
 			nc = new NetworkClient(host, port, false);
 			nc.setSoTimeout(timeout);
 		} catch (IOException e) {
-			System.out.println("PhpFpmHandler error: " + e.getMessage());
-			e.printStackTrace();
+			ReverseProxy.logBackendDown("PHP_FPM", httpRequest, e);
 			return new HTTPResponse(503);
 		}
 

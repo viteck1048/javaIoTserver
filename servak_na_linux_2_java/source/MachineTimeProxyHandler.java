@@ -50,8 +50,7 @@ public final class MachineTimeProxyHandler {
 		try {
 			nc = new NetworkClient(host, port, false);
 		} catch (IOException e) {
-			System.out.println("MachineTimeProxyHandler error: " + e.getMessage());
-			e.printStackTrace();
+			ReverseProxy.logBackendDown("MACHINE_TIME", httpRequest, e);
 			return new HTTPResponse(503);
 		}
 

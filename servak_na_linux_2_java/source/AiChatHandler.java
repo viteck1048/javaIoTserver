@@ -75,8 +75,7 @@ public final class AiChatHandler {
 			return new HTTPResponse(respHeaders, contentBytes, "AI chat response");
 
 		} catch (Exception e) {
-			System.out.println("AI Chat error: " + e.getMessage());
-			e.printStackTrace();
+			ReverseProxy.logBackendDown("AI_CHAT", httpRequest, e);
 			return new HTTPResponse(500);
 		} finally {
 			if (nc != null) nc.close();

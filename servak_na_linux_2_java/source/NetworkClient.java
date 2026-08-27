@@ -115,7 +115,7 @@ public class NetworkClient {
 			outputStream.flush();
 			return true;
 		} catch (IOException e) {
-			e.printStackTrace();
+			System.err.println("NetworkClient: send failed - " + e);
 			return false;
 		}
 	}
@@ -185,11 +185,9 @@ public class NetworkClient {
 			return result.toByteArray();
 		} catch (java.net.SocketTimeoutException e) {
 			System.err.println("NetworkClient.recvAll: Socket timeout");
-			e.printStackTrace();
 			return null;
 		} catch (IOException e) {
 			System.err.println("NetworkClient.recvAll: IOException - " + e.getMessage());
-			e.printStackTrace();
 			return null;
 		}
 	}
@@ -200,7 +198,7 @@ public class NetworkClient {
 			outputStream.flush();
 			return true;
 		} catch (IOException e) {
-			e.printStackTrace();
+			System.err.println("NetworkClient: send failed - " + e);
 			return false;
 		}
 	}
@@ -210,7 +208,7 @@ public class NetworkClient {
 			outputStream.write(data);
 			return true;
 		} catch (IOException e) {
-			e.printStackTrace();
+			System.err.println("NetworkClient: send failed - " + e);
 			return false;
 		}
 	}
@@ -219,7 +217,7 @@ public class NetworkClient {
 		try {
 			outputStream.flush();
 		} catch (IOException e) {
-			e.printStackTrace();
+			System.err.println("NetworkClient.sendFlush: " + e);
 		}
 	}
 
@@ -242,11 +240,9 @@ public class NetworkClient {
 			return buffer;
 		} catch (java.net.SocketTimeoutException e) {
 			System.err.println("NetworkClient.recvChunk: Socket timeout");
-			e.printStackTrace();
 			return null;
 		} catch (IOException e) {
 			System.err.println("NetworkClient.recvChunk: IOException - " + e.getMessage());
-			e.printStackTrace();
 			return null;
 		}
 	}
@@ -290,11 +286,9 @@ public class NetworkClient {
 			return baos.toByteArray();
 		} catch (java.net.SocketTimeoutException e) {
 			System.err.println("NetworkClient.recvChunkStr: Socket timeout");
-			e.printStackTrace();
 			return null;
 		} catch (IOException e) {
 			System.err.println("NetworkClient.recvChunkStr: IOException - " + e.getMessage());
-			e.printStackTrace();
 			return null;
 		}
 	}
@@ -353,7 +347,6 @@ public class NetworkClient {
 			// Таймаут - трейлери можуть бути відсутні
 		} catch (IOException e) {
 			System.err.println("NetworkClient.recvChunkTrash: IOException - " + e.getMessage());
-			e.printStackTrace();
 		}
 	}
 
@@ -391,11 +384,9 @@ public class NetworkClient {
 			return baos.toByteArray();
 		} catch (java.net.SocketTimeoutException e) {
 			System.err.println("NetworkClient.recvChunkHeaders: Socket timeout");
-			e.printStackTrace();
 			return null;
 		} catch (IOException e) {
 			System.err.println("NetworkClient.recvChunkHeaders: IOException - " + e.getMessage());
-			e.printStackTrace();
 			return null;
 		}
 	}

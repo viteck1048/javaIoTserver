@@ -121,8 +121,7 @@ public final class UniProxyHendler {
 			nc.setSoTimeout(300000);
 	//		nc.setTcpNoDelay(true);
 		} catch (IOException e) {
-			System.out.println("UniProxyHendler error: " + e.getMessage());
-			e.printStackTrace();
+			ReverseProxy.logBackendDown("UNI_PRXY", httpRequest, e);
 			return new HTTPResponse(503);
 		}
 		
@@ -266,8 +265,7 @@ public final class UniProxyHendler {
 			}
 		
 		} catch (IOException e) {
-			System.err.println("uniPrxy.recvAll: IOException - " + e.getMessage());
-			e.printStackTrace();
+			ReverseProxy.logBackendDown("UNI_PRXY", httpRequest, e);
 			return null;
 		} finally {
 			if (nc != null) {
